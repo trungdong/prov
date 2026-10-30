@@ -464,6 +464,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   has no blank-node identifiers. A PROV-JSONLD relation whose `@id` is a blank node, such
   as `"_:u"`, still reads as one with no identifier, as a PROV-JSON `_:` key does
   ([#725](https://github.com/trungdong/prov/issues/725))
+- In PROV-N, a `prefix` name with an escape, such as `prefix a\.b`, and a `\u` or `\U`
+  escape with a lowercase hex digit raise `ProvNSyntaxError` under every profile, where
+  3.2.3 read the prefix as `a.b` and the escape as its character
+  ([#729](https://github.com/trungdong/prov/issues/729))
 
 ### Additions
 

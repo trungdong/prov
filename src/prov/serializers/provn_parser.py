@@ -350,9 +350,10 @@ class ProvNParser:
         bundle's own declarations before the bundle exists, to resolve its
         identifier against them).
 
-        Raises at a repeated default, at a prefix that is not a PN_PREFIX, at
-        an IRI that is empty or starts with ``@``, and under the strict profile
-        at a default that follows a prefix and at a declaration of prov or xsd.
+        Raises at a repeated default, at a prefix that is not a PN_PREFIX as
+        written (so an escape fails the check), at an IRI that is empty or
+        starts with ``@``, and under the strict profile at a default that
+        follows a prefix and at a declaration of prov or xsd.
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -370,9 +371,9 @@ class ProvNParser:
                     )
                 iri = self._namespace_iri()
                 self._check_reserved_prefix(local, iri.value, name)
-                if not _PN_PREFIX_NAME.fullmatch(local):
+                if not _PN_PREFIX_NAME.fullmatch(name.text):
                     raise self._error(
-                        f"'{local}' is not a PROV-N prefix name, so no qualified"
+                        f"'{name.text}' is not a PROV-N prefix name, so no qualified"
                         " name can use it",
                         name,
                     )

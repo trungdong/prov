@@ -354,9 +354,9 @@ def _dropped(line: int, column: int, keyword: str) -> str:
 _AT_MESSAGE = "the namespace IRI '@foo/' cannot start with '@'"
 _BLANK_MESSAGE = "Not a valid URI to create a namespace."
 
-# The declarations and whitespace the reader rejects (#508, #509, #510, #511,
-# #519 a and d): the document, the profiles that reject it, the message and
-# the line and column of the ProvNSyntaxError.
+# The declarations, escapes and whitespace the reader rejects (#508, #509,
+# #510, #511, #519 a and d, #729): the document, the profiles that reject it,
+# the message and the line and column of the ProvNSyntaxError.
 REJECTED_DOCUMENTS = [
     pytest.param(
         "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument",
@@ -373,8 +373,15 @@ REJECTED_DOCUMENTS = [
             (2, 8),
             id=f"prefix {name}",
         )
-        for name in ("_", "a/b", "1a")
+        for name in ("_", "a/b", "1a", r"a\.b")
     ],
+    pytest.param(
+        f'{STATEMENT_PREFIX}entity(ex:e, [ex:k="caf\\u00e9"])\nendDocument',
+        EVERY,
+        "escape '\\u' needs four uppercase hex digits",
+        (3, 24),
+        id="lowercase code point escape",
+    ),
     *[
         pytest.param(
             f"document\n{declaration}\nentity(e)\nendDocument",

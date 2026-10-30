@@ -418,7 +418,6 @@ def test_carriage_return_ends_a_short_literal(text) -> None:
     ("text", "expected"),
     [
         (r'"caf\u00E9"', "café"),
-        (r'"caf\u00e9"', "café"),
         (r'"\U0001F600"', "\U0001f600"),
         (r'"""caf\u00E9\nline"""', "café\nline"),
         (r'"a\u0022b"', 'a"b'),
@@ -434,11 +433,12 @@ def test_code_point_escapes_are_decoded(text, expected) -> None:
 @pytest.mark.parametrize(
     ("text", "message", "column"),
     [
-        (r'"ab\u00G9"', r"escape '\u' needs four hex digits", 4),
-        (r'"ab\U0001F60"', r"escape '\U' needs eight hex digits", 4),
+        (r'"ab\u00G9"', r"escape '\u' needs four uppercase hex digits", 4),
+        (r'"ab\U0001F60"', r"escape '\U' needs eight uppercase hex digits", 4),
+        (r'"\U0001f600"', r"escape '\U' needs eight uppercase hex digits", 2),
         (r'"ab\uD800"', r"escape '\uD800' is not a Unicode scalar value", 4),
         (r'"ab\U00110000"', r"escape '\U00110000' is not a Unicode scalar value", 4),
-        (r"<http://a/\u00G9>", r"escape '\u' needs four hex digits", 11),
+        (r"<http://a/\u00G9>", r"escape '\u' needs four uppercase hex digits", 11),
         (r"<http://a/\q>", r"unknown IRI escape '\q'", 11),
         (r"<http://a/\n>", r"unknown IRI escape '\n'", 11),
         (r"<http://a/\\>", r"unknown IRI escape '\\'", 11),
@@ -463,7 +463,8 @@ def test_bad_code_point_escape_raises_at_the_escape(text, message, column) -> No
 
 def test_bad_code_point_escape_position_on_a_later_line_of_a_long_string() -> None:
     with pytest.raises(
-        ProvNSyntaxError, match=re.escape(r"escape '\u' needs four hex digits")
+        ProvNSyntaxError,
+        match=re.escape(r"escape '\u' needs four uppercase hex digits"),
     ) as ctx:
         list(tokenize('"""ab\ncd \\u12"""'))
     assert (ctx.value.line, ctx.value.column) == (2, 4)
