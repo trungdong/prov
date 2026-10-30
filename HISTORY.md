@@ -108,7 +108,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   attribute value or a `hadMember` member the same way, where 3.2.3 compacted a full IRI
   or dropped a value it could not resolve. Every reader resolves a qualified name by its
   prefix in scope and never by matching a declared namespace IRI against the text, so
-  `http://example.org/x` is the prefix `http`, and a prefix the document declares is found
+  `http://example.org/x` is the prefix `http` (PROV-JSONLD's `@id` and `@type` are IRIs,
+  which a declared namespace compacts), and a prefix the document declares is found
   from a bundle before the bundle's own namespaces could compact the text. A value equal
   to a default namespace IRI in reach is rejected because the IRI has no qualified-name
   form and needs a prefix, from PROV-N, PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O, and in
