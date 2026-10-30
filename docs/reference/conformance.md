@@ -175,7 +175,8 @@ ProvToolbox's reader rejects them; they raise `ProvNSyntaxError` under `strict` 
 The reader also accepts a leading byte order mark, a carriage return as a line end, an
 all-digit local name as an attribute name or datatype, and a `bytearray` stream. A
 prefix declared twice in one scope, a repeated `default`, a declared prefix that is not
-a `PN_PREFIX`, a Unicode whitespace character other than space, tab, CR and LF between
+a `PN_PREFIX`, a prefix name that holds an escape, a code point escape with a lowercase
+hex digit, a Unicode whitespace character other than space, tab, CR and LF between
 tokens, a duplicate bundle identifier, and an attribute named after one of the
 statement's own arguments are errors.
 

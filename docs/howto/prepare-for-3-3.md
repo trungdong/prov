@@ -34,12 +34,15 @@ first character does not name its reader. Pass `format=` to see the rule on its 
 | `the qualified name 'xsi:type' does not resolve, because its prefix 'xsi' is not declared` | [#510](https://github.com/trungdong/prov/issues/510) | `[xsi:type="ex:T"]` with no `prefix xsi` line | Add `prefix xsi <http://www.w3.org/2001/XMLSchema-instance>`. |
 | `'default' follows a 'prefix' declaration` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix ex <…>` followed by `default <…>` | The `default` declaration first. |
 | `prefix 'prov' is predeclared` or `prefix 'xsd' is predeclared` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix prov <http://www.w3.org/ns/prov#>` | No declaration. Both prefixes are predeclared. |
+| `a prefix cannot contain an escape` | [#729](https://github.com/trungdong/prov/issues/729) | `prefix a\.b <http://x/>` | `prefix a.b <http://x/>`. |
 
 Each is a `ProvNSyntaxError` at the declaration or, for an undeclared `xsi:` name, at
 the name. In 3.2.3 the first two rows and the two strict-profile rows warn with the same
 text; an undeclared `xsi:` name warns `prefix 'xsi' is not declared`. `prov` 3.2.2 and
 earlier wrote `xsi:` names without a `prefix xsi` line. Reading such a file and writing
 it again with `prov` 3.2.3 adds the declaration, so do that before upgrading.
+In 3.2.3 a prefix name that held an escape read with the escape removed, so `prefix a\.b`
+declared `a.b`.
 
 ## PROV-N whitespace
 
@@ -51,6 +54,16 @@ Each is a `ProvNSyntaxError` at the character, and the same error names any othe
 whitespace character between tokens, such as U+000C (form feed) or U+2028 (line
 separator). U+1680 is a name character, so `entity(` followed by U+1680 and `ex:e)` fails
 at the name instead. Whitespace inside a string, an IRI or a comment is unchanged.
+
+## PROV-N escapes
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `escape '\u' needs four uppercase hex digits` | [#729](https://github.com/trungdong/prov/issues/729) | `"caf\u00e9"` | `"caf\u00E9"`. |
+
+The same holds in an IRI, and `\U` takes eight uppercase hex digits. The error is a
+`ProvNSyntaxError` at the escape under every profile. In 3.2.3 the reader took a lowercase
+digit and read the escape as its character.
 
 ## PROV-N statements
 
