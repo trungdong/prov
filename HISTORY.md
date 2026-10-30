@@ -445,6 +445,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   that `prov:Derivation` in every triple order, where 3.2.3 kept or dropped it by the order
   it met the two `rdf:type` triples (C12 on the conformance page)
   ([#697](https://github.com/trungdong/prov/issues/697))
+- A PROV-JSONLD value object whose `@type` no declared namespace resolves, such as
+  `{"@value": "1", "@type": "zz:t"}`, a full IRI no namespace compacts or a blank node,
+  raises `ProvJSONLDException` with the sentence a node reference raises: `the qualified
+  name 'zz:t' of ex:a does not resolve, because its prefix 'zz' is not declared`, where
+  3.2.3 read the value as plain text. A `@type` that is not a string, such as `5`, raises
+  as well ([#673](https://github.com/trungdong/prov/issues/673))
 
 ### Additions
 

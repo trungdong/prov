@@ -487,6 +487,23 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     return text
 
 
+def _resolve_reference(
+    bundle: ProvBundle, text: str, attr: QualifiedName
+) -> QualifiedName:
+    """The qualified name a declared namespace gives ``text``, or raise.
+
+    Raises:
+        ProvJSONLDException: If no declared namespace resolves ``text``.
+    """
+    resolved = bundle.valid_qualified_name(text)
+    if resolved is not None:
+        return resolved
+    name = resolve_name(bundle, text, attr=attr)
+    if isinstance(name, str):
+        raise ProvJSONLDException(name)
+    return name
+
+
 def decode_jsonld_value(
     value: Any, bundle: ProvBundle, term: str, *, attr: QualifiedName, record: str
 ) -> Any:
@@ -501,7 +518,8 @@ def decode_jsonld_value(
     the text. A value object is a language-tagged or datatyped
     :class:`~prov.model.Literal`, which the model resolves when its datatype
     is ``xsd:QName`` or ``prov:QUALIFIED_NAME`` (#168, #238), or the text
-    when it has no type.
+    when it has no type. A value object's datatype resolves as a node
+    reference does, so one no declared namespace resolves raises.
 
     Args:
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
@@ -523,8 +541,9 @@ def decode_jsonld_value(
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
             object, if a node reference has keys other than ``"@id"`` or an
             empty ``"@id"``, if a value object is missing its required
-            ``"@value"`` key, or if a node reference or an ``@id``-typed
-            bare string resolves in no declared namespace.
+            ``"@value"`` key or holds a ``"@type"`` that is not a string, or
+            if a node reference, an ``@id``-typed bare string or a value
+            object's datatype resolves in no declared namespace.
     """
     if isinstance(value, str):
         if term not in ID_TYPED_TERMS:
@@ -533,7 +552,7 @@ def decode_jsonld_value(
     else:
         value = _expect_object(value, f"A value of {term!r}")
         if "@id" not in value:
-            return _decode_value_object(value, bundle, term)
+            return _decode_value_object(value, bundle, term, attr=attr)
         text = _decode_node_reference(value, term)
     if text.startswith("_:"):
         warn(
@@ -541,17 +560,19 @@ def decode_jsonld_value(
             "the value is dropped"
         )
         return None
-    resolved = bundle.valid_qualified_name(text)
-    if resolved is not None:
-        return resolved
-    name = resolve_name(bundle, text, attr=attr)
-    if isinstance(name, str):
-        raise ProvJSONLDException(name)
-    return name
+    return _resolve_reference(bundle, text, attr)
 
 
-def _decode_value_object(value: dict[str, Any], bundle: ProvBundle, term: str) -> Any:
-    """Decode a ``{"@value": ...}`` object into a ``Literal`` or its text."""
+def _decode_value_object(
+    value: dict[str, Any], bundle: ProvBundle, term: str, *, attr: QualifiedName
+) -> Any:
+    """Decode a ``{"@value": ...}`` object into a ``Literal`` or its text.
+
+    Raises:
+        ProvJSONLDException: If the ``"@value"`` key is missing, if
+            ``"@type"`` is not a string or if no declared namespace resolves
+            it.
+    """
     try:
         text = value["@value"]
     except KeyError as exc:
@@ -564,7 +585,12 @@ def _decode_value_object(value: dict[str, Any], bundle: ProvBundle, term: str) -
     datatype_str = value.get("@type")
     if datatype_str is None:
         return text
-    return Literal(text, bundle.valid_qualified_name(datatype_str))
+    if not isinstance(datatype_str, str):
+        raise ProvJSONLDException(
+            f'A value object for {term!r} must hold a string "@type"; '
+            f"found {datatype_str!r}"
+        )
+    return Literal(text, _resolve_reference(bundle, datatype_str, attr))
 
 
 def _decode_formal_time(value: Any, type_term: str, key: str) -> datetime.datetime:
