@@ -303,9 +303,10 @@ def test_deserialize_empty_key_and_vocab_in_one_context_object() -> None:
 def _unresolved(text: str, attr: str) -> str:
     """The regex for the sentence a reference no namespace resolves raises (5.8)."""
     prefix = text.partition(":")[0]
+    reason = "is reserved for blank nodes" if prefix == "_" else "is not declared"
     return re.escape(
         f"the qualified name {text!r} of {attr} does not resolve, "
-        f"because its prefix {prefix!r} is not declared"
+        f"because its prefix {prefix!r} {reason}"
     )
 
 
@@ -447,6 +448,47 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
         (
             {"@context": [], "@graph": [{"@type": "Bundle"}]},
             'A Bundle requires an "@id"',
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Entity",
+                        "@id": "ex:e1",
+                        "ex:a": [{"@value": "1", "@type": 5}],
+                    }
+                ],
+            },
+            'must hold a string "@type"',
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Entity",
+                        "@id": "ex:e1",
+                        "ex:a": [{"@value": "1", "@type": None}],
+                    }
+                ],
+            },
+            'must hold a string "@type"',
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Entity",
+                        "@id": "ex:e1",
+                        "ex:a": [
+                            {"@value": "x", "@language": "en", "@type": "xsd:string"}
+                        ],
+                    }
+                ],
+            },
+            'cannot hold both "@language" and "@type"',
         ),
     ],
 )
@@ -750,12 +792,18 @@ def test_deserialize_value_object_without_value_raises() -> None:
         pytest.param(
             "ex:ref", {"@value": "ex:thing", "@type": "xsd:QName"}, id="declared"
         ),
+        pytest.param(
+            "ex:ref",
+            {"@value": "ex:thing", "@type": "http://www.w3.org/2001/XMLSchema#QName"},
+            id="datatype-iri",
+        ),
     ],
 )
 def test_deserialize_iri_value_is_the_qualified_name(
     key: str, value: str | dict[str, str]
 ) -> None:
-    # An @id, or a compactable bare full IRI under an @id-typed term, is the name.
+    # An @id, a compactable bare full IRI under an @id-typed term and a value
+    # object's datatype a declared namespace compacts are all resolved.
     doc = ProvDocument.deserialize(content=_entity_with(key, [value]), format="jsonld")
     (entity,) = doc.get_records()
     (read,) = [v for _, v in entity.extra_attributes]
@@ -813,13 +861,32 @@ def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
             "prov:location",
             id="bare-location",
         ),
+        pytest.param(
+            _entity_with("ex:a", [{"@value": "1", "@type": "zz:t"}]),
+            "zz:t",
+            "ex:a",
+            id="datatype-prefix",
+        ),
+        pytest.param(
+            _entity_with("ex:a", [{"@value": "1", "@type": "http://other.org/t"}]),
+            "http://other.org/t",
+            "ex:a",
+            id="datatype-iri",
+        ),
+        pytest.param(
+            _entity_with("ex:a", [{"@value": "1", "@type": "_:b1"}]),
+            "_:b1",
+            "ex:a",
+            id="datatype-blank",
+        ),
     ],
 )
 def test_deserialize_reference_no_namespace_resolves_is_rejected(
     content: str, text: str, attr: str
 ) -> None:
-    # A node reference, or a bare string under an @id-typed term, that no
-    # declared namespace resolves raises the 5.8 sentence (#609).
+    # A node reference, a bare string under an @id-typed term or a value
+    # object's datatype that no declared namespace resolves raises the 5.8
+    # sentence (#609, #673).
     with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr)):
         ProvDocument.deserialize(content=content, format="jsonld")
 
