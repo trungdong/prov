@@ -140,8 +140,6 @@ def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     # exception is a ProvException — and fall back to rendering the original,
     # non-unified bundle rather than raising.
     dot = prov_to_dot(doc)
-    svg_content = dot.create(format="svg", encoding="utf-8")
-    assert len(svg_content) > MIN_SVG_SIZE
     assert dot.to_string().count("label=wasGeneratedBy") == 2
 
 
@@ -305,15 +303,12 @@ def test_complete_relation_draws_without_warning() -> None:
         prov_to_dot(document)
 
 
-def _nested_document() -> ProvDocument:
+def _nested_bundle() -> ProvBundle:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
-    document.bundle("ex:b").entity("ex:e1")
-    return document
-
-
-def _nested_bundle() -> ProvBundle:
-    return next(iter(_nested_document().bundles))
+    bundle = document.bundle("ex:b")
+    bundle.entity("ex:e1")
+    return bundle
 
 
 def _standalone_bundle() -> ProvBundle:

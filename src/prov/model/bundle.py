@@ -846,7 +846,8 @@ class ProvBundle:
         """The unified bundle, built inside ``document``, or standalone."""
         bundle = ProvBundle(identifier=self.identifier, document=document)
         # a standalone copy declares what the bundle reads through its document;
-        # the branch goes with ProvBundle.unified() in 4.0
+        # the branch goes in 4.0 with ProvBundle.unified() and with prov_to_dot,
+        # which draws a bundle that is not a document
         enclosing = self._document if document is None else None
         if enclosing is not None:
             # first, so a namespace both scopes bind keeps the document's prefix

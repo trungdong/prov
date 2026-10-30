@@ -590,7 +590,7 @@ def prov_to_dot(
     try:
         unified = bundle.unified() if is_document else bundle._unified_copy(None)
     except ProvException:
-        # Could not unify this bundle
+        # Could not unify the argument
         # try the original document anyway
         unified = bundle
 
