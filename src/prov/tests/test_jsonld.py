@@ -23,6 +23,15 @@ from prov.serializers.provjsonld import (
     ProvJSONLDException,
 )
 
+from .conftest import (
+    BLANK_PREFIX,
+    HTTP_PREFIX,
+    NO_PREFIX,
+    UNDECLARED_PREFIX,
+    unresolved_sentence,
+)
+from .jsonld_statements import statement_dict, statement_of, usage_with
+
 EX_URI = "http://example.org/"
 FIXTURE_DIR = Path(__file__).parent / "jsonld"
 
@@ -35,35 +44,6 @@ def _new_doc() -> ProvDocument:
 
 def _dump(doc: ProvDocument, **kwargs) -> dict:
     return json.loads(doc.serialize(format="jsonld", **kwargs))
-
-
-def _statement_text(statement: dict[str, Any]) -> str:
-    """One statement as JSON-LD text under the ``ex`` context."""
-    return json.dumps(
-        {
-            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
-            "@graph": [statement],
-        }
-    )
-
-
-def _statement_of(kind: str, ident: Any = None, **terms: Any) -> str:
-    """A statement of type ``kind``, with ``"@id"`` ``ident`` unless ``None``
-    and the keys ``terms``, as JSON-LD text."""
-    statement = {"@type": kind, **({} if ident is None else {"@id": ident}), **terms}
-    return _statement_text(statement)
-
-
-def _entity_with(key: str, values: list) -> str:
-    return _statement_text({"@type": "Entity", "@id": "ex:e1", key: values})
-
-
-def _usage_with(ident: str | None = "ex:u1", **terms: Any) -> str:
-    """A ``Usage`` of ``ex:e`` by ``ex:a`` whose keys ``terms`` replace or extend
-    the formal ones."""
-    return _statement_of(
-        "Usage", ident, **{"activity": "ex:a", "entity": "ex:e"} | terms
-    )
 
 
 def test_serialize_basic_shape() -> None:
@@ -333,10 +313,8 @@ def _unresolved(label: str, text: str, reason: str, attr: str | None = None) -> 
     """The regex for the message a statement raises when no namespace resolves
     ``text``: the label, the model's frame and its sentence (spec 5, 3.7)."""
     of = f" of {attr}" if attr else ""
-    return re.escape(
-        f"{label}: Invalid Qualified Name: {text}, "
-        f"the qualified name {text!r}{of} does not resolve, because {reason}"
-    )
+    sentence = unresolved_sentence(text, reason, of)
+    return re.escape(f"{label}: Invalid Qualified Name: {text}, {sentence}")
 
 
 def test_deserialize_bundle_id_equal_to_the_vocab_iri_is_rejected() -> None:
@@ -442,7 +420,7 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
         ({"@context": [], "@graph": [{"@type": "Mention"}]}, "Mention"),
         ({"@context": [], "@graph": [{"@type": "Entity"}]}, "@id"),
         (
-            json.loads(_statement_of("Generation", entity=["ex:e1", "ex:e2"])),
+            statement_dict("Generation", entity=["ex:e1", "ex:e2"]),
             "an anonymous prov:Generation: The formal attribute 'entity'.*single",
         ),
         ({"@context": [], "@graph": [{"@type": None}]}, "@type"),
@@ -450,52 +428,52 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
         ({"@context": [], "@graph": [{"@type": ["Entity"]}]}, "@type"),
         ({"@context": [], "@graph": {}}, "must be a JSON array; found dict"),
         (
-            json.loads(
-                _statement_of(
-                    "Activity", "ex:a", startTime="2012-01-01T00:00:00.1234567Z"
-                )
+            statement_dict(
+                "Activity", "ex:a", startTime="2012-01-01T00:00:00.1234567Z"
             ),
             "'startTime' attribute is not an xsd:dateTime",
         ),
         (
-            json.loads(_statement_of("Activity", "ex:a", startTime=5)),
+            statement_dict("Activity", "ex:a", startTime=5),
             "'startTime' attribute is not an xsd:dateTime",
         ),
-        (json.loads(_statement_of("Bundle")), 'A Bundle requires an "@id"'),
+        (statement_dict("Bundle"), 'A Bundle requires an "@id"'),
         (
             {"@context": [], "@graph": [{"@type": "Bundle", "@id": None}]},
             'A Bundle requires an "@id"',
         ),
         (
-            json.loads(_entity_with("ex:a", [{"@value": "1", "@type": 5}])),
+            statement_dict(
+                "Entity", "ex:e1", **{"ex:a": [{"@value": "1", "@type": 5}]}
+            ),
             'must hold a string "@type"',
         ),
         (
-            json.loads(_entity_with("ex:a", [{"@value": "1", "@type": None}])),
+            statement_dict(
+                "Entity", "ex:e1", **{"ex:a": [{"@value": "1", "@type": None}]}
+            ),
             'must hold a string "@type"',
         ),
         (
-            json.loads(
-                _entity_with(
-                    "ex:a", [{"@value": "x", "@language": "en", "@type": "xsd:string"}]
-                )
+            statement_dict(
+                "Entity",
+                "ex:e1",
+                **{"ex:a": [{"@value": "x", "@language": "en", "@type": "xsd:string"}]},
             ),
             'cannot hold both "@language" and "@type"',
         ),
         (
-            json.loads(_statement_of("Usage", "ex:u1", activity="ex:a", entity=5)),
+            statement_dict("Usage", "ex:u1", activity="ex:a", entity=5),
             re.escape("prov:Usage 'ex:u1': Invalid Qualified Name: 5"),
         ),
         (
-            json.loads(
-                _statement_of(
-                    "Membership", "ex:m1", collection="ex:c", entity=["ex:e", 5]
-                )
+            statement_dict(
+                "Membership", "ex:m1", collection="ex:c", entity=["ex:e", 5]
             ),
             re.escape("prov:Membership 'ex:m1': Invalid Qualified Name: 5"),
         ),
         (
-            json.loads(_statement_of("Entity", 5)),
+            statement_dict("Entity", 5),
             re.escape("prov:Entity 5: Invalid Qualified Name: 5"),
         ),
     ],
@@ -739,7 +717,8 @@ def test_interop_provtoolbox_string_with_colon() -> None:
 @pytest.mark.parametrize("key", ["type", "prov:type", "value", "ex:ref"])
 def test_deserialize_node_reference_under_any_key(key) -> None:
     doc = ProvDocument.deserialize(
-        content=_entity_with(key, [{"@id": "ex:thing"}]), format="jsonld"
+        content=statement_of("Entity", "ex:e1", **{key: [{"@id": "ex:thing"}]}),
+        format="jsonld",
     )
     (entity,) = doc.get_records()
     (value,) = [v for _, v in entity.extra_attributes]
@@ -748,7 +727,10 @@ def test_deserialize_node_reference_under_any_key(key) -> None:
 
 def test_deserialize_node_reference_with_absolute_iri() -> None:
     doc = ProvDocument.deserialize(
-        content=_entity_with("ex:ref", [{"@id": EX_URI + "thing"}]), format="jsonld"
+        content=statement_of(
+            "Entity", "ex:e1", **{"ex:ref": [{"@id": EX_URI + "thing"}]}
+        ),
+        format="jsonld",
     )
     (entity,) = doc.get_records()
     (value,) = [v for _, v in entity.extra_attributes]
@@ -760,20 +742,22 @@ def test_deserialize_node_reference_with_absolute_iri() -> None:
     [{"@value": "x"}, {"@type": "xsd:string"}, {"@language": "en"}, {"ex:p": "x"}],
 )
 def test_deserialize_node_reference_with_other_keys_raises(extra) -> None:
-    payload = _entity_with("ex:ref", [{"@id": "ex:thing", **extra}])
+    payload = statement_of(
+        "Entity", "ex:e1", **{"ex:ref": [{"@id": "ex:thing", **extra}]}
+    )
     with pytest.raises(ProvJSONLDException, match="@id"):
         ProvDocument.deserialize(content=payload, format="jsonld")
 
 
 @pytest.mark.parametrize("node_id", [42, ""])
 def test_deserialize_node_reference_with_bad_id_raises(node_id) -> None:
-    payload = _entity_with("ex:ref", [{"@id": node_id}])
+    payload = statement_of("Entity", "ex:e1", **{"ex:ref": [{"@id": node_id}]})
     with pytest.raises(ProvJSONLDException, match="@id"):
         ProvDocument.deserialize(content=payload, format="jsonld")
 
 
 def test_deserialize_value_object_without_value_raises() -> None:
-    payload = _entity_with("ex:ref", [{"@type": "xsd:string"}])
+    payload = statement_of("Entity", "ex:e1", **{"ex:ref": [{"@type": "xsd:string"}]})
     with pytest.raises(ProvJSONLDException, match="@value"):
         ProvDocument.deserialize(content=payload, format="jsonld")
 
@@ -798,16 +782,16 @@ def test_deserialize_iri_value_is_the_qualified_name(
 ) -> None:
     # An @id, a compactable bare full IRI under an @id-typed term and a value
     # object's datatype a declared namespace compacts are all resolved.
-    doc = ProvDocument.deserialize(content=_entity_with(key, [value]), format="jsonld")
+    doc = ProvDocument.deserialize(
+        content=statement_of("Entity", "ex:e1", **{key: [value]}), format="jsonld"
+    )
     (entity,) = doc.get_records()
     (read,) = [v for _, v in entity.extra_attributes]
     assert read == doc.valid_qualified_name("ex:thing")
 
 
 def test_deserialize_blank_node_relation_id_reads_anonymous() -> None:
-    content = _statement_text(
-        {"@type": "Usage", "@id": "_:u", "activity": "ex:a", "entity": "ex:e"}
-    )
+    content = usage_with("_:u")
     doc = ProvDocument.deserialize(content=content, format="jsonld")
     (usage,) = doc.get_records()
     assert usage.identifier is None
@@ -815,10 +799,6 @@ def test_deserialize_blank_node_relation_id_reads_anonymous() -> None:
 
 _E1 = "prov:Entity 'ex:e1'"
 _U1 = "prov:Usage 'ex:u1'"
-_NO_PREFIX = "it has no prefix and no default namespace is declared"
-_BLANK = "its prefix '_' is reserved for blank nodes"
-_ZZ = "its prefix 'zz' is not declared"
-_HTTP = "its prefix 'http' is not declared"
 _NOPE = "its prefix 'nope' is not declared"
 _OTHER = "http://other.org/"
 
@@ -827,95 +807,103 @@ _OTHER = "http://other.org/"
     ("content", "match"),
     [
         pytest.param(
-            _entity_with("ex:ref", [{"@id": _OTHER + "x"}]),
-            _unresolved(_E1, _OTHER + "x", _HTTP, "ex:ref"),
+            statement_of("Entity", "ex:e1", **{"ex:ref": [{"@id": _OTHER + "x"}]}),
+            _unresolved(_E1, _OTHER + "x", HTTP_PREFIX, "ex:ref"),
             id="node-iri",
         ),
         pytest.param(
-            _entity_with("ex:ref", [{"@id": "nope:thing"}]),
+            statement_of("Entity", "ex:e1", **{"ex:ref": [{"@id": "nope:thing"}]}),
             _unresolved(_E1, "nope:thing", _NOPE, "ex:ref"),
             id="node-prefix",
         ),
         pytest.param(
-            _entity_with("type", [_OTHER + "x"]),
-            _unresolved(_E1, _OTHER + "x", _HTTP, "prov:type"),
+            statement_of("Entity", "ex:e1", **{"type": [_OTHER + "x"]}),
+            _unresolved(_E1, _OTHER + "x", HTTP_PREFIX, "prov:type"),
             id="bare-type-iri",
         ),
         pytest.param(
-            _entity_with("type", ["zz:x"]),
-            _unresolved(_E1, "zz:x", _ZZ, "prov:type"),
+            statement_of("Entity", "ex:e1", **{"type": ["zz:x"]}),
+            _unresolved(_E1, "zz:x", UNDECLARED_PREFIX, "prov:type"),
             id="bare-type-prefix",
         ),
         pytest.param(
-            _usage_with(role=["zz:R"]),
-            _unresolved(_U1, "zz:R", _ZZ, "prov:role"),
+            usage_with(role=["zz:R"]),
+            _unresolved(_U1, "zz:R", UNDECLARED_PREFIX, "prov:role"),
             id="bare-role",
         ),
         pytest.param(
-            _entity_with("location", ["zz:L"]),
-            _unresolved(_E1, "zz:L", _ZZ, "prov:location"),
+            statement_of("Entity", "ex:e1", **{"location": ["zz:L"]}),
+            _unresolved(_E1, "zz:L", UNDECLARED_PREFIX, "prov:location"),
             id="bare-location",
         ),
         pytest.param(
-            _entity_with("ex:a", [{"@value": "1", "@type": "zz:t"}]),
-            _unresolved(_E1, "zz:t", _ZZ, "ex:a"),
+            statement_of(
+                "Entity", "ex:e1", **{"ex:a": [{"@value": "1", "@type": "zz:t"}]}
+            ),
+            _unresolved(_E1, "zz:t", UNDECLARED_PREFIX, "ex:a"),
             id="datatype-prefix",
         ),
         pytest.param(
-            _entity_with("ex:a", [{"@value": "1", "@type": _OTHER + "t"}]),
-            _unresolved(_E1, _OTHER + "t", _HTTP, "ex:a"),
+            statement_of(
+                "Entity", "ex:e1", **{"ex:a": [{"@value": "1", "@type": _OTHER + "t"}]}
+            ),
+            _unresolved(_E1, _OTHER + "t", HTTP_PREFIX, "ex:a"),
             id="datatype-iri",
         ),
         pytest.param(
-            _entity_with("ex:a", [{"@value": "1", "@type": "_:b1"}]),
-            _unresolved(_E1, "_:b1", _BLANK, "ex:a"),
+            statement_of(
+                "Entity", "ex:e1", **{"ex:a": [{"@value": "1", "@type": "_:b1"}]}
+            ),
+            _unresolved(_E1, "_:b1", BLANK_PREFIX, "ex:a"),
             id="datatype-blank",
         ),
         pytest.param(
-            _usage_with(entity="zz:e"),
-            _unresolved(_U1, "zz:e", _ZZ, "prov:entity"),
+            usage_with(entity="zz:e"),
+            _unresolved(_U1, "zz:e", UNDECLARED_PREFIX, "prov:entity"),
             id="formal-value",
         ),
         pytest.param(
-            _statement_of(
+            statement_of(
                 "Membership", "ex:m1", collection="ex:c", entity=["ex:e", "zz:e"]
             ),
-            _unresolved("prov:Membership 'ex:m1'", "zz:e", _ZZ, "prov:entity"),
+            _unresolved(
+                "prov:Membership 'ex:m1'", "zz:e", UNDECLARED_PREFIX, "prov:entity"
+            ),
             id="member",
         ),
         pytest.param(
-            _entity_with("zz:a", ["x"]),
-            _unresolved(_E1, "zz:a", _ZZ),
+            statement_of("Entity", "ex:e1", **{"zz:a": ["x"]}),
+            _unresolved(_E1, "zz:a", UNDECLARED_PREFIX),
             id="attribute-key",
         ),
         pytest.param(
-            _statement_of("Entity", "zz:e"),
-            _unresolved("prov:Entity 'zz:e'", "zz:e", _ZZ),
+            statement_of("Entity", "zz:e"),
+            _unresolved("prov:Entity 'zz:e'", "zz:e", UNDECLARED_PREFIX),
             id="element-prefix",
         ),
         pytest.param(
-            _statement_of("Entity", _OTHER + "e"),
-            _unresolved(f"prov:Entity '{_OTHER}e'", _OTHER + "e", _HTTP),
+            statement_of("Entity", _OTHER + "e"),
+            _unresolved(f"prov:Entity '{_OTHER}e'", _OTHER + "e", HTTP_PREFIX),
             id="element-iri",
         ),
         pytest.param(
-            _statement_of("Entity", "_:e"),
-            _unresolved("prov:Entity '_:e'", "_:e", _BLANK),
+            statement_of("Entity", "_:e"),
+            _unresolved("prov:Entity '_:e'", "_:e", BLANK_PREFIX),
             id="element-blank",
         ),
         pytest.param(
-            _statement_of("Entity", "e"),
-            _unresolved("prov:Entity 'e'", "e", _NO_PREFIX),
+            statement_of("Entity", "e"),
+            _unresolved("prov:Entity 'e'", "e", NO_PREFIX),
             id="element-no-prefix",
         ),
         pytest.param(
-            _usage_with("zz:u"),
-            _unresolved("prov:Usage 'zz:u'", "zz:u", _ZZ),
+            usage_with("zz:u"),
+            _unresolved("prov:Usage 'zz:u'", "zz:u", UNDECLARED_PREFIX),
             id="relation-id",
         ),
         pytest.param(
-            _statement_of("Bundle", "zz:b", **{"@graph": []}),
-            _unresolved("prov:Bundle 'zz:b'", "zz:b", _ZZ),
+            statement_of("Bundle", "zz:b", **{"@graph": []}),
+            _unresolved("prov:Bundle 'zz:b'", "zz:b", UNDECLARED_PREFIX),
             id="bundle-id",
         ),
     ],
@@ -939,24 +927,28 @@ _DROP_WARNING = (
     ("content", "record", "attr", "kept"),
     [
         pytest.param(
-            _entity_with("type", [_DROPPED_NODE]),
+            statement_of("Entity", "ex:e1", **{"type": [_DROPPED_NODE]}),
             "ex:e1",
             "prov:type",
             [],
             id="node-type",
         ),
         pytest.param(
-            _entity_with("type", ["_:b1"]), "ex:e1", "prov:type", [], id="bare-type"
+            statement_of("Entity", "ex:e1", **{"type": ["_:b1"]}),
+            "ex:e1",
+            "prov:type",
+            [],
+            id="bare-type",
         ),
         pytest.param(
-            _entity_with("ex:attr", [_DROPPED_NODE, "x"]),
+            statement_of("Entity", "ex:e1", **{"ex:attr": [_DROPPED_NODE, "x"]}),
             "ex:e1",
             "ex:attr",
             [("ex:attr", "x")],
             id="node-attr",
         ),
         pytest.param(
-            _usage_with(None, role=[_DROPPED_NODE]),
+            usage_with(None, role=[_DROPPED_NODE]),
             "an anonymous prov:Usage",
             "prov:role",
             [],
@@ -993,7 +985,8 @@ def test_deserialize_bare_blank_label_stays_text_and_null_value_warns_nothing(
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         doc = ProvDocument.deserialize(
-            content=_entity_with("ex:attr", [value]), format="jsonld"
+            content=statement_of("Entity", "ex:e1", **{"ex:attr": [value]}),
+            format="jsonld",
         )
     (entity,) = doc.get_records()
     assert [v for _, v in entity.extra_attributes] == expected

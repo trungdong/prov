@@ -41,7 +41,15 @@ from prov.model import (
     parse_xsd_datetime,
 )
 from prov.tests import examples
-from prov.tests.conftest import add_ordered_namespaces
+from prov.tests.conftest import (
+    BLANK_PREFIX,
+    HTTP_PREFIX,
+    NO_PREFIX,
+    UNDECLARED_PREFIX,
+    add_ordered_namespaces,
+    ex_document,
+    unresolved_sentence,
+)
 
 _UNDECLARED_DEFAULT = (
     r"the name '\w+' is in the default namespace http://[\w.]+/, "
@@ -417,55 +425,55 @@ def test_entity_without_identifier_raises(identifier: str | None) -> None:
 
 
 def _unresolved(name: str, reason: str, of: str = "") -> str:
-    return (
-        f"Invalid Qualified Name: {name}, the qualified name {name!r}{of} "
-        f"does not resolve, because {reason}"
-    )
-
-
-_ZZ = "its prefix 'zz' is not declared"
+    return f"Invalid Qualified Name: {name}, {unresolved_sentence(name, reason, of)}"
 
 
 @pytest.mark.parametrize(
     ("call", "message"),
     [
         pytest.param(
-            lambda d: d.entity("zz:e"), _unresolved("zz:e", _ZZ), id="element"
+            lambda d: d.entity("zz:e"),
+            _unresolved("zz:e", UNDECLARED_PREFIX),
+            id="element",
         ),
         pytest.param(
             lambda d: d.used("ex:a", "ex:e", identifier="zz:u"),
-            _unresolved("zz:u", _ZZ),
+            _unresolved("zz:u", UNDECLARED_PREFIX),
             id="relation",
         ),
-        pytest.param(lambda d: d.bundle("zz:b"), _unresolved("zz:b", _ZZ), id="bundle"),
+        pytest.param(
+            lambda d: d.bundle("zz:b"),
+            _unresolved("zz:b", UNDECLARED_PREFIX),
+            id="bundle",
+        ),
         pytest.param(
             lambda d: d.add_bundle(ProvBundle(), "zz:b"),
-            _unresolved("zz:b", _ZZ),
+            _unresolved("zz:b", UNDECLARED_PREFIX),
             id="add-bundle",
         ),
         pytest.param(
             lambda d: d.used("zz:a", "ex:e"),
-            _unresolved("zz:a", _ZZ, " of prov:activity"),
+            _unresolved("zz:a", UNDECLARED_PREFIX, " of prov:activity"),
             id="formal-value",
         ),
         pytest.param(
             lambda d: d.entity("ex:e", {"zz:a": 1}),
-            _unresolved("zz:a", _ZZ),
+            _unresolved("zz:a", UNDECLARED_PREFIX),
             id="attribute-name",
         ),
         pytest.param(
             lambda d: d.used("ex:a", "ex:e", identifier="_:u"),
-            _unresolved("_:u", "its prefix '_' is reserved for blank nodes"),
+            _unresolved("_:u", BLANK_PREFIX),
             id="blank-node",
         ),
         pytest.param(
             lambda d: d.entity("http://other.org/e"),
-            _unresolved("http://other.org/e", "its prefix 'http' is not declared"),
+            _unresolved("http://other.org/e", HTTP_PREFIX),
             id="iri",
         ),
         pytest.param(
             lambda d: d.entity("e"),
-            _unresolved("e", "it has no prefix and no default namespace is declared"),
+            _unresolved("e", NO_PREFIX),
             id="no-prefix",
         ),
         pytest.param(
@@ -476,8 +484,7 @@ _ZZ = "its prefix 'zz' is not declared"
 def test_unresolvable_identifier_raises_the_qualified_name_sentence(
     call: Callable[[ProvDocument], object], message: str
 ) -> None:
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
+    d = ex_document()
     with pytest.raises(ProvExceptionInvalidQualifiedName) as ctx:
         call(d)
     assert str(ctx.value) == message

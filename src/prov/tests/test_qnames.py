@@ -14,7 +14,7 @@ from prov.model import (
     ProvExceptionInvalidQualifiedName,
 )
 
-from .conftest import Roundtrip, default_namespace
+from .conftest import Roundtrip, default_namespace, unresolved_sentence
 
 if TYPE_CHECKING:
     pass
@@ -317,7 +317,7 @@ def test_identifier_equal_to_the_default_namespace_iri_is_rejected() -> None:
     for identifier, detail in (
         (
             DEFAULT_NS.uri,
-            f"the qualified name {DEFAULT_NS.uri!r} does not resolve, because {reason}",
+            unresolved_sentence(DEFAULT_NS.uri, reason),
         ),
         (default[""], reason),
     ):

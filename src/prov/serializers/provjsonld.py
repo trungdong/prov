@@ -525,8 +525,7 @@ def decode_jsonld_value(
             ``"@type"`` or a ``"@type"`` that is not a string.
         ProvExceptionInvalidQualifiedName: If a node reference, an
             ``@id``-typed bare string or a value object's datatype resolves
-            in no declared namespace. :func:`decode_jsonld_statement` labels
-            it with the statement.
+            in no declared namespace; see :func:`decode_jsonld_statement`.
     """
     if isinstance(value, str):
         if term not in ID_TYPED_TERMS:
@@ -556,8 +555,7 @@ def _decode_value_object(
             object holds both ``"@language"`` and ``"@type"`` or a ``"@type"``
             that is not a string.
         ProvExceptionInvalidQualifiedName: If no declared namespace resolves
-            the datatype. The model raises it and
-            :func:`decode_jsonld_statement` labels it.
+            the datatype; see :func:`decode_jsonld_statement`.
     """
     try:
         text = value["@value"]
@@ -655,8 +653,7 @@ def _decode_statement_attributes(
         ProvExceptionInvalidQualifiedName: If no namespace resolves a
             formal attribute's value, a non-formal attribute's key or a
             non-formal value's node reference (an ``@id``-typed bare string
-            or a datatype). The error names the formal attribute, and
-            :func:`decode_jsonld_statement` labels it.
+            or a datatype); see :func:`decode_jsonld_statement`.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
@@ -811,17 +808,18 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         if not is_bundle:
             decode_jsonld_statement(item, document)
             continue
-        if item.get("@id") is None:
+        bundle_id = item.get("@id")
+        if bundle_id is None:
             raise ProvJSONLDException(f'A Bundle requires an "@id"; found {item!r}')
         bundle = ProvBundle(document=document)
         _decode_context(item.get("@context", []), bundle)
         for stmt in item.get("@graph", []):
             decode_jsonld_statement(_expect_object(stmt, "A bundle statement"), bundle)
         try:
-            document.add_bundle(bundle, item["@id"])
+            document.add_bundle(bundle, bundle_id)
         except ProvException as exc:
             raise ProvJSONLDException(
-                f"{_statement_name(PROV_BUNDLE, item['@id'])}: {exc}"
+                f"{_statement_name(PROV_BUNDLE, bundle_id)}: {exc}"
             ) from exc
 
 

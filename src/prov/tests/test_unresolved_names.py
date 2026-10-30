@@ -24,18 +24,18 @@ from prov.model import (
 )
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 
-from .conftest import default_namespace, ex_document
+from .conftest import (
+    HTTP_PREFIX,
+    NO_PREFIX,
+    UNDECLARED_PREFIX,
+    default_namespace,
+    ex_document,
+    unresolved_sentence,
+)
 from .format_errors import READER_ERRORS
 
 EX = "http://example.org/"
 EX_X = Namespace("ex", EX)["x"]
-UNDECLARED = "its prefix 'zz' is not declared"
-FULL_IRI = "its prefix 'http' is not declared"
-NO_PREFIX = "it has no prefix and no default namespace is declared"
-
-
-def _detail(text: str, reason: str, attr: str = "") -> str:
-    return f"the qualified name {text!r}{attr} does not resolve, because {reason}"
 
 
 def _stored(document: ProvBundle) -> Any:
@@ -228,8 +228,8 @@ def test_json_resolvable_name_reads(
 
 #  Every reader and assertion, one message per reason (#587)
 _REASONS = [
-    pytest.param("zz:x", UNDECLARED, id="undeclared"),
-    pytest.param(f"{EX}x", FULL_IRI, id="full IRI"),
+    pytest.param("zz:x", UNDECLARED_PREFIX, id="undeclared"),
+    pytest.param(f"{EX}x", HTTP_PREFIX, id="full IRI"),
     pytest.param("not a name", NO_PREFIX, id="no prefix"),
     pytest.param("", "it is empty", id="empty"),
 ]
@@ -315,7 +315,9 @@ def test_every_reader_and_assertion_reject_with_one_message(
     read, error, where, attr = _CHANNELS[channel]
     with pytest.raises(error) as ctx:
         read(text, datatype)
-    assert str(ctx.value) == where.format(text=text) + _detail(text, reason, attr)
+    assert str(ctx.value) == where.format(text=text) + unresolved_sentence(
+        text, reason, attr
+    )
 
 
 #  A value equal to a default namespace IRI in reach (#675)
@@ -447,7 +449,9 @@ def test_a_value_equal_to_the_default_iri_gives_the_default_reason(
     read, error, where, attr = _DEFAULT_IRI_CHANNELS[channel]
     with pytest.raises(error) as ctx:
         read()
-    assert str(ctx.value) == where + _detail(DEFAULT_IRI, DEFAULT_IRI_REASON, attr)
+    assert str(ctx.value) == where + unresolved_sentence(
+        DEFAULT_IRI, DEFAULT_IRI_REASON, attr
+    )
 
 
 #  A prefix the document declares wins over compaction in a bundle (#599)
@@ -560,4 +564,4 @@ def test_every_reader_rejects_an_unresolved_identifier_with_one_sentence(
     source = _IDENTIFIER_SOURCES[fmt](kind, name)
     with pytest.raises(READER_ERRORS[fmt]) as ctx:
         ProvDocument.deserialize(content=source, format=fmt)
-    assert _detail(name, UNDECLARED) in str(ctx.value)
+    assert unresolved_sentence(name, UNDECLARED_PREFIX) in str(ctx.value)
