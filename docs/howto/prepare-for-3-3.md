@@ -38,11 +38,11 @@ first character does not name its reader. Pass `format=` to see the rule on its 
 
 Each is a `ProvNSyntaxError` at the declaration or, for an undeclared `xsi:` name, at
 the name. In 3.2.3 the first two rows and the two strict-profile rows warn with the same
-text; an undeclared `xsi:` name warns `prefix 'xsi' is not declared`. `prov` 3.2.2 and
-earlier wrote `xsi:` names without a `prefix xsi` line. Reading such a file and writing
-it again with `prov` 3.2.3 adds the declaration, so do that before upgrading.
-In 3.2.3 a prefix name that held an escape read with the escape removed, so `prefix a\.b`
-declared `a.b`.
+text; an undeclared `xsi:` name warns `prefix 'xsi' is not declared`. In 3.2.3 a prefix
+name that held an escape read with the escape removed, so `prefix a\.b` declared `a.b`.
+`prov` 3.2.2 and earlier wrote `xsi:` names without a `prefix xsi` line. Reading such a
+file and writing it again with `prov` 3.2.3 adds the declaration, so do that before
+upgrading.
 
 ## PROV-N whitespace
 
