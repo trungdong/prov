@@ -5,6 +5,7 @@ Created on Aug 13, 2015
 """
 
 import datetime
+import shutil
 import warnings
 
 import pytest
@@ -12,7 +13,7 @@ import pytest
 pydot = pytest.importorskip("pydot")
 
 from prov.dot import htlm_link_if_uri, prov_to_dot
-from prov.model import Identifier, ProvDocument, ProvUnificationError
+from prov.model import Identifier, ProvBundle, ProvDocument, ProvUnificationError
 from prov.tests import examples
 
 MIN_SVG_SIZE = 850
@@ -294,6 +295,98 @@ def test_complete_relation_draws_without_warning() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         prov_to_dot(document)
+
+
+def _nested_bundle() -> ProvBundle:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b")
+    bundle.entity("ex:e1")
+    return bundle
+
+
+def _standalone_bundle() -> ProvBundle:
+    bundle = ProvBundle()
+    bundle.add_namespace("ex", "http://example.org/")
+    bundle.entity("ex:e1")
+    return bundle
+
+
+def _bundle_with_conflicting_generations() -> ProvBundle:
+    bundle = _nested_bundle()
+    bundle.activity("ex:a1")
+    for day in (1, 2):
+        bundle.generation(
+            "ex:e1",
+            "ex:a1",
+            identifier="ex:gen1",
+            time=datetime.datetime(2020, 1, day),
+        )
+    return bundle
+
+
+_NEEDS_DOT = pytest.mark.skipif(
+    not shutil.which("dot"), reason="graphviz 'dot' binary not available"
+)
+_NOT_A_DOCUMENT = (
+    "Drawing a bundle that is not a document is deprecated and 4.0 draws "
+    "documents only; pass the ProvDocument"
+)
+
+
+@pytest.mark.parametrize(
+    ("build", "via_plot", "warnings_expected", "needle", "drawn"),
+    [
+        pytest.param(_nested_bundle, False, 1, 'label="ex:e1"', 1, id="nested-bundle"),
+        pytest.param(
+            _standalone_bundle, False, 1, 'label="ex:e1"', 1, id="standalone-bundle"
+        ),
+        pytest.param(
+            _bundle_with_conflicting_generations,
+            False,
+            1,
+            "label=wasGeneratedBy",
+            2,
+            id="non-unifying-bundle",
+        ),
+        pytest.param(
+            _nested_bundle, True, 1, None, None, id="plot-bundle", marks=_NEEDS_DOT
+        ),
+        pytest.param(
+            lambda: _nested_bundle().document,
+            True,
+            0,
+            None,
+            None,
+            id="plot-document",
+            marks=_NEEDS_DOT,
+        ),
+    ],
+)
+def test_drawing_a_bundle_that_is_not_a_document_warns_once(
+    build, via_plot, warnings_expected, needle, drawn, tmp_path
+) -> None:
+    """A bundle that is not a document draws with one ``DeprecationWarning``
+    attributed to the caller, and a document draws with none."""
+    subject = build()
+    path = tmp_path / "out.svg"
+
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        if via_plot:
+            subject.plot(filename=path)
+        else:
+            dot = prov_to_dot(subject)
+
+    assert len(record) == warnings_expected
+    if warnings_expected:
+        assert issubclass(record[0].category, DeprecationWarning)
+        assert _NOT_A_DOCUMENT in str(record[0].message)
+        assert record[0].filename == __file__
+    if via_plot:
+        assert path.stat().st_size > 0
+    else:
+        assert dot.to_string().count(needle) == drawn
 
 
 def test_prov_to_dot_draws_a_document_unified_rejects_as_asserted() -> None:

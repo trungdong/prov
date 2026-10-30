@@ -542,14 +542,19 @@ def prov_to_dot(
     show_element_attributes: bool = True,
     show_relation_attributes: bool = True,
 ) -> pydot.Dot:
-    """Convert a provenance bundle/document into a DOT graphical representation.
+    """Convert a provenance document into a DOT graphical representation.
 
-    The bundle is first :meth:`~prov.model.ProvBundle.unified`; if that
-    raises :class:`~prov.model.ProvException` (the bundle cannot be
-    unified), the original, non-unified bundle is rendered instead.
+    A bundle that is not a document warns :class:`DeprecationWarning` and is
+    drawn as a document would be, and 4.0 draws documents only. The graphics
+    how-to guide, in its section on drawing one bundle, shows the replacement.
+
+    The document is first :meth:`~prov.model.ProvDocument.unified`; if that
+    raises :class:`~prov.model.ProvException` (the document cannot be
+    unified), the original, non-unified document is rendered instead. A bundle
+    that is not a document is unified and falls back in the same way.
 
     Args:
-        bundle: The provenance bundle/document to be converted.
+        bundle: The provenance document to be converted.
         show_nary: Show all elements of n-ary relations (i.e. relations with
             more than two formal attributes), not just the first two.
         use_labels: Use the ``prov:label`` property of an element as its
@@ -578,8 +583,16 @@ def prov_to_dot(
         show_nary=show_nary,
     )
 
+    is_document = bundle.is_document()
+    if not is_document:
+        warnings.warn(
+            "Drawing a bundle that is not a document is deprecated and 4.0 "
+            "draws documents only; pass the ProvDocument",
+            DeprecationWarning,
+            stacklevel=external_stacklevel(),
+        )
     try:
-        unified = bundle.unified()
+        unified = bundle.unified() if is_document else bundle._unified_copy(None)
     except ProvException:
         # Could not unify this bundle
         # try the original document anyway
