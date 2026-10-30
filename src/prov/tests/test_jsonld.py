@@ -462,6 +462,34 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
             },
             'must hold a string "@type"',
         ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Entity",
+                        "@id": "ex:e1",
+                        "ex:a": [{"@value": "1", "@type": None}],
+                    }
+                ],
+            },
+            'must hold a string "@type"',
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Entity",
+                        "@id": "ex:e1",
+                        "ex:a": [
+                            {"@value": "x", "@language": "en", "@type": "xsd:string"}
+                        ],
+                    }
+                ],
+            },
+            'cannot hold both "@language" and "@type"',
+        ),
     ],
 )
 def test_deserialize_malformed(payload, match) -> None:

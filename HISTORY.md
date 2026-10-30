@@ -449,8 +449,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   in `{"@value": "1", "@type": "zz:t"}`, a full IRI no namespace compacts or a blank node,
   raises `ProvJSONLDException` with the sentence the other readers use, which names the
   attribute, as in `the qualified name 'zz:t' of ex:a does not resolve, because its prefix
-  'zz' is not declared`, where 3.2.3 read the value as plain text. A number, a boolean, a
-  list or an object as the `@type` raises as well
+  'zz' is not declared`, where 3.2.3 read the value as plain text. A `@type` that is not a
+  string, `null` included, and a value object that holds both `@language` and `@type`,
+  which the PROV-JSONLD schema allows in neither of its value shapes, raise as well
   ([#673](https://github.com/trungdong/prov/issues/673))
 
 ### Additions

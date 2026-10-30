@@ -537,10 +537,10 @@ def decode_jsonld_value(
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
             object, if a node reference has keys other than ``"@id"`` or an
             empty ``"@id"``, if a value object is missing its required
-            ``"@value"`` key, if a value object without ``"@language"`` holds
-            a ``"@type"`` that is not a string, or if a node reference, an
-            ``@id``-typed bare string or a value object's datatype resolves in
-            no declared namespace.
+            ``"@value"`` key, if a value object holds both ``"@language"`` and
+            ``"@type"`` or a ``"@type"`` that is not a string, or if a node
+            reference, an ``@id``-typed bare string or a value object's
+            datatype resolves in no declared namespace.
     """
     if isinstance(value, str):
         if term not in ID_TYPED_TERMS:
@@ -566,9 +566,9 @@ def _decode_value_object(
     """Decode a ``{"@value": ...}`` object into a ``Literal`` or its text.
 
     Raises:
-        ProvJSONLDException: If the ``"@value"`` key is missing, if a value
-            object without ``"@language"`` holds a ``"@type"`` that is not a
-            string or if no declared namespace resolves it.
+        ProvJSONLDException: If the ``"@value"`` key is missing, if the value
+            object holds both ``"@language"`` and ``"@type"`` or a ``"@type"``
+            that is not a string, or if no declared namespace resolves it.
     """
     try:
         text = value["@value"]
@@ -577,11 +577,16 @@ def _decode_value_object(
             f'A value object for {term!r} is missing its required "@value" '
             f"key; found {value!r}"
         ) from exc
+    if "@language" in value and "@type" in value:
+        raise ProvJSONLDException(
+            f'A value object for {term!r} cannot hold both "@language" and '
+            f'"@type"; found {value!r}'
+        )
     if "@language" in value:
         return Literal(text, langtag=value["@language"])
-    datatype_str = value.get("@type")
-    if datatype_str is None:
+    if "@type" not in value:
         return text
+    datatype_str = value["@type"]
     if not isinstance(datatype_str, str):
         raise ProvJSONLDException(
             f'A value object for {term!r} must hold a string "@type"; found {value!r}'
