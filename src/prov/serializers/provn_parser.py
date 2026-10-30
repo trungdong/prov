@@ -46,8 +46,8 @@ error there. A bare unknown keyword is still an error.
 
 Recovery is panic-mode. It records the error and skips tokens to a synchronisation
 point. A name followed by ``(`` is one, and so is a structural keyword (``document``,
-``endDocument``, ``bundle``, ``endBundle``) not preceded by ``=``, at any bracket
-depth. The parser then resumes.
+``endDocument``, ``bundle``, ``endBundle``) unless a ``,``, ``]``, ``)``, ``}``,
+``;`` or ``=`` follows it, at any bracket depth. The parser then resumes.
 
 Skipped-statement messages are collected on ``skipped`` rather than warned
 here, so :class:`~prov.serializers.provn.ProvNSerializer` can issue the
@@ -179,6 +179,14 @@ _DATATYPE_FOLLOW = (
     TokenKind.RBRACKET,
     TokenKind.RPAREN,
     TokenKind.RBRACE,
+)
+_DATA_FOLLOW = (
+    TokenKind.COMMA,
+    TokenKind.RBRACKET,
+    TokenKind.RPAREN,
+    TokenKind.RBRACE,
+    TokenKind.SEMICOLON,
+    TokenKind.EQUALS,
 )
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
@@ -518,15 +526,16 @@ class ProvNParser:
         nested predicate and read it as a statement of its own.
 
         A structural keyword (``document``, ``bundle``, ...) is a boundary
-        unless the token before it is ``=``. The same word is a legal attribute
-        value (``[ex:k=bundle]``), and only a value follows ``=``.
+        unless a token in ``_DATA_FOLLOW`` comes after it. The attribute-name
+        and datatype guards also judge a keyword by the token after it. The
+        word is data in ``[ex:k=bundle]`` and ``"x" %% endBundle]``.
         """
         while self._current.kind is not TokenKind.EOF:
             token = self._current
             if token.kind is TokenKind.NAME:
                 prefix, local = token.value
                 if not prefix and local in _STRUCTURAL:
-                    if self._tokens[self._pos - 1].kind is not TokenKind.EQUALS:
+                    if self._peek().kind not in _DATA_FOLLOW:
                         return
                 elif self._peek().kind is TokenKind.LPAREN:
                     return
