@@ -91,10 +91,11 @@ dot_binary = prov_to_dot(document, show_nary=False)
 
 ## Draw one bundle
 
-`prov_to_dot()` and `plot()` take a document. A bundle that is not a document warns
-`DeprecationWarning` and is drawn as before, and 4.0 draws documents only. To draw one
-bundle, add it to a document of its own. The copy keeps the source's declarations, so
-every name resolves as it does in the source:
+`prov_to_dot()` and `plot()` take a document. A bundle that is not a document draws with
+a `DeprecationWarning`, and 4.0 draws documents only. To draw one bundle, copy it into a
+document of its own. The new document declares the source's namespaces and default, and
+the bundle copy declares the bundle's own default, so every name resolves as it does in
+the source:
 
 ```python
 bundle = document.bundle("b")
@@ -104,7 +105,11 @@ alone = pm.ProvDocument(namespaces=document.get_registered_namespaces())
 default = document.get_default_namespace()
 if default is not None:
     alone.set_default_namespace(default.uri)
-alone.bundle(bundle.identifier).update(bundle)
+copy = alone.bundle(bundle.identifier)
+own = bundle.get_default_namespace()
+if own is not None:
+    copy.set_default_namespace(own.uri)
+copy.update(bundle)
 
 dot_bundle = prov_to_dot(alone)
 ```
