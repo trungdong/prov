@@ -436,17 +436,79 @@ REJECTED_DOCUMENTS = [
         (3, 15),
         id="undeclared xsi",
     ),
-    # An expression's attribute block stops at a structural keyword that is
-    # not an attribute name, so lenient resync finds the keyword.
+    # A structural keyword at an attribute name, an attribute value or a datatype
+    # ends the statement unless a ',', ']', ')', '}', ';' or '=' follows it, which
+    # makes it data. Recovery treats a keyword the same way, so a skipped
+    # statement never closes a bundle early or hides the records after it.
     *[
         pytest.param(
-            f"{STATEMENT_PREFIX}ex:f(ex:a, [{pairs}\nendDocument",
+            f"{STATEMENT_PREFIX}{head}{pairs}\nendDocument",
             STATEMENT,
             "expected an attribute name, found 'endDocument'",
             (4, 1),
-            id=f"extension attribute block {label} before endDocument",
+            id=f"{kind} attribute block {label} before endDocument",
         )
+        for kind, head in (("extension", "ex:f(ex:a, ["), ("element", "entity(ex:a, ["))
         for label, pairs in (("opened", ""), ("after a pair", 'ex:k="v",'))
+    ],
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{body}\nendDocument",
+            STATEMENT,
+            message,
+            position,
+            id=label,
+        )
+        for body, message, position, label in (
+            (
+                'bundle ex:b\nentity(ex:a, [ex:v="x" %%\nendBundle',
+                "expected a datatype, found 'endBundle'",
+                (5, 1),
+                "an attribute datatype before endBundle",
+            ),
+            (
+                "bundle ex:b\nentity(ex:a, [\nendBundle",
+                "expected an attribute name, found 'endBundle'",
+                (5, 1),
+                "an attribute block opened before endBundle",
+            ),
+            (
+                "bundle ex:b\nentity(ex:a, [endBundle])\nentity(ex:x)\nendBundle",
+                "expected an attribute name, found 'endBundle'",
+                (4, 15),
+                "endBundle before ] inside a bundle",
+            ),
+            (
+                "entity(ex:a, [endDocument])",
+                "expected an attribute name, found 'endDocument'",
+                (3, 15),
+                "endDocument before ]",
+            ),
+            (
+                "entity(ex:a, [bundle])",
+                "expected an attribute name, found 'bundle'",
+                (3, 15),
+                "bundle before ]",
+            ),
+            (
+                "bundle ex:b\nentity(ex:a, [ex:v=\nendBundle",
+                "expected a literal value, found 'endBundle'",
+                (5, 1),
+                "endBundle after =",
+            ),
+            (
+                "entity(ex:a, [\nbundle ex:b\nentity(ex:c)\nendBundle",
+                "expected an attribute name, found 'bundle'",
+                (4, 1),
+                "an attribute name before a bundle",
+            ),
+            (
+                'ex:f(ex:a, "x" %%',
+                "expected a datatype, found 'endDocument'",
+                (4, 1),
+                "an extension datatype before endDocument",
+            ),
+        )
     ],
     # Statement rules (#523, #519 b and c). An attribute named after one of
     # the statement's own arguments is rejected at the attribute; under
@@ -893,6 +955,14 @@ ACCEPTED_STATEMENTS = [
             " name, found 'endBundle'",
         ),
         id="an unclosed attribute block ends at endBundle",
+    ),
+    pytest.param(
+        "bundle ex:b\ndefault <http://d.org/>\n"
+        'entity(ex:e, [endBundle="x" %% endBundle, ex:k="y" %% bundle])\n'
+        'ex:f({"y" %% bundle}, "x" %% endBundle)\nendBundle',
+        EVERY,
+        (_dropped(6, 1, "ex:f"),),
+        id="a structural keyword as an attribute name or a datatype",
     ),
     pytest.param(
         'zz:hadMembers(zz:m; zz:d, zz:set(zz:pair("k1",zz:e1),\n'

@@ -46,8 +46,8 @@ error there. A bare unknown keyword is still an error.
 
 Recovery is panic-mode. It records the error and skips tokens to a synchronisation
 point. A name followed by ``(`` is one, and so is a structural keyword (``document``,
-``endDocument``, ``bundle``, ``endBundle``) not preceded by ``=``, at any bracket
-depth. The parser then resumes.
+``endDocument``, ``bundle``, ``endBundle``) unless a ``,``, ``]``, ``)``, ``}``,
+``;`` or ``=`` follows it, at any bracket depth. The parser then resumes.
 
 Skipped-statement messages are collected on ``skipped`` rather than warned
 here, so :class:`~prov.serializers.provn.ProvNSerializer` can issue the
@@ -174,6 +174,15 @@ _IDENTIFIER_FOLLOW = (
     TokenKind.SEMICOLON,
     TokenKind.RBRACE,
 )
+_DATATYPE_FOLLOW = (
+    TokenKind.COMMA,
+    TokenKind.RBRACKET,
+    TokenKind.RPAREN,
+    TokenKind.RBRACE,
+)
+_ATTRIBUTE_NAME_FOLLOW = (TokenKind.EQUALS,)
+# Recovery treats a structural keyword as data wherever a guarded read accepts it.
+_DATA_FOLLOW = (*_IDENTIFIER_FOLLOW, *_DATATYPE_FOLLOW, *_ATTRIBUTE_NAME_FOLLOW)
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
 # Brackets an extensibility argument may open (N53): [50] and [51].
@@ -282,22 +291,24 @@ class ProvNParser:
         follow: tuple[TokenKind, ...] = _IDENTIFIER_FOLLOW,
         expected: str = "an identifier",
     ) -> None:
-        """Refuse a bare structural keyword as an identifier or argument
-        unless it is immediately followed by one of ``follow``. Anything else
-        means a statement left open by a missing ')'/']'/'}' has read straight
-        through a following 'bundle', 'endBundle' or 'endDocument' as if it
-        were data; raising here without consuming the token lets lenient
+        """Refuse a bare structural keyword where a name is read inside a
+        statement's brackets, unless a token in ``follow`` comes next. Anything
+        else means a statement left open by a missing ')'/']'/'}' has read
+        straight through a following 'bundle', 'endBundle' or 'endDocument' as
+        if it were data. Raising without consuming the token lets lenient
         resync (and, outside lenient, the enclosing loop) still find it.
         """
+        if self._unclosed_keyword(follow):
+            raise self._error(f"expected {expected}, found {self._found()}")
+
+    def _unclosed_keyword(self, follow: tuple[TokenKind, ...]) -> bool:
+        """Whether the current token is a bare structural keyword that no
+        token in ``follow`` comes after."""
         current = self._current
         if current.kind is not TokenKind.NAME:
-            return
+            return False
         prefix, local = current.value
-        if prefix or local not in _STRUCTURAL:
-            return
-        if self._peek().kind in follow:
-            return
-        raise self._error(f"expected {expected}, found {self._found()}")
+        return not prefix and local in _STRUCTURAL and self._peek().kind not in follow
 
     def _at_keyword(self, keyword: str) -> bool:
         return self._current.kind is TokenKind.NAME and self._current.value == (
@@ -511,18 +522,16 @@ class ProvNParser:
         nested predicate and read it as a statement of its own.
 
         A structural keyword (``document``, ``bundle``, ...) is a boundary
-        unless the token before it is ``=``. The same word is a legal attribute
-        value (``[ex:k=bundle]``), and only a value follows ``=``.
+        unless a token in ``_DATA_FOLLOW`` comes after it. The attribute-name
+        and datatype guards also judge a keyword by the token after it. The
+        word is data in ``[ex:k=bundle]`` and ``"x" %% endBundle]``.
         """
         while self._current.kind is not TokenKind.EOF:
-            token = self._current
-            if token.kind is TokenKind.NAME:
-                prefix, local = token.value
-                if not prefix and local in _STRUCTURAL:
-                    if self._tokens[self._pos - 1].kind is not TokenKind.EQUALS:
-                        return
-                elif self._peek().kind is TokenKind.LPAREN:
-                    return
+            if self._unclosed_keyword(_DATA_FOLLOW) or (
+                self._current.kind is TokenKind.NAME
+                and self._peek().kind is TokenKind.LPAREN
+            ):
+                return
             self._advance()
 
     # -- expressions -------------------------------------------------------------
@@ -757,11 +766,7 @@ class ProvNParser:
         self._expect(TokenKind.RBRACKET)
 
     def _extension_pair(self) -> None:
-        self._reject_unclosed_structural_keyword(
-            (TokenKind.EQUALS,), "an attribute name"
-        )
-        if self._digit_run_as_name() is None:
-            self._expect(TokenKind.NAME, "an attribute name")
+        self._name(_ATTRIBUTE_NAME_FOLLOW, "an attribute name")
         self._expect(TokenKind.EQUALS)
         self._literal_tokens()
 
@@ -810,6 +815,12 @@ class ProvNParser:
 
     # -- attributes and literals -----------------------------------------------
 
+    def _name(self, follow: tuple[TokenKind, ...], expected: str) -> Token:
+        """Consume an attribute name or a datatype, refusing an unclosed
+        structural keyword unless a token in ``follow`` comes next."""
+        self._reject_unclosed_structural_keyword(follow, expected)
+        return self._digit_run_as_name() or self._expect(TokenKind.NAME, expected)
+
     def _attributes(self, bundle: ProvBundle) -> _AttributeBlock:
         """Parse an attribute block into (name, value, name token) triples."""
         self._expect(TokenKind.LBRACKET)
@@ -818,9 +829,7 @@ class ProvNParser:
             self._advance()
             return pairs
         while True:
-            name = self._digit_run_as_name() or self._expect(
-                TokenKind.NAME, "an attribute name"
-            )
+            name = self._name(_ATTRIBUTE_NAME_FOLLOW, "an attribute name")
             attr = self._resolve(name, bundle)
             self._expect(TokenKind.EQUALS)
             pairs.append((attr, self._literal(bundle), name))
@@ -843,9 +852,7 @@ class ProvNParser:
                 return token, self._advance()
             if self._current.kind is TokenKind.TYPED:
                 self._advance()
-                return token, self._digit_run_as_name() or self._expect(
-                    TokenKind.NAME, "a datatype"
-                )
+                return token, self._name(_DATATYPE_FOLLOW, "a datatype")
             return token, None
         if token.kind not in _LITERAL_KINDS:
             raise self._error(f"expected a literal value, found {self._found()}")

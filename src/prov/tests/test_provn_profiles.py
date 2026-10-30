@@ -195,11 +195,8 @@ def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle() -> Non
 
 
 def test_lenient_resync_does_not_stop_on_a_structural_keyword_shaped_value() -> None:
-    # A structural keyword (here 'bundle') used as a bare attribute value
-    # inside the failed statement's still-open '[...]' is not a resync
-    # boundary just because it matches by name -- unlike an element/relation
-    # keyword, it is never followed by '(', so it can only be told apart
-    # from a real boundary by depth.
+    # A structural keyword followed by ']' (here 'bundle') is data, not a
+    # boundary, so the skip runs on to the next statement.
     body = "entity(ex:e1, [ex:k=bundle]\nentity(ex:e2)\nentity(ex:e3)"
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")

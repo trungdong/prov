@@ -569,6 +569,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   so a prefix declared nowhere there is not an error. A stray `{` or `}` among
   statements is a parse error at its statement, which `lenient` skips, where it was a
   tokenisation error that no profile could skip ([#520](https://github.com/trungdong/prov/issues/520))
+- Under `lenient`, the PROV-N reader skips a statement left open at an attribute name, an
+  attribute value or a datatype before `bundle`, `endBundle` or `endDocument`, and reads
+  the rest of the document, where 3.2.3 raised at the end of the input or, before
+  `bundle`, read the bundle's statements at document level. `strict` and `default` raise
+  `expected an attribute name, found 'endBundle'` or `expected a datatype, found
+  'endBundle'` at the keyword, where 3.2.3, with no default namespace declared, said
+  `cannot resolve 'endBundle': no default namespace declared`
+  ([#683](https://github.com/trungdong/prov/issues/683))
 - An element identifier no namespace resolves, such as `doc.entity("zz:e")`, raises
   `ProvExceptionInvalidQualifiedName` with the sentence `Invalid Qualified Name: zz:e, the
   qualified name 'zz:e' does not resolve, because its prefix 'zz' is not declared`, where
