@@ -296,7 +296,7 @@ def test_bundle_without_own_default_gains_none_on_reparse() -> None:
 
 
 def test_bundle_bare_name_with_no_default_anywhere_still_raises() -> None:
-    with pytest.raises(ProvNSyntaxError, match="no default namespace declared"):
+    with pytest.raises(ProvNSyntaxError, match="no default namespace is declared"):
         parse("bundle ex:b1\n  entity(e1)\nendBundle")
 
 
@@ -424,7 +424,8 @@ REJECTED_DOCUMENTS = [
     pytest.param(
         f'document\n{EX_PREFIX}entity(ex:e, [xsi:type="ex:T"])\nendDocument',
         STATEMENT,
-        "cannot resolve 'xsi:type': prefix 'xsi' is not declared",
+        "the qualified name 'xsi:type' does not resolve, because its prefix 'xsi' is"
+        " not declared",
         (3, 15),
         id="undeclared xsi",
     ),
@@ -574,7 +575,8 @@ REJECTED_DOCUMENTS = [
         pytest.param(
             f"{STATEMENT_PREFIX}{statement}\nendDocument",
             STATEMENT,
-            "cannot resolve 'http://example.org/x': prefix 'http' is not declared",
+            "the qualified name 'http://example.org/x' does not resolve, because its"
+            " prefix 'http' is not declared",
             (3, column),
             id=f"full IRI as {position}",
         )
@@ -585,6 +587,15 @@ REJECTED_DOCUMENTS = [
             ('entity(ex:e, [ex:k="1" %% http://example.org/x])', 27, "a datatype"),
         )
     ],
+    pytest.param(
+        "document\ndefault <http://d/>\nentity(http://d/)\nendDocument",
+        STATEMENT,
+        "the qualified name 'http://d/' does not resolve, because the IRI http://d/ "
+        "is the default namespace and has no qualified-name form; declare a prefix "
+        "for it",
+        (3, 8),
+        id="full IRI equal to the default namespace",
+    ),
     pytest.param(
         f"{STATEMENT_PREFIX}entity(ex:e, [ex:k='http://example.org/x'])\nendDocument",
         STATEMENT,
@@ -883,8 +894,8 @@ ACCEPTED_STATEMENTS = [
         ("lenient",),
         (
             _dropped(3, 1, "zz:hadMembers"),
-            "PROV-N statement skipped: line 7, column 8: cannot resolve 'zz:e':"
-            " prefix 'zz' is not declared",
+            "PROV-N statement skipped: line 7, column 8: the qualified name 'zz:e'"
+            " does not resolve, because its prefix 'zz' is not declared",
         ),
         id="a skip after a multi-line expression is positioned",
     ),
@@ -1385,7 +1396,7 @@ def test_duplicate_prefix_in_one_scope_is_an_error() -> None:
 
 
 def test_escaped_colon_literal_needs_a_default_namespace() -> None:
-    with pytest.raises(ProvNSyntaxError, match="no default namespace declared"):
+    with pytest.raises(ProvNSyntaxError, match="no default namespace is declared"):
         parse(r"entity(ex:e1, [ex:k='a\:b'])")
 
 

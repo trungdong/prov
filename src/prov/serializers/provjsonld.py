@@ -654,7 +654,7 @@ def _decode_statement_attributes(
             ``entity``, which may be a non-empty array); or if a non-formal
             attribute's value is not a JSON array; or if a formal time is not
             an ``xsd:dateTime`` string.
-        ProvExceptionInvalidQualifiedName: If the model cannot resolve a
+        ProvExceptionInvalidQualifiedName: If no namespace resolves a
             formal attribute's value or a non-formal attribute's key. The
             error names the formal attribute, and
             :func:`decode_jsonld_statement` labels it.

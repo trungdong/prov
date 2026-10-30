@@ -1,5 +1,6 @@
 """A qualified-name value that does not resolve by its prefix is rejected,
-by every reader and at assertion (#516, #551, #553, #599)."""
+by every reader and at assertion (#516, #551, #553, #599), and so is an
+identifier (#725)."""
 
 from __future__ import annotations
 
@@ -500,3 +501,69 @@ def test_plain_identifier_in_code_still_compacts() -> None:
     # code compacts against the declared namespaces, as the how-to promises.
     document = ex_document()
     assert document.entity(f"{EX}e1").identifier == Namespace("ex", EX)["e1"]
+
+
+#  An identifier no namespace resolves, in each reader's own text (#725)
+def _identifier_json(kind: str, name: str) -> str:
+    if kind == "element":
+        return _json({"entity": {name: {}}})
+    return _json(
+        {
+            "activity": {"ex:a": {}},
+            "entity": {"ex:e": {}},
+            "used": {name: {"prov:activity": "ex:a", "prov:entity": "ex:e"}},
+        }
+    )
+
+
+def _identifier_xml(kind: str, name: str) -> str:
+    if kind == "element":
+        body = f'<prov:entity prov:id="{name}"/>'
+    else:
+        body = (
+            '<prov:activity prov:id="ex:a"/><prov:entity prov:id="ex:e"/>'
+            f'<prov:used prov:id="{name}"><prov:activity prov:ref="ex:a"/>'
+            '<prov:entity prov:ref="ex:e"/></prov:used>'
+        )
+    return (
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        f'xmlns:ex="{EX}">{body}</prov:document>'
+    )
+
+
+def _identifier_jsonld(kind: str, name: str) -> str:
+    graph: list[dict[str, Any]] = [{"@type": "Entity", "@id": name}]
+    if kind == "relation":
+        graph = [
+            {"@type": "Activity", "@id": "ex:a"},
+            {"@type": "Entity", "@id": "ex:e"},
+            {"@type": "Usage", "@id": name, "activity": "ex:a", "entity": "ex:e"},
+        ]
+    return json.dumps({"@context": [{"ex": EX}, JSONLD_CONTEXT_URL], "@graph": graph})
+
+
+def _identifier_provn(kind: str, name: str) -> str:
+    if kind == "element":
+        body = f"entity({name})\n"
+    else:
+        body = f"activity(ex:a)\nentity(ex:e)\nused({name}; ex:a, ex:e)\n"
+    return f"document\nprefix ex <{EX}>\n{body}endDocument\n"
+
+
+_IDENTIFIER_SOURCES: dict[str, Callable[[str, str], str]] = {
+    "json": _identifier_json,
+    "xml": _identifier_xml,
+    "jsonld": _identifier_jsonld,
+    "provn": _identifier_provn,
+}
+
+
+@pytest.mark.parametrize(("kind", "name"), [("element", "zz:e"), ("relation", "zz:u")])
+@pytest.mark.parametrize("fmt", list(_IDENTIFIER_SOURCES))
+def test_every_reader_rejects_an_unresolved_identifier_with_one_sentence(
+    fmt: str, kind: str, name: str
+) -> None:
+    source = _IDENTIFIER_SOURCES[fmt](kind, name)
+    with pytest.raises(READER_ERRORS[fmt]) as ctx:
+        ProvDocument.deserialize(content=source, format=fmt)
+    assert _detail(name, UNDECLARED) in str(ctx.value)
