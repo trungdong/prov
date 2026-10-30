@@ -169,7 +169,7 @@ _STRING_ESCAPES = {
 # \UXXXXXXXX, which take uppercase hex digits only. Production [57] HEX, which
 # takes either case, belongs to PERCENT.
 _ESCAPE = re.compile(r"\\(?:u([0-9A-F]{4})|U([0-9A-F]{8})|(.))", re.S)
-_HEX_DIGITS = {"u": "four", "U": "eight"}
+_HEX_DIGITS = {"u": "four uppercase hex digits", "U": "eight uppercase hex digits"}
 
 _PUNCTUATION = {
     "(": TokenKind.LPAREN,
@@ -206,10 +206,7 @@ def _unescape(raw: str, locate: _Locate, start: int, kind: str) -> str:
         four, eight, char = match.groups()
         if char is not None:
             if char in _HEX_DIGITS:
-                raise fail(
-                    f"escape '\\{char}' needs {_HEX_DIGITS[char]} uppercase hex digits",
-                    match,
-                )
+                raise fail(f"escape '\\{char}' needs {_HEX_DIGITS[char]}", match)
             if kind == "IRI" or char not in _STRING_ESCAPES:
                 raise fail(f"unknown {kind} escape '\\{char}'", match)
             return _STRING_ESCAPES[char]
