@@ -5,7 +5,7 @@ import io
 import re
 import typing
 from collections import OrderedDict
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -1185,7 +1185,6 @@ class ProvRDFSerializer(Serializer):
                 is unidentified (in which case a blank node is minted).
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword.
         """
-        formal_objects: list[pm.QualifiedName] = []
         used_objects: list[pm.QualifiedName] = []
         formal_qualifiers = False
         for attrid, (_attr, value) in enumerate(record.formal_attributes):
@@ -1201,7 +1200,6 @@ class ProvRDFSerializer(Serializer):
             rec_type,
             identifier,
             PROV_N_MAP,
-            formal_objects,
             used_objects,
             has_qualifiers,
         )
@@ -1214,7 +1212,9 @@ class ProvRDFSerializer(Serializer):
                         # a qualified relation always has a URIRef or
                         # BNode identifier by this point
                         cast(RdfSubject, node),
-                        self._qualified_attr_predicate(rec_type, attr, formal_objects),
+                        self._qualified_attr_predicate(
+                            rec_type, attr, record.FORMAL_ATTRIBUTES
+                        ),
                         self.encode_rdf_representation(value),
                     )
                 )
@@ -1226,7 +1226,6 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         identifier: RdfSubject | None,
         PROV_N_MAP: RecordTypeLabels,
-        formal_objects: list[pm.QualifiedName],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
     ) -> tuple[RdfSubject | None, bool]:
@@ -1242,8 +1241,6 @@ class ProvRDFSerializer(Serializer):
             rec_type: ``record``'s record type QualifiedName.
             identifier: The relation's subject URIRef, or ``None``.
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword.
-            formal_objects: Accumulator, filled with the record's formal
-                attribute names (used to recognise formal attributes later).
             used_objects: Accumulator, filled with the formal attributes
                 consumed by the binary triple.
             has_qualifiers: Whether the relation carries anything beyond the
@@ -1254,11 +1251,6 @@ class ProvRDFSerializer(Serializer):
             and whether the caller writes no further attributes.
         """
         pred = _prov_uri(PROV_N_MAP[rec_type])
-        valid_formal_indices = set()
-        for idx, (key, val) in enumerate(record.formal_attributes):
-            formal_objects.append(key)
-            if val:
-                valid_formal_indices.add(idx)
         used_objects.append(record.formal_attributes[0][0])
         subj: RdfTerm | None = None
         if record.formal_attributes[0][1]:
@@ -1270,7 +1262,6 @@ class ProvRDFSerializer(Serializer):
                 rec_type,
                 pred,
                 subj,
-                valid_formal_indices,
                 used_objects,
                 has_qualifiers,
             )
@@ -1294,7 +1285,6 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         pred: URIRef,
         subj: RdfTerm,
-        valid_formal_indices: set[int],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
     ) -> bool:
@@ -1306,7 +1296,6 @@ class ProvRDFSerializer(Serializer):
             rec_type: ``record``'s record type QualifiedName.
             pred: The relation's PROV-O predicate.
             subj: Subject term for the binary triple.
-            valid_formal_indices: Indices of formal attributes that have a value.
             used_objects: Accumulator, extended with the formal attributes
                 consumed by the emitted triple(s).
             has_qualifiers: Current qualification flag.
@@ -1320,10 +1309,12 @@ class ProvRDFSerializer(Serializer):
             obj_val = None
         if not obj_val:
             return has_qualifiers
-        if rec_type in _QUALIFIED_ONLY_RELATIONS and not (
-            valid_formal_indices == {0, 1} and len(record.extra_attributes) == 0
-        ):
-            return has_qualifiers
+        if rec_type in _QUALIFIED_ONLY_RELATIONS:
+            filled = {
+                idx for idx, (_, val) in enumerate(record.formal_attributes) if val
+            }
+            if filled != {0, 1} or record.extra_attributes:
+                return has_qualifiers
         # #250: skip the object append when a qualification node will be
         # minted for this influencer relation and will assert the influencer
         # attribute directly (as a rewrite of the formal attribute).
@@ -1397,7 +1388,7 @@ class ProvRDFSerializer(Serializer):
         self,
         rec_type: pm.QualifiedName,
         attr: pm.QualifiedNameCandidate,
-        formal_objects: list[pm.QualifiedName],
+        formal_attributes: Sequence[pm.QualifiedName],
     ) -> RdfTerm:
         """Return the PROV-O predicate for one attribute of a qualified relation.
 
@@ -1408,13 +1399,13 @@ class ProvRDFSerializer(Serializer):
         Args:
             rec_type: The relation's record type QualifiedName.
             attr: The attribute name being encoded.
-            formal_objects: The relation's formal attribute names.
+            formal_attributes: The relation's formal attribute names.
 
         Returns:
             The predicate term to use for ``attr``.
         """
         pred: RdfTerm
-        if attr in formal_objects:
+        if attr in formal_attributes:
             pred = attr2rdf(cast(QualifiedName, attr))
         elif isinstance(attr, pm.QualifiedName) and attr in _QUALIFIED_ATTR_PREDICATES:
             pred = _QUALIFIED_ATTR_PREDICATES[attr]
@@ -1780,9 +1771,7 @@ class ProvRDFSerializer(Serializer):
             return
         if "mentionOf" in pred:
             last_bundle = None
-            for stmt in graph.triples(
-                (subj_node, URIRef(pm.PROV["asInBundle"].uri), None)
-            ):
+            for stmt in graph.triples((subj_node, _prov_uri("asInBundle"), None)):
                 last_bundle = stmt[2]
             mention_bundle = (
                 None if last_bundle is None else self._relation_node(last_bundle, graph)
@@ -1794,9 +1783,7 @@ class ProvRDFSerializer(Serializer):
             qualifier = "qualified" + name.upper()[0] + name[1:]
             qualifier_bnode = None
             influencer_pred = _QUALIFIED_RELATION_INFLUENCER[name]
-            for stmt in graph.triples(
-                (subj_node, URIRef(pm.PROV[qualifier].uri), None)
-            ):
+            for stmt in graph.triples((subj_node, _prov_uri(qualifier), None)):
                 candidate = stmt[2]
                 # #226/#250: a subject may point at more than one
                 # qualification node of the same kind -- e.g. two
