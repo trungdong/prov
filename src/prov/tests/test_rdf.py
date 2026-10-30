@@ -681,20 +681,6 @@ def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
     assert returned == expected
 
 
-def test_a_derivation_typed_with_a_subtype_reads_without_prov_derivation() -> None:
-    content = _TURTLE_PREFIXES + (
-        "ex:d a prov:Revision, prov:Derivation ; prov:entity ex:e1 .\n"
-        "ex:e2 prov:qualifiedRevision ex:d .\n"
-    )
-
-    document = ProvDocument.deserialize(
-        content=content, format="rdf", rdf_format="turtle"
-    )
-
-    (derivation,) = document.get_records(pm.ProvDerivation)
-    assert derivation.get_attribute("prov:type") == {PROV["Revision"]}
-
-
 def test_decode_document_without_contexts_uses_plain_graph_path() -> None:
     # decode_document()'s `hasattr(content, "graphs")` branch is False
     # for a plain rdflib Graph (as opposed to a Dataset), which
