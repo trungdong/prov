@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
+from prov._warnings import warn
 from prov.constants import *
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
@@ -15,6 +16,7 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvException,
+    ProvMissingFormalAttribute,
     ProvRecord,
     QualifiedNameCandidate,
     first,
@@ -486,8 +488,13 @@ def _decode_record_group(
             (all raised further down the call chain, by
             :func:`_decode_record_instance` / :func:`_decode_formal_attribute`);
             or, naming the record, if the model rejects the record's
-            identifier, a value or the record itself (the model's error is
-            the ``__cause__``).
+            identifier, a value or the record itself, other than for a
+            missing party (the model's error is the ``__cause__``).
+
+    Warns:
+        ProvWarning: For each record instance the model refuses for a missing
+            party (``ProvMissingFormalAttribute``); the instance is skipped
+            and the next one of the same key is read.
     """
     try:
         rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
@@ -511,7 +518,12 @@ def _decode_record_group(
                 else _resolve_name(bundle, rec_id, rec_id)
             )
             for element in elements:
-                _decode_record_instance(rec_type, rec_id, identifier, element, bundle)
+                try:
+                    _decode_record_instance(
+                        rec_type, rec_id, identifier, element, bundle
+                    )
+                except ProvMissingFormalAttribute as exc:
+                    warn(f"{_position(rec_id, None)}{exc}")
         except ProvException as exc:
             raise ProvJSONException(f"{_position(rec_id, None)}{exc}") from exc
 

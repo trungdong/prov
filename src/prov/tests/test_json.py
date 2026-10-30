@@ -24,6 +24,7 @@ from prov.model import (
     ProvDocument,
     ProvEntity,
     ProvMembership,
+    ProvWarning,
 )
 from prov.serializers._json_common import _JSONPrefixMap
 from prov.serializers.provjson import (
@@ -353,14 +354,17 @@ def test_had_member_array_listing_a_member_twice_reads_one_record() -> None:
     assert [{str(e) for e in m} for m in members] == [{"ex:e1"}, {"ex:e2"}]
 
 
-def test_had_member_array_without_a_collection_reads() -> None:
-    # The fan-out took the collection from the first record and raised
-    # KeyError when the membership had none.
-    document = _read(
-        _json({"hadMember": {"ex:m": {"prov:entity": ["ex:e1", "ex:e2"]}}})
-    )
-    members = [r.get_attribute("prov:entity") for r in document.get_records()]
-    assert [{str(e) for e in m} for m in members] == [{"ex:e1"}, {"ex:e2"}]
+def test_had_member_array_without_a_collection_is_skipped() -> None:
+    # The model refuses a membership with no collection, so the fan-out builds
+    # none of its members and the statement is skipped.
+    with pytest.warns(ProvWarning) as caught:
+        document = _read(
+            _json({"hadMember": {"ex:m": {"prov:entity": ["ex:e1", "ex:e2"]}}})
+        )
+    assert [str(w.message) for w in caught] == [
+        "record 'ex:m': hadMember requires a value for prov:collection"
+    ]
+    assert list(document.get_records()) == []
 
 
 def test_had_member_members_resolve_alike() -> None:

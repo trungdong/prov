@@ -19,6 +19,7 @@ from prov.model import (
     NameValuePair,
     ProvException,
     ProvExceptionInvalidQualifiedName,
+    ProvMissingFormalAttribute,
     sorted_attributes,
 )
 from prov.model._values import (
@@ -338,11 +339,15 @@ class ProvXMLSerializer(Serializer):
                 not a PROV element or the model rejects a record, a bundle
                 or the default namespace ``xml_doc`` declares, such as one
                 that starts with ``@`` (the model's error is the
-                ``__cause__``).
+                ``__cause__``), other than for a missing party.
 
         Warns:
             UserWarning: For each ``<prov:other>`` child, which is otherwise
                 ignored.
+            ProvWarning: For each record the model refuses for a missing
+                party (``ProvMissingFormalAttribute``); the record is
+                skipped, and the warning names the element and, when it has
+                one, its line.
         """
 
         # For a bundleContent, _read_bundle_content has already adopted the
@@ -380,6 +385,8 @@ class ProvXMLSerializer(Serializer):
                     continue
 
                 self._read_record(element, qname.localname, rec_id, bundle, namespaces)
+            except ProvMissingFormalAttribute as exc:
+                warn(f"{_element_position(element, rec_id)}{exc}")
             except ProvException as exc:
                 raise ProvXMLException(
                     f"{_element_position(element, rec_id)}{exc}"

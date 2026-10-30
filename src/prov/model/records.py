@@ -731,6 +731,15 @@ class ProvElementIdentifierRequired(ProvException):
         return "An identifier is missing. All PROV elements require a valid identifier."
 
 
+class ProvMissingFormalAttribute(ProvException):
+    """Exception for a relation missing a party it requires.
+
+    ``hadMember``, ``alternateOf``, ``specializationOf`` and ``mentionOf``
+    refuse a record that lacks an entity or a collection. ``mentionOf`` may
+    omit its bundle.
+    """
+
+
 # The types of a converted non-formal attribute value that need no check.
 # bool is an int, so it needs no entry of its own.
 _PLAIN_VALUE_BASES = (str, int, float, datetime.datetime, QualifiedName, Literal)
@@ -742,6 +751,9 @@ class ProvRecord:
 
     FORMAL_ATTRIBUTES: tuple[QualifiedName, ...] = ()
     """Formal attributes names of this record type, in the expected order."""
+
+    _REQUIRED_ATTRIBUTES: tuple[QualifiedName, ...] = ()
+    """Formal attributes that must hold a value, checked at construction."""
 
     _prov_type: QualifiedName | None = None
     """PROV type of record."""
@@ -767,6 +779,11 @@ class ProvRecord:
         )
         if attributes:
             self.add_attributes(attributes)
+        for name in self._REQUIRED_ATTRIBUTES:
+            if not self._attributes.get(name):
+                raise ProvMissingFormalAttribute(
+                    f"{PROV_N_MAP[self.get_type()]} requires a value for {name}"
+                )
 
     def _typed_attributes(self) -> frozenset[tuple[QualifiedName, ValueKey]]:
         """``(name, value key)`` pairs for equality and hashing (#527, #34).
@@ -1406,6 +1423,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``alternate2`` is ``None``.
         """
         self._bundle.alternate(self, alternate2)
         return self
@@ -1418,6 +1438,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``generalEntity`` is ``None``.
         """
         self._bundle.specialization(self, generalEntity)
         return self
@@ -1431,6 +1454,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``entity`` is ``None``.
         """
         self._bundle.membership(self, entity)
         return self
@@ -1533,6 +1559,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``generalEntity`` is ``None``.
         """
         self._bundle.mention(self, generalEntity, bundle)
         return self
@@ -1899,6 +1928,7 @@ class ProvSpecialization(ProvRelation):
         PROV_ATTR_SPECIFIC_ENTITY,
         PROV_ATTR_GENERAL_ENTITY,
     )
+    _REQUIRED_ATTRIBUTES = FORMAL_ATTRIBUTES
 
     _prov_type = PROV_SPECIALIZATION
 
@@ -1907,6 +1937,7 @@ class ProvAlternate(ProvRelation):
     """Provenance Alternate relationship."""
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2)
+    _REQUIRED_ATTRIBUTES = FORMAL_ATTRIBUTES
 
     _prov_type = PROV_ALTERNATE
 
@@ -1928,6 +1959,7 @@ class ProvMembership(ProvRelation):
     """Provenance Membership relationship."""
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY)
+    _REQUIRED_ATTRIBUTES = FORMAL_ATTRIBUTES
 
     _prov_type = PROV_MEMBERSHIP
 

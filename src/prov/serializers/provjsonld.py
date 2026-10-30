@@ -37,6 +37,7 @@ from prov.model import (
     ProvDocument,
     ProvElement,
     ProvException,
+    ProvMissingFormalAttribute,
     ProvRecord,
     QualifiedNameCandidate,
     first,
@@ -707,6 +708,13 @@ def _decode_statement_attributes(
     return attributes, other_attributes, members
 
 
+def _statement_name(rec_type: QualifiedName, rec_id: Any) -> str:
+    """Return the label that names a statement in a warning or an error."""
+    if rec_id is None:
+        return f"an anonymous {rec_type}"
+    return f"{rec_type} {rec_id!r}"
+
+
 def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
     """Decode one submission §4 statement object and add it to ``bundle``.
 
@@ -729,8 +737,12 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             yields one record per member) or cannot be
             resolved to a qualified name; if a non-formal attribute's
             value is not a JSON array; or, naming the statement, if the
-            model rejects a value or the record (the model's error is the
-            ``__cause__``).
+            model rejects a value or the record, other than for a missing
+            party (the model's error is the ``__cause__``).
+
+    Warns:
+        ProvWarning: If the model refuses the statement for a missing party
+            (``ProvMissingFormalAttribute``); the statement is skipped.
     """
     rec_type, type_term = _decode_statement_type(item)
     cls = PROV_REC_CLS[rec_type]
@@ -756,13 +768,12 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             for member in members
         ]
         _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
+    except ProvMissingFormalAttribute as exc:
+        warn(f"{_statement_name(rec_type, rec_id)}: {exc}")
     except ProvException as exc:
-        named = (
-            f"{rec_type} {rec_id!r}"
-            if rec_id is not None
-            else f"an anonymous {rec_type}"
-        )
-        raise ProvJSONLDException(f"{named}: {exc}") from exc
+        raise ProvJSONLDException(
+            f"{_statement_name(rec_type, rec_id)}: {exc}"
+        ) from exc
 
 
 def decode_jsonld_document(container: Any, document: ProvDocument) -> None:

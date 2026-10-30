@@ -313,6 +313,21 @@ A PROV-XML `prov:hadMember` with several `<prov:entity>` children reads as one r
 entity, each with the element's identifier and attributes, as PROV-JSON and PROV-JSONLD
 already read a list, where 3.2.3 read one record holding every entity.
 
+## Relations missing a party
+
+`prov` 3.3.0 raises {py:class}`~prov.model.ProvMissingFormalAttribute`, a
+{py:class}`~prov.model.ProvException`, for this call.
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `hadMember requires a value for prov:entity` | [#710](https://github.com/trungdong/prov/issues/710) | `doc.membership("ex:c", None)` | Both parties, or no record. |
+
+Every reader skips a `hadMember`, `alternateOf`, `specializationOf` or `mentionOf` that is
+missing a party with a {py:class}`~prov.model.ProvWarning`, and the rest of the document
+reads. A `mentionOf` may still omit its bundle. A document whose only statements are such
+relations reads as empty, so {py:func}`prov.read` without a `format` cannot detect it, and
+passing `format=` reads it with the warnings.
+
 ## Equality
 
 `==` on records, bundles, documents and `Literal` values follows one rule in 3.3.0, and

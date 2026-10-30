@@ -15,7 +15,11 @@ from pathlib import Path
 
 import pytest
 
-from prov.constants import PROV, PROV_INTERNATIONALIZEDSTRING, XSD
+from prov.constants import (
+    PROV,
+    PROV_INTERNATIONALIZEDSTRING,
+    XSD,
+)
 from prov.identifier import Namespace
 from prov.model import (
     PROV_TYPE,
@@ -27,6 +31,8 @@ from prov.model import (
     ProvElementIdentifierRequired,
     ProvException,
     ProvExceptionInvalidQualifiedName,
+    ProvMembership,
+    ProvMissingFormalAttribute,
     ProvRecord,
     ProvUnificationError,
     first,
@@ -427,6 +433,82 @@ def test_provelementidentifierrequired_str() -> None:
         str(ProvElementIdentifierRequired())
         == "An identifier is missing. All PROV elements require a valid identifier."
     )
+
+
+@pytest.mark.parametrize(
+    ("build", "message"),
+    [
+        pytest.param(
+            lambda d: d.membership("ex:c", None),
+            "hadMember requires a value for prov:entity",
+            id="membership-no-entity",
+        ),
+        pytest.param(
+            lambda d: d.membership(None, "ex:e"),
+            "hadMember requires a value for prov:collection",
+            id="membership-no-collection",
+        ),
+        pytest.param(
+            lambda d: d.alternate("ex:a", None),
+            "alternateOf requires a value for prov:alternate2",
+            id="alternate-no-second",
+        ),
+        pytest.param(
+            lambda d: d.alternate(None, "ex:b"),
+            "alternateOf requires a value for prov:alternate1",
+            id="alternate-no-first",
+        ),
+        pytest.param(
+            lambda d: d.specialization("ex:s", None),
+            "specializationOf requires a value for prov:generalEntity",
+            id="specialization-no-general",
+        ),
+        pytest.param(
+            lambda d: d.specialization(None, "ex:g"),
+            "specializationOf requires a value for prov:specificEntity",
+            id="specialization-no-specific",
+        ),
+        pytest.param(
+            lambda d: d.mention(None, "ex:b", "ex:bun"),
+            "mentionOf requires a value for prov:specificEntity",
+            id="mention-no-specific",
+        ),
+        pytest.param(
+            lambda d: d.mention("ex:a", None, "ex:bun"),
+            "mentionOf requires a value for prov:generalEntity",
+            id="mention-no-general",
+        ),
+        pytest.param(
+            lambda d: ProvMembership(d, None),
+            "hadMember requires a value for prov:collection",
+            id="bare-class",
+        ),
+        pytest.param(
+            lambda d: d.bundle("ex:b").membership("ex:c", None),
+            "hadMember requires a value for prov:entity",
+            id="in-a-bundle",
+        ),
+    ],
+)
+def test_a_relation_missing_a_party_is_refused(build, message: str) -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    with pytest.raises(ProvMissingFormalAttribute) as ctx:
+        build(doc)
+    assert str(ctx.value) == message
+    assert list(doc.get_records()) == []
+    assert all(list(b.get_records()) == [] for b in doc.bundles)
+
+
+def test_a_missing_party_error_is_a_prov_exception() -> None:
+    assert issubclass(ProvMissingFormalAttribute, ProvException)
+
+
+def test_a_mention_may_omit_its_bundle() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.mention("ex:a", "ex:b", None)
+    assert len(list(doc.get_records())) == 1
 
 
 def test_provexceptioninvalidqualifiedname_str() -> None:

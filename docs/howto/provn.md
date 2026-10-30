@@ -63,7 +63,7 @@ The parser accepts three dialects, selected with `profile`:
 | Profile | Accepts |
 | --- | --- |
 | `strict` | The Recommendation grammar only, with at most one `default` declaration, before any `prefix` declaration, no declaration of `prov` or `xsd`, every statement before the first bundle, and no identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`. Mention is `prov:mentionOf`, as PROV-Links spells it, and `-` is not accepted where the grammar has a plain identifier. |
-| `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
+| `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. A `hadMember`, `alternateOf`, `specializationOf` or `mentionOf` missing a party is skipped with a {py:class}`~prov.model.ProvWarning`, as under `lenient`. |
 | `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. |
 
 Every profile reads an extensibility expression (`prefix:name(...)`, PROV-N section 5) and

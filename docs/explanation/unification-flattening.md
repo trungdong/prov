@@ -137,6 +137,9 @@ endDocument
 `unified()` is the only place in the model that raises over a same-identifier conflict.
 Asserting records never checks for one, by design, because PROV statements are asserted
 incomplete, one piece at a time, and a later `unified()` call, if any, reconciles them.
+The parties of `hadMember`, `alternateOf`, `specializationOf` and `mentionOf` are an
+exception, since the model refuses those four relations without them
+([#710](https://github.com/trungdong/prov/issues/710)).
 
 {py:meth}`ProvDocument.unified() <prov.model.ProvDocument.unified>` applies this to the
 document's top-level records and, independently, to each bundle. Nothing merges across a
@@ -165,7 +168,9 @@ identifier, within these limits:
   because entities and activities are disjoint, while an `agent(x)` and an `entity(x)` are
   not and stay as two independently merged records.
 - **Absent means unknown, with exceptions.** PROV-N's explicit `-` placeholder is not
-  represented, so an absent formal attribute behaves as an existential. In the positions
+  represented, so an absent formal attribute behaves as an existential, except for the
+  parties of `hadMember`, `alternateOf`, `specializationOf` and `mentionOf`, which the
+  model requires. In the positions
   the specification makes [non-expandable](https://www.w3.org/TR/prov-constraints/#optional-identifiers-and-attributes), the
   plan of an association, the activity of a derivation, and the generation and usage of a
   derivation with no activity, an absent value against a present one raises the same error.

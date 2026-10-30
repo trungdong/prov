@@ -63,6 +63,7 @@ umbrella issue #253.
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 from collections.abc import Iterator
 from pathlib import Path
@@ -72,7 +73,7 @@ import pytest
 
 pytest.importorskip("lxml")
 
-from prov.model import ProvDocument, ProvUnificationError
+from prov.model import ProvDocument, ProvUnificationError, ProvWarning
 
 if TYPE_CHECKING:
     from _pytest.mark import ParameterSet
@@ -132,6 +133,17 @@ UNIFICATION_REJECTS = dict.fromkeys(
     "derivation-fail4.xml": "an absent prov:activity means none",
 }
 
+# Fail-cases that hold a hadMember, mentionOf or specializationOf missing a
+# party. The model refuses such a record and the PROV-XML reader warns and
+# skips it (#710), so the rest of the file reads and unifies.
+PARTY_SKIPS = {
+    "membership-fail1.xml",
+    "mention-fail1.xml",
+    "mention-fail2.xml",
+    "specialization-fail1.xml",
+    "specialization-fail2.xml",
+}
+
 
 def _n_records(document: ProvDocument) -> int:
     return len(list(document.get_records())) + sum(
@@ -173,12 +185,18 @@ def test_corpus_inventory() -> None:
     assert len(files) == 153
     assert files >= PARSE_FAILURES
     assert files >= set(UNIFICATION_REJECTS)
+    assert files >= PARTY_SKIPS
     assert all("-fail" in name for name in UNIFICATION_REJECTS)
 
 
 @pytest.mark.parametrize("xml_path", list(_cases()))
 def test_unified_corpus_characterization(xml_path: Path) -> None:
-    with open(xml_path, "rb") as f:
+    warns = (
+        pytest.warns(ProvWarning, match="requires a value for")
+        if xml_path.name in PARTY_SKIPS
+        else contextlib.nullcontext()
+    )
+    with warns, open(xml_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if xml_path.name in UNIFICATION_REJECTS:
         # Every rejection goes through _unify_same_type_group: the

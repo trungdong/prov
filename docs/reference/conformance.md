@@ -19,8 +19,11 @@ Summary:
   format cannot represent the concept.
 - The PROV-N column shows the keyword `get_provn()` writes. Every row round-trips through
   PROV-N under the `default` profile, and under `strict` when written with `strict=True`.
-- `prov` enforces no structural constraint at assertion time ([#257](https://github.com/trungdong/prov/issues/257)). Merge-time
-  conformance, PROV-CONSTRAINTS unification, is `unified()`'s job and is described in
+- `prov` enforces no structural constraint at assertion time ([#257](https://github.com/trungdong/prov/issues/257)),
+  except that `hadMember`, `alternateOf`, `specializationOf` and `mentionOf` require their
+  parties ([#710](https://github.com/trungdong/prov/issues/710)); general validation is
+  [#62](https://github.com/trungdong/prov/issues/62). Merge-time conformance,
+  PROV-CONSTRAINTS unification, is `unified()`'s job and is described in
   {doc}`../explanation/unification-flattening`.
 
 ## Component 1: Entities and Activities
@@ -152,6 +155,12 @@ A round trip covers `prov`'s own output. Reading what other tools write is a sep
 Each allowance below states its reason; `prov` does not adopt another implementation's
 departure from the Recommendations without one.
 
+Every reader warns {py:class}`~prov.model.ProvWarning` and skips a `hadMember`,
+`alternateOf`, `specializationOf` or `mentionOf` that is missing a party, naming the
+statement as the reader's errors do, and the rest of the document reads. A `mentionOf`
+without its bundle reads. A party given as JSON `null` (PROV-JSON, PROV-JSONLD) or as a
+blank `<prov:entity/>` still raises the reader's error.
+
 ### PROV-N profiles
 
 {doc}`../howto/provn` lists what each of the three profiles, `strict`, `default` and
@@ -170,6 +179,10 @@ a `PN_PREFIX`, a Unicode whitespace character other than space, tab, CR and LF b
 tokens, a duplicate bundle identifier, and an attribute named after one of the
 statement's own arguments are errors.
 
+`strict` raises at a `-` where the grammar has a plain identifier. `default` and `lenient`
+accept the `-`, except that a `hadMember`, `alternateOf`, `specializationOf` or
+`mentionOf` missing a party is skipped with a `ProvWarning` under both.
+
 ### PROV-XML
 
 - A reference element with no `prov:ref` whose child is itself a reference, the shape
@@ -177,7 +190,7 @@ statement's own arguments are errors.
   is unambiguous. A reference with neither `prov:ref` nor text raises `ProvXMLException`.
 - A `prov:hadMember` element with several `<prov:entity>` children, which the schema allows,
   reads as one `hadMember` per member, each with the element's `prov:id`, collection and
-  attributes. An element with no `<prov:entity>` child reads as one `hadMember` with no member.
+  attributes. An element with no `<prov:entity>` child is skipped with a `ProvWarning`.
 - `<prov:other>` elements and attributes the model cannot represent are skipped with a
   `ProvWarning`.
 - Names escaped as in C3 are unescaped.

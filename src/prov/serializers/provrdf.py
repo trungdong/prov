@@ -1967,6 +1967,11 @@ class ProvRDFSerializer(Serializer):
             state: Decode state; consumed attributes are removed from it, so
                 what remains afterwards is what could not be converted.
 
+        Warns:
+            ProvWarning: For a subject whose record the model refuses for a
+                missing party (``ProvMissingFormalAttribute``); the subject
+                and its attributes are skipped.
+
         Raises:
             ProvRDFException: If a subject carries more than one value for a
                 formal attribute that :attr:`_DecodeState.unique_sets`
@@ -1976,7 +1981,9 @@ class ProvRDFSerializer(Serializer):
                 ``docs/reference/conformance.md``. Any other ``ProvException``
                 raised while constructing a record (e.g. an unresolvable
                 qualified name) is wrapped in a ``ProvRDFException`` naming
-                the subject, with the model's exception as the cause.
+                the subject, with the model's exception as the cause, other
+                than ``ProvMissingFormalAttribute``, which is warned and
+                skipped.
         """
         for subj in state.record_types:
             attrs = state.other_attributes.get(subj)
@@ -1996,6 +2003,8 @@ class ProvRDFSerializer(Serializer):
                         state.formal_attributes[subj].items(),
                         attrs,
                     )
+            except pm.ProvMissingFormalAttribute as exc:
+                warn(f"subject {subj!r}: {exc}")
             except pm.ProvException as exc:
                 # Only relabel the specific #217 shape: a formal-attribute
                 # predicate repeated in `attrs` (see the duplicate-detection

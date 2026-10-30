@@ -1065,10 +1065,50 @@ def test_signed_int_is_still_an_integer_in_an_attribute_value() -> None:
 def test_strict_requires_an_identifier_at_the_named_position() -> None:
     with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
         parse("hadMember(-, -)")
-    # default keeps the model's own scruffy-statement policy (#257): both
-    # markers are accepted, producing a membership with no formal values set.
-    record = only_record(parse("hadMember(-, -)", profile="default"))
-    assert all(value is None for _, value in record.formal_attributes)
+    # default accepts the markers at the grammar and the model then refuses
+    # the membership, so the statement is skipped.
+    with pytest.warns(ProvWarning) as caught:
+        doc = ProvDocument.deserialize(
+            content=f"document\n{PREFIXES}hadMember(-, -)\nendDocument",
+            format="provn",
+            profile="default",
+        )
+    assert [str(w.message) for w in caught] == [
+        "PROV-N statement skipped: line 4, column 1:"
+        " hadMember requires a value for prov:collection"
+    ]
+    assert list(doc.get_records()) == []
+
+
+@pytest.mark.parametrize(
+    ("stray", "column", "found"),
+    [
+        (",", 20, "expected a statement keyword, found ','"),
+        ("ex:k", 25, "expected '(', found 'entity'"),
+    ],
+)
+def test_a_skipped_missing_party_leaves_the_tokens_after_it_to_the_profile(
+    stray, column, found
+) -> None:
+    # The model refuses the relation after its ')' is consumed, so the skip does
+    # not resync: a stray token after it is an error of its own.
+    content = (
+        f"document\n{PREFIXES}hadMember(ex:c, -) {stray} entity(ex:e)\nendDocument"
+    )
+    with pytest.raises(
+        ProvNSyntaxError, match=re.escape(f"line 4, column {column}: {found}")
+    ):
+        ProvDocument.deserialize(content=content, format="provn", profile="default")
+    with pytest.warns(ProvWarning) as caught:
+        doc = ProvDocument.deserialize(
+            content=content, format="provn", profile="lenient"
+        )
+    assert [str(w.message) for w in caught] == [
+        "PROV-N statement skipped: line 4, column 1:"
+        " hadMember requires a value for prov:entity",
+        f"PROV-N statement skipped: line 4, column {column}: {found}",
+    ]
+    assert [str(r.identifier) for r in doc.get_records()] == ["ex:e"]
 
 
 def test_strict_still_accepts_wasderivedfrom_with_trailing_markers() -> None:
