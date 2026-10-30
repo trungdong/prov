@@ -451,21 +451,6 @@ REJECTED_DOCUMENTS = [
         for kind, head in (("extension", "ex:f(ex:a, ["), ("element", "entity(ex:a, ["))
         for label, pairs in (("opened", ""), ("after a pair", 'ex:k="v",'))
     ],
-    pytest.param(
-        f'{STATEMENT_PREFIX}bundle ex:b\nentity(ex:a, [ex:v="x" %%\nendBundle'
-        "\nendDocument",
-        STATEMENT,
-        "expected a datatype, found 'endBundle'",
-        (5, 1),
-        id="an attribute datatype before endBundle",
-    ),
-    pytest.param(
-        f"{STATEMENT_PREFIX}bundle ex:b\nentity(ex:a, [\nendBundle\nendDocument",
-        STATEMENT,
-        "expected an attribute name, found 'endBundle'",
-        (5, 1),
-        id="an attribute block opened before endBundle",
-    ),
     *[
         pytest.param(
             f"{STATEMENT_PREFIX}{body}\nendDocument",
@@ -475,6 +460,18 @@ REJECTED_DOCUMENTS = [
             id=label,
         )
         for body, message, position, label in (
+            (
+                'bundle ex:b\nentity(ex:a, [ex:v="x" %%\nendBundle',
+                "expected a datatype, found 'endBundle'",
+                (5, 1),
+                "an attribute datatype before endBundle",
+            ),
+            (
+                "bundle ex:b\nentity(ex:a, [\nendBundle",
+                "expected an attribute name, found 'endBundle'",
+                (5, 1),
+                "an attribute block opened before endBundle",
+            ),
             (
                 "bundle ex:b\nentity(ex:a, [endBundle])\nentity(ex:x)\nendBundle",
                 "expected an attribute name, found 'endBundle'",
@@ -505,15 +502,14 @@ REJECTED_DOCUMENTS = [
                 (4, 1),
                 "an attribute name before a bundle",
             ),
+            (
+                'ex:f(ex:a, "x" %%',
+                "expected a datatype, found 'endDocument'",
+                (4, 1),
+                "an extension datatype before endDocument",
+            ),
         )
     ],
-    pytest.param(
-        f'{STATEMENT_PREFIX}ex:f(ex:a, "x" %%\nendDocument',
-        STATEMENT,
-        "expected a datatype, found 'endDocument'",
-        (4, 1),
-        id="an extension datatype before endDocument",
-    ),
     # Statement rules (#523, #519 b and c). An attribute named after one of
     # the statement's own arguments is rejected at the attribute; under
     # strict, a statement after a bundle at the statement, and an identifier

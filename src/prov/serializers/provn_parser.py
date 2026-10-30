@@ -180,14 +180,9 @@ _DATATYPE_FOLLOW = (
     TokenKind.RPAREN,
     TokenKind.RBRACE,
 )
-_DATA_FOLLOW = (
-    TokenKind.COMMA,
-    TokenKind.RBRACKET,
-    TokenKind.RPAREN,
-    TokenKind.RBRACE,
-    TokenKind.SEMICOLON,
-    TokenKind.EQUALS,
-)
+_ATTRIBUTE_NAME_FOLLOW = (TokenKind.EQUALS,)
+# Recovery treats a structural keyword as data wherever a guarded read accepts it.
+_DATA_FOLLOW = (*_IDENTIFIER_FOLLOW, *_DATATYPE_FOLLOW, *_ATTRIBUTE_NAME_FOLLOW)
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
 # Brackets an extensibility argument may open (N53): [50] and [51].
@@ -296,23 +291,24 @@ class ProvNParser:
         follow: tuple[TokenKind, ...] = _IDENTIFIER_FOLLOW,
         expected: str = "an identifier",
     ) -> None:
-        """Refuse a bare structural keyword as an identifier, an argument, an
-        attribute name or a datatype unless it is immediately followed by one
-        of ``follow``. Anything else means a statement left open by a missing
-        ')'/']'/'}' has read straight through a following 'bundle',
-        'endBundle' or 'endDocument' as if it were data; raising here without
-        consuming the token lets lenient resync (and, outside lenient, the
-        enclosing loop) still find it.
+        """Refuse a bare structural keyword where a name is read inside a
+        statement's brackets, unless a token in ``follow`` comes next. Anything
+        else means a statement left open by a missing ')'/']'/'}' has read
+        straight through a following 'bundle', 'endBundle' or 'endDocument' as
+        if it were data. Raising without consuming the token lets lenient
+        resync (and, outside lenient, the enclosing loop) still find it.
         """
+        if self._unclosed_keyword(follow):
+            raise self._error(f"expected {expected}, found {self._found()}")
+
+    def _unclosed_keyword(self, follow: tuple[TokenKind, ...]) -> bool:
+        """Whether the current token is a bare structural keyword that no
+        token in ``follow`` comes after."""
         current = self._current
         if current.kind is not TokenKind.NAME:
-            return
+            return False
         prefix, local = current.value
-        if prefix or local not in _STRUCTURAL:
-            return
-        if self._peek().kind in follow:
-            return
-        raise self._error(f"expected {expected}, found {self._found()}")
+        return not prefix and local in _STRUCTURAL and self._peek().kind not in follow
 
     def _at_keyword(self, keyword: str) -> bool:
         return self._current.kind is TokenKind.NAME and self._current.value == (
@@ -531,14 +527,11 @@ class ProvNParser:
         word is data in ``[ex:k=bundle]`` and ``"x" %% endBundle]``.
         """
         while self._current.kind is not TokenKind.EOF:
-            token = self._current
-            if token.kind is TokenKind.NAME:
-                prefix, local = token.value
-                if not prefix and local in _STRUCTURAL:
-                    if self._peek().kind not in _DATA_FOLLOW:
-                        return
-                elif self._peek().kind is TokenKind.LPAREN:
-                    return
+            if self._unclosed_keyword(_DATA_FOLLOW) or (
+                self._current.kind is TokenKind.NAME
+                and self._peek().kind is TokenKind.LPAREN
+            ):
+                return
             self._advance()
 
     # -- expressions -------------------------------------------------------------
@@ -773,7 +766,7 @@ class ProvNParser:
         self._expect(TokenKind.RBRACKET)
 
     def _extension_pair(self) -> None:
-        self._attribute_name()
+        self._name(_ATTRIBUTE_NAME_FOLLOW, "an attribute name")
         self._expect(TokenKind.EQUALS)
         self._literal_tokens()
 
@@ -822,14 +815,11 @@ class ProvNParser:
 
     # -- attributes and literals -----------------------------------------------
 
-    def _attribute_name(self) -> Token:
-        """Consume an attribute name, refusing an unclosed structural keyword."""
-        self._reject_unclosed_structural_keyword(
-            (TokenKind.EQUALS,), "an attribute name"
-        )
-        return self._digit_run_as_name() or self._expect(
-            TokenKind.NAME, "an attribute name"
-        )
+    def _name(self, follow: tuple[TokenKind, ...], expected: str) -> Token:
+        """Consume an attribute name or a datatype, refusing an unclosed
+        structural keyword unless a token in ``follow`` comes next."""
+        self._reject_unclosed_structural_keyword(follow, expected)
+        return self._digit_run_as_name() or self._expect(TokenKind.NAME, expected)
 
     def _attributes(self, bundle: ProvBundle) -> _AttributeBlock:
         """Parse an attribute block into (name, value, name token) triples."""
@@ -839,7 +829,7 @@ class ProvNParser:
             self._advance()
             return pairs
         while True:
-            name = self._attribute_name()
+            name = self._name(_ATTRIBUTE_NAME_FOLLOW, "an attribute name")
             attr = self._resolve(name, bundle)
             self._expect(TokenKind.EQUALS)
             pairs.append((attr, self._literal(bundle), name))
@@ -862,10 +852,7 @@ class ProvNParser:
                 return token, self._advance()
             if self._current.kind is TokenKind.TYPED:
                 self._advance()
-                self._reject_unclosed_structural_keyword(_DATATYPE_FOLLOW, "a datatype")
-                return token, self._digit_run_as_name() or self._expect(
-                    TokenKind.NAME, "a datatype"
-                )
+                return token, self._name(_DATATYPE_FOLLOW, "a datatype")
             return token, None
         if token.kind not in _LITERAL_KINDS:
             raise self._error(f"expected a literal value, found {self._found()}")
