@@ -439,6 +439,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   collection raises `ProvMissingFormalAttribute`, so assert both parties, and every reader
   skips such a statement with a `ProvWarning`, where 3.2.3 built the record. A `mentionOf`
   may still omit its bundle ([#710](https://github.com/trungdong/prov/issues/710))
+- An identified derivation written to PROV-O keeps an asserted `prov:type` of
+  `prov:Derivation` beside `prov:Revision`, `prov:Quotation` or `prov:PrimarySource` in
+  any attribute order, where 3.2.3 kept it only as the last value; the reader still drops
+  it (C12 on the conformance page) ([#697](https://github.com/trungdong/prov/issues/697))
 
 ### Additions
 

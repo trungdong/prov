@@ -544,6 +544,59 @@ def test_encode_container_builds_or_reuses_its_container() -> None:
     assert len(list(container.triples((None, None, None)))) > 0
 
 
+@pytest.mark.parametrize(
+    ("types", "keeps_derivation"),
+    [
+        pytest.param(["Revision", "Derivation"], True, id="revision-then-derivation"),
+        pytest.param(["Derivation", "Revision"], True, id="derivation-then-revision"),
+        pytest.param(["Quotation", "Derivation"], True, id="quotation-then-derivation"),
+        pytest.param(["Derivation", "Quotation"], True, id="derivation-then-quotation"),
+        pytest.param(
+            ["PrimarySource", "Derivation"], True, id="primary-source-then-derivation"
+        ),
+        pytest.param(
+            ["Derivation", "PrimarySource"], True, id="derivation-then-primary-source"
+        ),
+        pytest.param(["Revision"], False, id="revision-alone"),
+    ],
+)
+def test_an_identified_derivation_writes_an_asserted_prov_derivation(
+    types: list[str], keeps_derivation: bool
+) -> None:
+    # The qualification head is built once, so an asserted prov:Derivation
+    # survives beside a subtype in either attribute order (#697).
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.wasDerivedFrom(
+        "ex:g",
+        "ex:u",
+        identifier="ex:d",
+        other_attributes=[("prov:type", PROV[name]) for name in types],
+    )
+
+    graph = ProvRDFSerializer(document=doc).encode_document(doc)
+
+    derivation = URIRef("http://example.org/d")
+    triple = (derivation, RDF.type, URIRef(PROV["Derivation"].uri))
+    assert (triple in graph) is keeps_derivation
+    for name in types:
+        if name != "Derivation":
+            assert (derivation, RDF.type, URIRef(PROV[name].uri)) in graph
+
+
+def test_an_own_type_prov_type_does_not_round_trip_through_prov_o() -> None:
+    # C12: a prov:type equal to the record's own class is its rdf:type triple.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e", {"prov:type": PROV["Entity"]})
+
+    roundtripped = roundtrip_document(document, "rdf")
+
+    (entity,) = roundtripped.get_records(pm.ProvEntity)
+    assert entity.get_attribute("prov:type") == set()
+    assert roundtripped != document
+
+
 def test_decode_document_without_contexts_uses_plain_graph_path() -> None:
     # decode_document()'s `hasattr(content, "graphs")` branch is False
     # for a plain rdflib Graph (as opposed to a Dataset), which

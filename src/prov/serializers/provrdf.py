@@ -1185,7 +1185,6 @@ class ProvRDFSerializer(Serializer):
                 is unidentified (in which case a blank node is minted).
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword.
         """
-        bnode = None
         formal_objects: list[pm.QualifiedName] = []
         used_objects: list[pm.QualifiedName] = []
         formal_qualifiers = False
@@ -1196,27 +1195,19 @@ class ProvRDFSerializer(Serializer):
                 formal_qualifiers = True
         has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
 
-        node: RdfSubject | None = identifier
+        node, skip = self._encode_relation_head(
+            container,
+            record,
+            rec_type,
+            identifier,
+            PROV_N_MAP,
+            formal_objects,
+            used_objects,
+            has_qualifiers,
+        )
+        if skip:
+            return
         for attr, value in record.attributes:
-            # The qualification head is (re)built until a blank node is minted
-            # for it; for an identified relation no blank node is ever minted,
-            # so this re-runs per attribute. Each rebuild also removes the
-            # record type's rdf:type triple when a derivation subtype prov:type
-            # is asserted, so an asserted prov:type prov:Derivation survives
-            # only when it is the last attribute (#697).
-            if bnode is None:
-                node, bnode, skip = self._encode_relation_head(
-                    container,
-                    record,
-                    rec_type,
-                    node,
-                    PROV_N_MAP,
-                    formal_objects,
-                    used_objects,
-                    has_qualifiers,
-                )
-                if skip:
-                    continue
             if value is not None and attr not in used_objects:
                 container.add(
                     (
@@ -1238,8 +1229,10 @@ class ProvRDFSerializer(Serializer):
         formal_objects: list[pm.QualifiedName],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
-    ) -> tuple[RdfSubject | None, BNode | None, bool]:
+    ) -> tuple[RdfSubject | None, bool]:
         """Emit a relation's binary triple and its ``prov:qualified*`` node.
+
+        Called once per relation.
 
         Args:
             container: Graph to add triples to.
@@ -1247,17 +1240,16 @@ class ProvRDFSerializer(Serializer):
             rec_type: ``record``'s record type QualifiedName.
             identifier: The relation's subject URIRef, or ``None``.
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword.
-            formal_objects: Accumulator, extended with the record's formal
+            formal_objects: Accumulator, filled with the record's formal
                 attribute names (used to recognise formal attributes later).
-            used_objects: Accumulator, replaced in place with the formal
-                attributes already consumed by the binary triple.
+            used_objects: Accumulator, filled with the formal attributes
+                consumed by the binary triple.
             has_qualifiers: Whether the relation carries anything beyond the
                 two attributes of its binary triple.
 
         Returns:
-            ``(node, bnode, skip)``: the subject to hang remaining attributes
-            off, the blank node minted for it (``None`` if none was), and
-            whether the caller should skip this attribute entirely.
+            ``(node, skip)``: the subject to hang remaining attributes off,
+            and whether the caller writes no further attributes.
         """
         pred = _prov_uri(PROV_N_MAP[rec_type])
         valid_formal_indices = set()
@@ -1283,15 +1275,15 @@ class ProvRDFSerializer(Serializer):
         if rec_type in [PROV_ALTERNATE]:
             # #258/#250 territory: alternateOf emits only its binary triple,
             # so any extra attributes it carries are dropped. Preserved as-is.
-            return identifier, None, True
+            return identifier, True
         if subj and (has_qualifiers or identifier):
             return (
-                *self._encode_qualification_node(
+                self._encode_qualification_node(
                     container, record, rec_type, identifier, subj
                 ),
                 False,
             )
-        return identifier, None, False
+        return identifier, False
 
     def _encode_relation_binary_triple(
         self,
@@ -1357,7 +1349,7 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         identifier: RdfSubject | None,
         subj: RdfTerm,
-    ) -> tuple[RdfSubject, BNode | None]:
+    ) -> RdfSubject:
         """Link (and, when anonymous, create and type) a ``prov:qualified*`` node.
 
         A ``prov:type`` of ``prov:Revision``/``prov:Quotation``/
@@ -1373,8 +1365,8 @@ class ProvRDFSerializer(Serializer):
             subj: Subject the qualification node hangs off.
 
         Returns:
-            ``(node, bnode)``: the qualification node, and the blank node
-            minted for it (``None`` when ``identifier`` was already set).
+            The qualification node: ``identifier``, or the blank node minted
+            for it.
         """
         qualifier = rec_type._localpart
         rec_uri = rec_type.uri
@@ -1387,17 +1379,17 @@ class ProvRDFSerializer(Serializer):
         QRole = _prov_uri("qualified" + qualifier)
         if identifier is not None:
             container.add((subj, QRole, identifier))
-            return identifier, None
+            return identifier
         # #250: the anonymous qualification node's influencer property (e.g.
-        # `prov:agent` on an attribution/delegation node) is *not* added
-        # here -- for _BINARY_TRIPLE_INFLUENCER_RELATIONS it is asserted by
-        # the main _encode_relation() loop once this node exists (see the
-        # `used_objects.remove(...)` in _encode_relation_binary_triple),
-        # exactly like every other attribute hanging off the node.
+        # `prov:agent` on an attribution/delegation node) is not added here.
+        # _encode_relation_binary_triple skips the influencer's used_objects
+        # append for _BINARY_TRIPLE_INFLUENCER_RELATIONS, so the
+        # _encode_relation() loop writes it like every other attribute
+        # hanging off the node.
         bnode = BNode()
         container.add((subj, QRole, bnode))
         container.add((bnode, RDF.type, URIRef(rec_uri)))
-        return bnode, bnode
+        return bnode
 
     def _qualified_attr_predicate(
         self,
