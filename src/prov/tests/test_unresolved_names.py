@@ -391,10 +391,9 @@ def _read_rdf_the_default_iri() -> None:
 
 
 # Each channel: its reader, the error it raises, what starts the message and
-# whether the attribute is named after the value; an attribute of ``None``
-# means the message ends in the bare default-namespace detail.
+# whether the attribute is named after the value.
 _DEFAULT_IRI_CHANNELS: dict[
-    str, tuple[Callable[[], None], type[Exception], str, str | None]
+    str, tuple[Callable[[], None], type[Exception], str, str]
 ] = {
     "asserted": (
         _assert_the_default_iri,
@@ -418,7 +417,7 @@ _DEFAULT_IRI_CHANNELS: dict[
         _read_jsonld_node_the_default_iri,
         READER_ERRORS["jsonld"],
         f"prov:Entity 'e': Invalid Qualified Name: {DEFAULT_IRI}, ",
-        None,
+        " of k",
     ),
     "jsonld-value": (
         _read_jsonld_value_the_default_iri,
@@ -448,12 +447,7 @@ def test_a_value_equal_to_the_default_iri_gives_the_default_reason(
     read, error, where, attr = _DEFAULT_IRI_CHANNELS[channel]
     with pytest.raises(error) as ctx:
         read()
-    detail = (
-        DEFAULT_IRI_REASON
-        if attr is None
-        else _detail(DEFAULT_IRI, DEFAULT_IRI_REASON, attr)
-    )
-    assert str(ctx.value) == where + detail
+    assert str(ctx.value) == where + _detail(DEFAULT_IRI, DEFAULT_IRI_REASON, attr)
 
 
 #  A prefix the document declares wins over compaction in a bundle (#599)

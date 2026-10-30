@@ -304,18 +304,26 @@ def test_literal_datatype_in_a_foreign_default_is_rejected() -> None:
 
 def test_identifier_equal_to_the_default_namespace_iri_is_rejected() -> None:
     # #473: the name has no spelling in the default namespace, and the model
-    # mints no prefix for it.
+    # mints no prefix for it. The text carries the qualified-name sentence; the
+    # empty-local name holds no text to quote and carries the bare reason.
     doc = document_with_default_namespace()
     default = doc.get_default_namespace()
     assert default is not None
     registered = list(doc.get_registered_namespaces())
-    for identifier in (DEFAULT_NS.uri, default[""]):
+    reason = (
+        f"the IRI {DEFAULT_NS.uri} is the default namespace and has no "
+        "qualified-name form; declare a prefix for it"
+    )
+    for identifier, detail in (
+        (
+            DEFAULT_NS.uri,
+            f"the qualified name {DEFAULT_NS.uri!r} does not resolve, because {reason}",
+        ),
+        (default[""], reason),
+    ):
         with pytest.raises(ProvExceptionInvalidQualifiedName) as caught:
             doc.entity(identifier)
-        assert caught.value.detail == (
-            f"the IRI {DEFAULT_NS.uri} is the default namespace and has no "
-            "qualified-name form; declare a prefix for it"
-        )
+        assert caught.value.detail == detail
     assert list(doc.get_registered_namespaces()) == registered
 
 

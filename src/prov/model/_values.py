@@ -356,18 +356,27 @@ def resolve_pair(
         return qname
     if shown is None:
         shown = f"{prefix}:{local}" if prefix else local
-    return _unresolved_name_detail(
-        shown, bundle._unresolved_reason(prefix, local, colon, shown), attr
-    )
+    return unresolved_name_sentence(bundle, prefix, local, colon, shown, attr)
 
 
-def _unresolved_name_detail(
-    text: str, reason: str, attr: QualifiedName | None = None
+def unresolved_name_sentence(
+    bundle: ProvBundle,
+    prefix: str,
+    local: str,
+    colon: bool,
+    shown: str,
+    attr: QualifiedName | None = None,
 ) -> str:
-    """The sentence saying the name ``text`` of ``attr`` does not resolve,
-    because of ``reason`` (see ``NamespaceManager._unresolved_reason``)."""
+    """The sentence saying the name ``shown``, split into ``prefix`` and
+    ``local``, does not resolve in ``bundle``, and why.
+
+    ``colon`` tells whether ``shown`` was written with a colon and ``attr``
+    names the attribute after it. The caller has established that the name
+    does not resolve; this function looks nothing up.
+    """
+    reason = bundle._unresolved_reason(prefix, local, colon, shown)
     of_attr = f" of {attr}" if attr is not None else ""
-    return f"the qualified name {text!r}{of_attr} does not resolve, because {reason}"
+    return f"the qualified name {shown!r}{of_attr} does not resolve, because {reason}"
 
 
 def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | None:

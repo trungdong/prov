@@ -70,7 +70,7 @@ from prov.constants import (
     PROV_VALUE,
 )
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model._values import _split_name, _unresolved_name_detail
+from prov.model._values import _split_name, unresolved_name_sentence
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -642,21 +642,14 @@ class ProvBundle:
         valid_qname = self._namespaces.valid_qualified_name(identifier)
         if valid_qname is not None:
             return valid_qname
-        self._reject_default_iri(identifier)
         if not isinstance(identifier, (str, Identifier)):
             raise ProvExceptionInvalidQualifiedName(identifier)
         text = identifier if isinstance(identifier, str) else identifier.uri
         prefix, local = _split_name(text)
-        reason = self._unresolved_reason(prefix, local, ":" in text, text)
         raise ProvExceptionInvalidQualifiedName(
-            identifier, _unresolved_name_detail(text, reason, attr)
+            identifier,
+            unresolved_name_sentence(self, prefix, local, ":" in text, text, attr),
         )
-
-    def _reject_default_iri(self, identifier: QualifiedNameCandidate) -> None:
-        """Raise when ``identifier`` is the IRI of a default namespace in reach."""
-        if isinstance(identifier, (str, Identifier)):
-            text = identifier if isinstance(identifier, str) else identifier.uri
-            self._namespaces.reject_default_iri(text)
 
     @overload
     def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
@@ -2034,6 +2027,8 @@ class ProvDocument(ProvBundle):
                 document with nested bundles, has no usable identifier, or an
                 identifier collides with an existing bundle, or ``bundle``
                 already belongs to another document.
+            ProvExceptionInvalidQualifiedName: If no namespace resolves
+                ``identifier``.
         """
         if not isinstance(bundle, ProvBundle):
             raise ProvException(

@@ -583,13 +583,13 @@ def _decode_value_object(
     return Literal(text, bundle.mandatory_valid_qname(datatype_str, attr=attr))
 
 
-def _decode_formal_time(value: Any, type_term: str, key: str) -> datetime.datetime:
+def _decode_formal_time(value: Any, key: str) -> datetime.datetime:
     """The time of a formal attribute, or ``ProvJSONLDException`` when
     ``value`` is not an ``xsd:dateTime`` string (#514)."""
     parsed = parse_xsd_datetime(value) if isinstance(value, str) else None
     if parsed is None:
         raise ProvJSONLDException(
-            f"The {key!r} attribute of {type_term} is not an xsd:dateTime: {value!r}"
+            f"The {key!r} attribute is not an xsd:dateTime: {value!r}"
         )
     return parsed
 
@@ -629,7 +629,6 @@ def _decode_statement_attributes(
     item: dict[str, Any],
     bundle: ProvBundle,
     rec_type: QualifiedName,
-    type_term: str,
     formal_by_term: dict[str, QualifiedName],
 ) -> tuple[dict[QualifiedNameCandidate, Any], list[AttributePair], list[Any] | None]:
     """Split one statement object's keys into formal, non-formal and Membership members.
@@ -638,7 +637,6 @@ def _decode_statement_attributes(
         item: The statement object, as passed to :func:`decode_jsonld_statement`.
         bundle: Bundle the decoded values resolve qualified names against.
         rec_type: The statement's record type.
-        type_term: ``item``'s ``"@type"`` term, for error messages.
         formal_by_term: ``rec_type``'s formal attributes, keyed by local part.
 
     Returns:
@@ -670,7 +668,7 @@ def _decode_statement_attributes(
         attr = formal_by_term.get(_strip_prov_prefix(key))
         if attr is not None and not isinstance(value, list):
             if attr in PROV_ATTRIBUTE_LITERALS:
-                attributes[attr] = _decode_formal_time(value, type_term, key)
+                attributes[attr] = _decode_formal_time(value, key)
             else:
                 attributes[attr] = bundle.mandatory_valid_qname(value, attr=attr)
             continue
@@ -683,8 +681,8 @@ def _decode_statement_attributes(
                 members = value
                 continue
             raise ProvJSONLDException(
-                f"The formal attribute {key!r} of {type_term} takes a single "
-                f"value, not an array; found {value!r}"
+                f"The formal attribute {key!r} takes a single value, not an "
+                f"array; found {value!r}"
             )
         stripped = _strip_prov_prefix(key)
         term = stripped if stripped in SPECIAL_TERM_ATTRS else key
@@ -753,15 +751,13 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         rec_id = None
     try:
         attributes, other_attributes, members = _decode_statement_attributes(
-            item, bundle, rec_type, type_term, formal_by_term
+            item, bundle, rec_type, formal_by_term
         )
         if members is None:
             bundle.new_record(rec_type, rec_id, attributes, other_attributes)
             return
         if not members:
-            raise ProvJSONLDException(
-                f'The "entity" array of {type_term} is empty; found {item!r}'
-            )
+            raise ProvJSONLDException(f'The "entity" array is empty; found {item!r}')
         resolved = [
             bundle.mandatory_valid_qname(member, attr=PROV_ATTR_ENTITY)
             for member in members
@@ -824,7 +820,9 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         try:
             document.add_bundle(bundle, item["@id"])
         except ProvException as exc:
-            raise ProvJSONLDException(f"{PROV_BUNDLE} {item['@id']!r}: {exc}") from exc
+            raise ProvJSONLDException(
+                f"{_statement_name(PROV_BUNDLE, item['@id'])}: {exc}"
+            ) from exc
 
 
 class ProvJSONLDSerializer(Serializer):
