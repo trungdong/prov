@@ -89,13 +89,34 @@ records an activity, usage and generation, draws every element by default. Set
 dot_binary = prov_to_dot(document, show_nary=False)
 ```
 
+## Draw one bundle
+
+`prov_to_dot()` and `plot()` take a document. A bundle that is not a document warns
+`DeprecationWarning` and is drawn as before, and 4.0 draws documents only. To draw one
+bundle, add it to a document of its own. The copy keeps the source's declarations, so
+every name resolves as it does in the source:
+
+```python
+bundle = document.bundle("b")
+bundle.entity("e2")
+
+alone = pm.ProvDocument(namespaces=document.get_registered_namespaces())
+default = document.get_default_namespace()
+if default is not None:
+    alone.set_default_namespace(default.uri)
+alone.bundle(bundle.identifier).update(bundle)
+
+dot_bundle = prov_to_dot(alone)
+```
+
 ## Plot in a notebook or window
 
-{py:meth}`~prov.model.ProvBundle.plot` draws the same graph. With no filename it shows the
-image through matplotlib, in an interactive window or inline in a notebook, which needs the
-`plot` extra that {doc}`../installation` lists. With a filename it writes the file through
-Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes `show_nary`,
-`use_labels`, `show_element_attributes` and `show_relation_attributes`, and no `direction`.
+{py:meth}`~prov.model.ProvDocument.plot` draws the same graph. With no filename it shows
+the image through matplotlib, in an interactive window or inline in a notebook, which needs
+the `plot` extra that {doc}`../installation` lists. With a filename it writes the file
+through Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes
+`show_nary`, `use_labels`, `show_element_attributes` and `show_relation_attributes`, and no
+`direction`.
 
 ```python
 document.plot("document.png", use_labels=True)

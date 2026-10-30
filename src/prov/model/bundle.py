@@ -1711,7 +1711,10 @@ class ProvBundle:
         show_element_attributes: bool = True,
         show_relation_attributes: bool = True,
     ) -> None:
-        """Plot the bundle as a graph, saving to a file or displaying it.
+        """Plot the document as a graph, saving to a file or displaying it.
+
+        A bundle that is not a document warns :class:`DeprecationWarning`, as
+        :func:`prov.dot.prov_to_dot` does, and 4.0 draws documents only.
 
         Args:
             filename: The path to save the plot to; the image format is derived
