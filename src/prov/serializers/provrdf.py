@@ -1603,8 +1603,8 @@ class ProvRDFSerializer(Serializer):
 
         Registers a record type in ``state`` for every subject typed with a
         known PROV-O class; every other ``rdf:type`` object (and the extra
-        types of an already-registered subject) becomes a ``prov:type``
-        attribute instead.
+        types of an already-registered subject, other than its record type's
+        own class) becomes a ``prov:type`` attribute instead.
 
         Args:
             graph: The RDF (sub)graph being decoded.
@@ -1648,8 +1648,10 @@ class ProvRDFSerializer(Serializer):
 
         Returns:
             Whether the triple's object should *also* be recorded as a
-            ``prov:type`` attribute (true for a derivation subtype or an
-            extra type on a blank node, and for any subject already typed).
+            ``prov:type`` attribute. It is true for a derivation subtype or
+            an extra type on a blank node, and for a subject already typed
+            unless the object is the class of the record type registered
+            for it, such as ``prov:Derivation`` beside ``prov:Revision``.
         """
         blank = isinstance(stmt[0], BNode)
         if not blank and self.valid_identifier(subj) is None:
@@ -1663,9 +1665,9 @@ class ProvRDFSerializer(Serializer):
         isderivation = any(
             subtype.uri in cast(str, stmt[2]) for subtype in _DERIVATION_SUBTYPES
         )
-        if subj in state.record_types or not (
-            prov_obj.uri == obj or isderivation or blank
-        ):
+        if subj in state.record_types:
+            return state.record_types[subj].uri != obj
+        if not (prov_obj.uri == obj or isderivation or blank):
             return True
         state.register(subj, prov_obj, blank=blank)
         return (blank or isderivation) and prov_obj.uri != obj

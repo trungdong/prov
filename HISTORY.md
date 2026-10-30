@@ -441,8 +441,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   may still omit its bundle ([#710](https://github.com/trungdong/prov/issues/710))
 - An identified derivation written to PROV-O keeps an asserted `prov:type` of
   `prov:Derivation` beside `prov:Revision`, `prov:Quotation` or `prov:PrimarySource` in
-  any attribute order, where 3.2.3 kept it only as the last value; the reader may still
-  drop it (C12 on the conformance page) ([#697](https://github.com/trungdong/prov/issues/697))
+  any attribute order, where 3.2.3 kept it only as the last value. The PROV-O reader drops
+  that `prov:Derivation` in every triple order, where 3.2.3 kept or dropped it by the order
+  it met the two `rdf:type` triples (C12 on the conformance page)
+  ([#697](https://github.com/trungdong/prov/issues/697))
 
 ### Additions
 

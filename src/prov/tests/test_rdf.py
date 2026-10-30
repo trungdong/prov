@@ -19,16 +19,17 @@ from io import BytesIO, StringIO
 
 import pytest
 import rdflib as rl
-from rdflib import RDF, URIRef
+from rdflib import RDF, BNode, URIRef
 from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
-from prov.constants import PROV
+from prov.constants import PROV, PROV_BASE_CLS
 from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
     ProvRDFException,
     ProvRDFSerializer,
+    _DecodeState,
     literal_rdf_representation,
 )
 from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
@@ -594,6 +595,104 @@ def test_an_own_type_prov_type_does_not_round_trip_through_prov_o() -> None:
     (entity,) = roundtripped.get_records(pm.ProvEntity)
     assert entity.get_attribute("prov:type") == set()
     assert roundtripped != document
+
+
+@pytest.mark.parametrize(
+    ("subject", "types", "expected"),
+    [
+        pytest.param(
+            "d",
+            ["Derivation", "Revision"],
+            [False, True],
+            id="derivation-then-revision",
+        ),
+        pytest.param(
+            "d",
+            ["Revision", "Derivation"],
+            [True, False],
+            id="revision-then-derivation",
+        ),
+        pytest.param(
+            "d",
+            ["Derivation", "Quotation"],
+            [False, True],
+            id="derivation-then-quotation",
+        ),
+        pytest.param(
+            "d",
+            ["Quotation", "Derivation"],
+            [True, False],
+            id="quotation-then-derivation",
+        ),
+        pytest.param(
+            "d",
+            ["Derivation", "PrimarySource"],
+            [False, True],
+            id="derivation-then-primary-source",
+        ),
+        pytest.param(
+            "d",
+            ["PrimarySource", "Derivation"],
+            [True, False],
+            id="primary-source-then-derivation",
+        ),
+        pytest.param(
+            None, ["Agent", "Person"], [False, True], id="blank-agent-then-person"
+        ),
+        pytest.param(
+            None, ["Person", "Agent"], [True, False], id="blank-person-then-agent"
+        ),
+        pytest.param(
+            "x",
+            ["Entity", "Activity"],
+            [False, True],
+            id="different-base-class-stays-a-prov-type",
+        ),
+    ],
+)
+def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
+    subject: str | None, types: list[str], expected: list[bool]
+) -> None:
+    # Each call returns whether the rdf:type triple also becomes a prov:type.
+    # Whichever triple comes first, a base class beside its subclass adds
+    # none and the subclass adds one; a class that is no base of the record
+    # type stays a prov:type. A ``None`` subject is a blank node. The order
+    # is driven by hand because rdflib yields a parsed graph's triples in
+    # hash-seed order.
+    graph = Graph()
+    graph.bind("ex", "http://example.org/")
+    node = BNode() if subject is None else URIRef("http://example.org/" + subject)
+    prov_cls_map = {t.uri: base for t, base in PROV_BASE_CLS.items()}
+    serializer = ProvRDFSerializer(document=ProvDocument())
+    state = _DecodeState()
+
+    returned = [
+        serializer._register_record_type(
+            graph,
+            (node, RDF.type, URIRef(PROV[name].uri)),
+            str(node),
+            PROV[name].uri,
+            prov_cls_map,
+            state,
+        )
+        for name in types
+    ]
+
+    assert returned == expected
+
+
+def test_a_derivation_typed_with_a_subtype_reads_without_prov_derivation() -> None:
+    content = _TURTLE_PREFIXES + (
+        "ex:d a prov:Revision, prov:Derivation ; prov:entity ex:e1 .\n"
+        "ex:e2 prov:qualifiedRevision ex:d .\n"
+    )
+
+    document = ProvDocument.deserialize(
+        content=content, format="rdf", rdf_format="turtle"
+    )
+
+    (derivation,) = document.get_records(pm.ProvDerivation)
+    assert derivation.get_attribute("prov:type") == {PROV["Revision"]}
 
 
 def test_decode_document_without_contexts_uses_plain_graph_path() -> None:

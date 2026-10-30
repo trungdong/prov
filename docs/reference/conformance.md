@@ -296,10 +296,9 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
   `rdf:type`, so an asserted `prov:type` equal to the record's own class, such as `prov:Entity`
   on an entity or `prov:Derivation` on a derivation, is the same triple as the record's type.
   The reader cannot tell the two apart, so the value does not survive a round trip through
-  PROV-O. An identified derivation that also asserts `prov:Revision`, `prov:Quotation` or
-  `prov:PrimarySource` is written with both types, and the reader keeps or drops the asserted
-  `prov:Derivation` according to the order in which it meets the two `rdf:type` triples.
-  Every other format keeps it.
+  PROV-O. A subject typed with a subclass and with its base class, such as `prov:Revision`
+  and `prov:Derivation`, reads back with the subclass as a `prov:type` and without the base
+  class, in every triple order. Every other format keeps the asserted type.
 
 ## Corpus evidence
 
