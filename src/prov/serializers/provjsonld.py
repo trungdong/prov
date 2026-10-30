@@ -774,11 +774,14 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
     rec_type, type_term = _decode_statement_type(item)
     cls = PROV_REC_CLS[rec_type]
     formal_by_term = FORMAL_ATTRS_BY_TERM[cls]
+    is_element = issubclass(cls, ProvElement)
     rec_id = item.get("@id")
-    if rec_id is None and issubclass(cls, ProvElement):
+    if rec_id is None and is_element:
         raise ProvJSONLDException(
             f'A {type_term} statement requires an "@id"; found {item!r}'
         )
+    if not is_element and isinstance(rec_id, str) and rec_id.startswith("_:"):
+        rec_id = None
     try:
         attributes, other_attributes, members = _decode_statement_attributes(
             item, bundle, rec_type, type_term, formal_by_term

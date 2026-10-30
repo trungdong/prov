@@ -11,6 +11,7 @@ import os
 import shutil
 import tempfile
 import warnings
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -250,14 +251,6 @@ def test_bundle_requires_an_identifier() -> None:
         d1.bundle(None)
 
 
-def test_bundle_rejects_unresolvable_identifier() -> None:
-    # No default namespace and an unregistered prefix: valid_qualified_name()
-    # returns None, which bundle() must turn into a ProvException.
-    d1 = _document_1()
-    with pytest.raises(ProvException):
-        d1.bundle("bogus:x")
-
-
 def test_bundle_rejects_duplicate_identifier() -> None:
     d1 = _document_1()
     d1.bundle("ex:b1")
@@ -416,10 +409,80 @@ def test_record_value_converted_from_provrecord_for_generic_attribute(doc) -> No
     assert e2.get_attribute("ex:ref") == {e1.identifier}
 
 
-def test_entity_without_identifier_raises() -> None:
+@pytest.mark.parametrize("identifier", [None, ""])
+def test_entity_without_identifier_raises(identifier: str | None) -> None:
     d = ProvDocument()
     with pytest.raises(ProvElementIdentifierRequired):
-        d.entity(None)
+        d.entity(identifier)  # type: ignore[arg-type]
+
+
+def _unresolved(name: str, reason: str, of: str = "") -> str:
+    return (
+        f"Invalid Qualified Name: {name}, the qualified name {name!r}{of} "
+        f"does not resolve, because {reason}"
+    )
+
+
+_ZZ = "its prefix 'zz' is not declared"
+
+
+@pytest.mark.parametrize(
+    ("call", "message"),
+    [
+        pytest.param(
+            lambda d: d.entity("zz:e"), _unresolved("zz:e", _ZZ), id="element"
+        ),
+        pytest.param(
+            lambda d: d.used("ex:a", "ex:e", identifier="zz:u"),
+            _unresolved("zz:u", _ZZ),
+            id="relation",
+        ),
+        pytest.param(lambda d: d.bundle("zz:b"), _unresolved("zz:b", _ZZ), id="bundle"),
+        pytest.param(
+            lambda d: d.add_bundle(ProvBundle(), "zz:b"),
+            _unresolved("zz:b", _ZZ),
+            id="add-bundle",
+        ),
+        pytest.param(
+            lambda d: d.used("zz:a", "ex:e"),
+            _unresolved("zz:a", _ZZ, " of prov:activity"),
+            id="formal-value",
+        ),
+        pytest.param(
+            lambda d: d.entity("ex:e", {"zz:a": 1}),
+            _unresolved("zz:a", _ZZ),
+            id="attribute-name",
+        ),
+        pytest.param(
+            lambda d: d.used("ex:a", "ex:e", identifier="_:u"),
+            _unresolved("_:u", "its prefix '_' is reserved for blank nodes"),
+            id="blank-node",
+        ),
+        pytest.param(
+            lambda d: d.entity("http://other.org/e"),
+            _unresolved("http://other.org/e", "its prefix 'http' is not declared"),
+            id="iri",
+        ),
+        pytest.param(
+            lambda d: d.entity("e"),
+            _unresolved("e", "it has no prefix and no default namespace is declared"),
+            id="no-prefix",
+        ),
+        pytest.param(
+            lambda d: d.entity(5), "Invalid Qualified Name: 5", id="not-a-string"
+        ),
+    ],
+)
+def test_unresolvable_identifier_raises_the_qualified_name_sentence(
+    call: Callable[[ProvDocument], object], message: str
+) -> None:
+    d = ProvDocument()
+    d.add_namespace("ex", "http://example.org/")
+    with pytest.raises(ProvExceptionInvalidQualifiedName) as ctx:
+        call(d)
+    assert str(ctx.value) == message
+    assert not d.get_records()
+    assert not d.bundles
 
 
 def test_activity_without_identifier_raises() -> None:

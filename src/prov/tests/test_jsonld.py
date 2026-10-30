@@ -822,6 +822,15 @@ def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
     return _statement_text(statement)
 
 
+def test_deserialize_blank_node_relation_id_reads_anonymous() -> None:
+    content = _statement_text(
+        {"@type": "Usage", "@id": "_:u", "activity": "ex:a", "entity": "ex:e"}
+    )
+    doc = ProvDocument.deserialize(content=content, format="jsonld")
+    (usage,) = doc.get_records()
+    assert usage.identifier is None
+
+
 @pytest.mark.parametrize(
     ("content", "text", "attr"),
     [
