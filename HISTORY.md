@@ -441,8 +441,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   may still omit its bundle ([#710](https://github.com/trungdong/prov/issues/710))
 - An identified derivation written to PROV-O keeps an asserted `prov:type` of
   `prov:Derivation` beside `prov:Revision`, `prov:Quotation` or `prov:PrimarySource` in
-  any attribute order, where 3.2.3 kept it only as the last value; the reader still drops
-  it (C12 on the conformance page) ([#697](https://github.com/trungdong/prov/issues/697))
+  any attribute order, where 3.2.3 kept it only as the last value; the reader may still
+  drop it (C12 on the conformance page) ([#697](https://github.com/trungdong/prov/issues/697))
 
 ### Additions
 
@@ -487,9 +487,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-O reader keeps the datatype of a literal that no namespace compacts, such as
   `"1"^^<http://d.example/c:d>`, where it read the value as plain text
   ([#665](https://github.com/trungdong/prov/issues/665))
-- The PROV-O reader reads a relation whose subject is a blank node together with its
-  `prov:qualified*` node and its `prov:asInBundle` bundle, so an association with a plan
-  reads as one record, where 3.2.3 raised `ProvExceptionInvalidQualifiedName`
+- The PROV-O reader finds the `prov:qualified*` node and the `prov:asInBundle` bundle of a
+  blank-node subject that resolves under the default namespace, so an association with a
+  plan reads as one record and a `mentionOf` keeps its bundle, where 3.2.3 raised
+  `ProvExceptionInvalidQualifiedName`
   ([#674](https://github.com/trungdong/prov/issues/674))
 - A `Literal` whose datatype is in a namespace nothing declared, such as
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it

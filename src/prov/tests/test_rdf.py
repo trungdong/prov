@@ -344,6 +344,7 @@ _TURTLE_PREFIXES = (
     "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
     "@prefix ex: <http://example.org/> .\n"
 )
+_DEFAULT_PREFIX = "@prefix : <http://d.example/> .\n"
 _FOAF_PREFIX = "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n"
 _NT_ATTRIBUTION = (
     "<http://example.org/e>"
@@ -545,26 +546,27 @@ def test_encode_container_builds_or_reuses_its_container() -> None:
 
 
 @pytest.mark.parametrize(
-    ("types", "keeps_derivation"),
+    "types",
     [
-        pytest.param(["Revision", "Derivation"], True, id="revision-then-derivation"),
-        pytest.param(["Derivation", "Revision"], True, id="derivation-then-revision"),
-        pytest.param(["Quotation", "Derivation"], True, id="quotation-then-derivation"),
-        pytest.param(["Derivation", "Quotation"], True, id="derivation-then-quotation"),
+        pytest.param(["Revision", "Derivation"], id="revision-then-derivation"),
+        pytest.param(["Derivation", "Revision"], id="derivation-then-revision"),
+        pytest.param(["Quotation", "Derivation"], id="quotation-then-derivation"),
+        pytest.param(["Derivation", "Quotation"], id="derivation-then-quotation"),
         pytest.param(
-            ["PrimarySource", "Derivation"], True, id="primary-source-then-derivation"
+            ["PrimarySource", "Derivation"], id="primary-source-then-derivation"
         ),
         pytest.param(
-            ["Derivation", "PrimarySource"], True, id="derivation-then-primary-source"
+            ["Derivation", "PrimarySource"], id="derivation-then-primary-source"
         ),
-        pytest.param(["Revision"], False, id="revision-alone"),
+        pytest.param(["Revision"], id="revision-alone"),
     ],
 )
 def test_an_identified_derivation_writes_an_asserted_prov_derivation(
-    types: list[str], keeps_derivation: bool
+    types: list[str],
 ) -> None:
     # The qualification head is built once, so an asserted prov:Derivation
-    # survives beside a subtype in either attribute order (#697).
+    # survives beside a subtype in either attribute order (#697). A subtype
+    # alone replaces the record type's rdf:type prov:Derivation.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.wasDerivedFrom(
@@ -576,12 +578,9 @@ def test_an_identified_derivation_writes_an_asserted_prov_derivation(
 
     graph = ProvRDFSerializer(document=doc).encode_document(doc)
 
-    derivation = URIRef("http://example.org/d")
-    triple = (derivation, RDF.type, URIRef(PROV["Derivation"].uri))
-    assert (triple in graph) is keeps_derivation
-    for name in types:
-        if name != "Derivation":
-            assert (derivation, RDF.type, URIRef(PROV[name].uri)) in graph
+    assert set(graph.objects(URIRef("http://example.org/d"), RDF.type)) == {
+        URIRef(PROV[name].uri) for name in types
+    }
 
 
 def test_an_own_type_prov_type_does_not_round_trip_through_prov_o() -> None:
@@ -1420,7 +1419,7 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
             " [ a prov:Association ; prov:agent ex:ag ; prov:hadPlan ex:plan ] .\n"
             "ex:ag a prov:Agent . ex:plan a prov:Plan .\n",
             pm.ProvAssociation,
-            {"http://example.org/ag": {"http://example.org/plan"}},
+            {("http://example.org/ag", "http://example.org/plan")},
         ),
         (
             "_:a a prov:Activity ;"
@@ -1432,20 +1431,20 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
             "ex:p1 a prov:Plan . ex:p2 a prov:Plan .\n",
             pm.ProvAssociation,
             {
-                "http://example.org/ag1": {"http://example.org/p1"},
-                "http://example.org/ag2": {"http://example.org/p2"},
+                ("http://example.org/ag1", "http://example.org/p1"),
+                ("http://example.org/ag2", "http://example.org/p2"),
             },
         ),
         (
             "_:m a prov:Entity ; prov:mentionOf ex:f ; prov:asInBundle ex:b .\n"
             "ex:f a prov:Entity .\n",
             pm.ProvMention,
-            {"http://example.org/b"},
+            {("http://example.org/f", "http://example.org/b")},
         ),
         (
             "_:m a prov:Entity ; prov:mentionOf ex:f .\nex:f a prov:Entity .\n",
             pm.ProvMention,
-            set(),
+            {("http://example.org/f",)},
         ),
     ],
     ids=["association", "two-associations", "mention", "mention-no-bundle"],
@@ -1453,12 +1452,12 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
 def test_a_blank_node_subject_finds_its_qualification(
     body: str,
     record_type: type[pm.ProvRecord],
-    expected: set[str] | dict[str, set[str]],
+    expected: set[tuple[str, ...]],
 ) -> None:
     # A blank-node subject takes its prov:qualified* node and its
     # prov:asInBundle bundle from the node itself, as an IRI subject does
     # (#674). The `:` prefix resolves the blank-node element (#639).
-    turtle = _TURTLE_PREFIXES + "@prefix : <http://d.example/> .\n" + body
+    turtle = _TURTLE_PREFIXES + _DEFAULT_PREFIX + body
     with warnings.catch_warnings():
         warnings.simplefilter("error", pm.ProvWarning)
         document = ProvDocument.deserialize(
@@ -1471,17 +1470,11 @@ def test_a_blank_node_subject_finds_its_qualification(
         if element.identifier.uri.startswith("http://d.example/")
     )
     assert all(record.formal_attributes[0][1] == blank.identifier for record in records)
-    if record_type is pm.ProvAssociation:
-        assert {
-            record.get_attribute("prov:agent").pop().uri: {
-                plan.uri for plan in record.get_attribute("prov:plan")
-            }
-            for record in records
-        } == expected
-        assert len(records) == len(expected)
-    else:
-        (record,) = records
-        assert {v.uri for v in record.get_attribute("prov:bundle")} == expected
+    assert len(records) == len(expected)
+    assert {
+        tuple(v.uri for _, v in record.formal_attributes[1:] if v is not None)
+        for record in records
+    } == expected
 
 
 def test_find_diff_detects_single_triple_difference() -> None:
@@ -1672,8 +1665,7 @@ def test_unsplittable_iri_raises_clear_error() -> None:
             r"urn:uuid:8",
         ),
         (
-            "@prefix : <http://d.example/> .\n"
-            "_:b a prov:Entity .\n"
+            _DEFAULT_PREFIX + "_:b a prov:Entity .\n"
             "ex:e a prov:Entity ; prov:wasDerivedFrom _:b .\n",
             pm.ProvDerivation,
             "prov:usedEntity",

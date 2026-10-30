@@ -1232,7 +1232,9 @@ class ProvRDFSerializer(Serializer):
     ) -> tuple[RdfSubject | None, bool]:
         """Emit a relation's binary triple and its ``prov:qualified*`` node.
 
-        Called once per relation.
+        Runs before the caller writes any attribute, because the qualification
+        node may remove the record type's ``rdf:type`` triple, which an asserted
+        ``prov:type`` writes back.
 
         Args:
             container: Graph to add triples to.
@@ -1257,7 +1259,7 @@ class ProvRDFSerializer(Serializer):
             formal_objects.append(key)
             if val:
                 valid_formal_indices.add(idx)
-        used_objects[:] = [record.formal_attributes[0][0]]
+        used_objects.append(record.formal_attributes[0][0])
         subj: RdfTerm | None = None
         if record.formal_attributes[0][1]:
             subj = URIRef(record.formal_attributes[0][1].uri)
