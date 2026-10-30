@@ -1779,7 +1779,6 @@ class ProvRDFSerializer(Serializer):
                 :class:`~prov.model.ProvBundle` factory method names.
         """
         factory = getattr(bundle, relation_mapper[pred])
-        subj = str(subj_node)
         subj_name = self._relation_node(subj_node, graph)
         obj_name = self._relation_node(obj, graph)
         if "alternateOf" in pred:
@@ -1788,7 +1787,7 @@ class ProvRDFSerializer(Serializer):
         if "mentionOf" in pred:
             last_bundle = None
             for stmt in graph.triples(
-                (URIRef(subj), URIRef(pm.PROV["asInBundle"].uri), None)
+                (subj_node, URIRef(pm.PROV["asInBundle"].uri), None)
             ):
                 last_bundle = stmt[2]
             mention_bundle = (
@@ -1802,7 +1801,7 @@ class ProvRDFSerializer(Serializer):
             qualifier_bnode = None
             influencer_pred = _QUALIFIED_RELATION_INFLUENCER[name]
             for stmt in graph.triples(
-                (URIRef(subj), URIRef(pm.PROV[qualifier].uri), None)
+                (subj_node, URIRef(pm.PROV[qualifier].uri), None)
             ):
                 candidate = stmt[2]
                 # #226/#250: a subject may point at more than one

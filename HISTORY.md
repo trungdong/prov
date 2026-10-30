@@ -483,6 +483,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-O reader keeps the datatype of a literal that no namespace compacts, such as
   `"1"^^<http://d.example/c:d>`, where it read the value as plain text
   ([#665](https://github.com/trungdong/prov/issues/665))
+- The PROV-O reader reads a relation whose subject is a blank node together with its
+  `prov:qualified*` node and its `prov:asInBundle` bundle, so an association with a plan
+  reads as one record, where 3.2.3 raised `ProvExceptionInvalidQualifiedName`
+  ([#674](https://github.com/trungdong/prov/issues/674))
 - A `Literal` whose datatype is in a namespace nothing declared, such as
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no

@@ -1358,6 +1358,79 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
     assert entity.get_attribute("ex:ref") == set()
 
 
+@pytest.mark.parametrize(
+    ("body", "record_type", "expected"),
+    [
+        (
+            "_:a a prov:Activity ; prov:wasAssociatedWith ex:ag ;"
+            " prov:qualifiedAssociation"
+            " [ a prov:Association ; prov:agent ex:ag ; prov:hadPlan ex:plan ] .\n"
+            "ex:ag a prov:Agent . ex:plan a prov:Plan .\n",
+            pm.ProvAssociation,
+            {"http://example.org/ag": {"http://example.org/plan"}},
+        ),
+        (
+            "_:a a prov:Activity ;"
+            " prov:wasAssociatedWith ex:ag1 , ex:ag2 ;"
+            " prov:qualifiedAssociation"
+            " [ a prov:Association ; prov:agent ex:ag1 ; prov:hadPlan ex:p1 ] ,"
+            " [ a prov:Association ; prov:agent ex:ag2 ; prov:hadPlan ex:p2 ] .\n"
+            "ex:ag1 a prov:Agent . ex:ag2 a prov:Agent .\n"
+            "ex:p1 a prov:Plan . ex:p2 a prov:Plan .\n",
+            pm.ProvAssociation,
+            {
+                "http://example.org/ag1": {"http://example.org/p1"},
+                "http://example.org/ag2": {"http://example.org/p2"},
+            },
+        ),
+        (
+            "_:m a prov:Entity ; prov:mentionOf ex:f ; prov:asInBundle ex:b .\n"
+            "ex:f a prov:Entity .\n",
+            pm.ProvMention,
+            {"http://example.org/b"},
+        ),
+        (
+            "_:m a prov:Entity ; prov:mentionOf ex:f .\nex:f a prov:Entity .\n",
+            pm.ProvMention,
+            set(),
+        ),
+    ],
+    ids=["association", "two-associations", "mention", "mention-no-bundle"],
+)
+def test_a_blank_node_subject_finds_its_qualification(
+    body: str,
+    record_type: type[pm.ProvRecord],
+    expected: set[str] | dict[str, set[str]],
+) -> None:
+    # A blank-node subject takes its prov:qualified* node and its
+    # prov:asInBundle bundle from the node itself, as an IRI subject does
+    # (#674). The `:` prefix resolves the blank-node element (#639).
+    turtle = _TURTLE_PREFIXES + "@prefix : <http://d.example/> .\n" + body
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", pm.ProvWarning)
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+    records = document.get_records(record_type)
+    (blank,) = (
+        element
+        for element in document.get_records((pm.ProvActivity, pm.ProvEntity))
+        if element.identifier.uri.startswith("http://d.example/")
+    )
+    assert all(record.formal_attributes[0][1] == blank.identifier for record in records)
+    if record_type is pm.ProvAssociation:
+        assert {
+            record.get_attribute("prov:agent").pop().uri: {
+                plan.uri for plan in record.get_attribute("prov:plan")
+            }
+            for record in records
+        } == expected
+        assert len(records) == len(expected)
+    else:
+        (record,) = records
+        assert {v.uri for v in record.get_attribute("prov:bundle")} == expected
+
+
 def test_find_diff_detects_single_triple_difference() -> None:
     # #304: find_diff must report a mismatch for graphs differing by a single
     # triple. The [1:] slices that removed a leading blank line from nt
