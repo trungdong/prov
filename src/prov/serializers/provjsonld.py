@@ -487,9 +487,7 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     return text
 
 
-def _resolve_reference(
-    bundle: ProvBundle, text: str, attr: QualifiedName
-) -> QualifiedName:
+def _resolve_iri(bundle: ProvBundle, text: str, attr: QualifiedName) -> QualifiedName:
     """The qualified name a declared namespace gives ``text``, or
     ``ProvJSONLDException`` when none does."""
     resolved = bundle.valid_qualified_name(text)
@@ -539,9 +537,10 @@ def decode_jsonld_value(
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
             object, if a node reference has keys other than ``"@id"`` or an
             empty ``"@id"``, if a value object is missing its required
-            ``"@value"`` key or holds a ``"@type"`` that is not a string, or
-            if a node reference, an ``@id``-typed bare string or a value
-            object's datatype resolves in no declared namespace.
+            ``"@value"`` key, if a value object without ``"@language"`` holds
+            a ``"@type"`` that is not a string, or if a node reference, an
+            ``@id``-typed bare string or a value object's datatype resolves in
+            no declared namespace.
     """
     if isinstance(value, str):
         if term not in ID_TYPED_TERMS:
@@ -558,7 +557,7 @@ def decode_jsonld_value(
             "the value is dropped"
         )
         return None
-    return _resolve_reference(bundle, text, attr)
+    return _resolve_iri(bundle, text, attr)
 
 
 def _decode_value_object(
@@ -567,9 +566,9 @@ def _decode_value_object(
     """Decode a ``{"@value": ...}`` object into a ``Literal`` or its text.
 
     Raises:
-        ProvJSONLDException: If the ``"@value"`` key is missing, if
-            ``"@type"`` is not a string or if no declared namespace resolves
-            it.
+        ProvJSONLDException: If the ``"@value"`` key is missing, if a value
+            object without ``"@language"`` holds a ``"@type"`` that is not a
+            string or if no declared namespace resolves it.
     """
     try:
         text = value["@value"]
@@ -587,7 +586,7 @@ def _decode_value_object(
         raise ProvJSONLDException(
             f'A value object for {term!r} must hold a string "@type"; found {value!r}'
         )
-    return Literal(text, _resolve_reference(bundle, datatype_str, attr))
+    return Literal(text, _resolve_iri(bundle, datatype_str, attr))
 
 
 def _decode_formal_time(value: Any, type_term: str, key: str) -> datetime.datetime:

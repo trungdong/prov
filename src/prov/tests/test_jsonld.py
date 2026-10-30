@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 import prov
-from prov.constants import PROV, XSD_INTEGER
+from prov.constants import PROV
 from prov.model import (
     Literal,
     Namespace,
@@ -764,12 +764,18 @@ def test_deserialize_value_object_without_value_raises() -> None:
         pytest.param(
             "ex:ref", {"@value": "ex:thing", "@type": "xsd:QName"}, id="declared"
         ),
+        pytest.param(
+            "ex:ref",
+            {"@value": "ex:thing", "@type": "http://www.w3.org/2001/XMLSchema#QName"},
+            id="datatype-iri",
+        ),
     ],
 )
 def test_deserialize_iri_value_is_the_qualified_name(
     key: str, value: str | dict[str, str]
 ) -> None:
-    # An @id, or a compactable bare full IRI under an @id-typed term, is the name.
+    # An @id, a compactable bare full IRI under an @id-typed term and a value
+    # object's datatype a declared namespace compacts are all resolved.
     doc = ProvDocument.deserialize(content=_entity_with(key, [value]), format="jsonld")
     (entity,) = doc.get_records()
     (read,) = [v for _, v in entity.extra_attributes]
@@ -827,18 +833,23 @@ def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
             "prov:location",
             id="bare-location",
         ),
-        *(
-            pytest.param(
-                _entity_with("ex:a", [{"@value": "1", "@type": datatype}]),
-                datatype,
-                "ex:a",
-                id=name,
-            )
-            for name, datatype in [
-                ("datatype-prefix", "zz:t"),
-                ("datatype-iri", "http://other.org/t"),
-                ("datatype-blank", "_:b1"),
-            ]
+        pytest.param(
+            _entity_with("ex:a", [{"@value": "1", "@type": "zz:t"}]),
+            "zz:t",
+            "ex:a",
+            id="datatype-prefix",
+        ),
+        pytest.param(
+            _entity_with("ex:a", [{"@value": "1", "@type": "http://other.org/t"}]),
+            "http://other.org/t",
+            "ex:a",
+            id="datatype-iri",
+        ),
+        pytest.param(
+            _entity_with("ex:a", [{"@value": "1", "@type": "_:b1"}]),
+            "_:b1",
+            "ex:a",
+            id="datatype-blank",
         ),
     ],
 )
@@ -850,21 +861,6 @@ def test_deserialize_reference_no_namespace_resolves_is_rejected(
     # sentence (#609, #673).
     with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr)):
         ProvDocument.deserialize(content=content, format="jsonld")
-
-
-@pytest.mark.parametrize(
-    "datatype", ["http://www.w3.org/2001/XMLSchema#integer", "xsd:integer"]
-)
-def test_deserialize_datatype_iri_a_namespace_compacts_reads_as_its_literal(
-    datatype: str,
-) -> None:
-    doc = ProvDocument.deserialize(
-        content=_entity_with("ex:a", [{"@value": "1", "@type": datatype}]),
-        format="jsonld",
-    )
-    (entity,) = doc.get_records()
-    (read,) = [v for _, v in entity.extra_attributes]
-    assert read == Literal("1", XSD_INTEGER)
 
 
 _DROPPED_NODE = {"@id": "_:b1"}
