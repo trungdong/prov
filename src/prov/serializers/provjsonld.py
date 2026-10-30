@@ -708,6 +708,13 @@ def _decode_statement_attributes(
     return attributes, other_attributes, members
 
 
+def _statement_name(rec_type: QualifiedName, rec_id: Any) -> str:
+    """Return the label that names a statement in a warning or an error."""
+    if rec_id is None:
+        return f"an anonymous {rec_type}"
+    return f"{rec_type} {rec_id!r}"
+
+
 def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
     """Decode one submission §4 statement object and add it to ``bundle``.
 
@@ -745,9 +752,6 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'A {type_term} statement requires an "@id"; found {item!r}'
         )
-    named = (
-        f"{rec_type} {rec_id!r}" if rec_id is not None else f"an anonymous {rec_type}"
-    )
     try:
         attributes, other_attributes, members = _decode_statement_attributes(
             item, bundle, rec_type, type_term, formal_by_term
@@ -765,9 +769,11 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         ]
         _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
     except ProvMissingFormalAttribute as exc:
-        warn(f"{named}: {exc}")
+        warn(f"{_statement_name(rec_type, rec_id)}: {exc}")
     except ProvException as exc:
-        raise ProvJSONLDException(f"{named}: {exc}") from exc
+        raise ProvJSONLDException(
+            f"{_statement_name(rec_type, rec_id)}: {exc}"
+        ) from exc
 
 
 def decode_jsonld_document(container: Any, document: ProvDocument) -> None:

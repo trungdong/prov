@@ -1318,7 +1318,6 @@ def test_mention_2(roundtrip) -> None:
     roundtrip(document)
 
 
-_EX_URI = "http://example.org/"
 _NO_ENTITY = "hadMember requires a value for prov:entity"
 _PROVN_PARTYLESS = (
     "document\nprefix ex <http://example.org/>\n"
@@ -1344,7 +1343,7 @@ _TURTLE_MEMBER = (
 def _json_members(*instances: dict) -> str:
     return json.dumps(
         {
-            "prefix": {"ex": _EX_URI},
+            "prefix": {"ex": EX_NS.uri},
             "entity": {"ex:e": {}},
             "hadMember": {"_:m1": list(instances)},
         }
@@ -1396,7 +1395,7 @@ _PARTYLESS = {"prov:collection": "ex:c"}
             {},
             json.dumps(
                 {
-                    "prefix": {"ex": _EX_URI},
+                    "prefix": {"ex": EX_NS.uri},
                     "entity": {"ex:e": {}},
                     "hadMember": {"_:m1": _PARTYLESS},
                 }
@@ -1426,7 +1425,7 @@ _PARTYLESS = {"prov:collection": "ex:c"}
             {},
             json.dumps(
                 {
-                    "@context": [{"ex": _EX_URI}],
+                    "@context": [{"ex": EX_NS.uri}],
                     "@graph": [
                         {"@type": "Entity", "@id": "ex:e"},
                         {"@type": "Membership", "collection": "ex:c"},

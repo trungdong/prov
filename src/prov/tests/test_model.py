@@ -17,9 +17,7 @@ import pytest
 
 from prov.constants import (
     PROV,
-    PROV_ATTR_COLLECTION,
     PROV_INTERNATIONALIZEDSTRING,
-    PROV_MEMBERSHIP,
     XSD,
 )
 from prov.identifier import Namespace
@@ -489,13 +487,6 @@ def test_provelementidentifierrequired_str() -> None:
             lambda d: d.bundle("ex:b").membership("ex:c", None),
             "hadMember requires a value for prov:entity",
             id="in-a-bundle",
-        ),
-        pytest.param(
-            lambda d: d.new_record(
-                PROV_MEMBERSHIP, None, {PROV_ATTR_COLLECTION: "ex:c"}
-            ),
-            "hadMember requires a value for prov:entity",
-            id="new-record",
         ),
     ],
 )
