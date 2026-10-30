@@ -24,7 +24,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
-from prov.constants import PROV, PROV_BASE_CLS
+from prov.constants import PROV
 from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
     ProvRDFException,
@@ -662,7 +662,6 @@ def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
     graph = Graph()
     graph.bind("ex", "http://example.org/")
     node = BNode() if subject is None else URIRef("http://example.org/" + subject)
-    prov_cls_map = {t.uri: base for t, base in PROV_BASE_CLS.items()}
     serializer = ProvRDFSerializer(document=ProvDocument())
     state = _DecodeState()
 
@@ -672,7 +671,6 @@ def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
             (node, RDF.type, URIRef(PROV[name].uri)),
             str(node),
             PROV[name].uri,
-            prov_cls_map,
             state,
         )
         for name in types

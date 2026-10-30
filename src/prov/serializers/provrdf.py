@@ -217,6 +217,12 @@ _DERIVATION_SUBTYPES = frozenset(
     {PROV["Revision"], PROV["Quotation"], PROV["PrimarySource"]}
 )
 
+#: Maps a PROV-O class URI to its base record type, e.g. ``prov:Revision`` to
+#: ``prov:Derivation``; a class with no base type maps to itself.
+_RECORD_TYPE_OF_CLASS = {
+    prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
+}
+
 #: Relation types whose plain binary triple is always emitted (they are not
 #: gated by :data:`_QUALIFIED_ONLY_RELATIONS`) *and* whose second formal
 #: attribute is the relation's influencer per the PROV-O section 3.1
@@ -1576,11 +1582,8 @@ class ProvRDFSerializer(Serializer):
             UserWarning: If, after decoding, some attributes could not be
                 matched to any formal attribute or converted.
         """
-        prov_cls_map = {
-            prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
-        }
         state = _DecodeState()
-        self._decode_type_triples(graph, state, prov_cls_map)
+        self._decode_type_triples(graph, state)
         self._decode_triples(graph, bundle, state, relation_mapper, predicate_mapper)
         self._emit_decoded_records(bundle, state)
 
@@ -1593,12 +1596,7 @@ class ProvRDFSerializer(Serializer):
                 UserWarning,
             )
 
-    def _decode_type_triples(
-        self,
-        graph: Graph,
-        state: "_DecodeState",
-        prov_cls_map: dict[str, pm.QualifiedName],
-    ) -> None:
+    def _decode_type_triples(self, graph: Graph, state: "_DecodeState") -> None:
         """Reconstruct each subject's record type from its ``rdf:type`` triples.
 
         Registers a record type in ``state`` for every subject typed with a
@@ -1609,14 +1607,13 @@ class ProvRDFSerializer(Serializer):
         Args:
             graph: The RDF (sub)graph being decoded.
             state: Decode state, mutated in place.
-            prov_cls_map: Maps a PROV-O class URI to its base record type.
         """
         for stmt in graph.triples((None, RDF.type, None)):
             subj = str(stmt[0])
             obj = str(stmt[2])
             try:
-                if obj not in prov_cls_map or self._register_record_type(
-                    graph, stmt, subj, obj, prov_cls_map, state
+                if obj not in _RECORD_TYPE_OF_CLASS or self._register_record_type(
+                    graph, stmt, subj, obj, state
                 ):
                     state.other_attributes.setdefault(subj, []).append(
                         (
@@ -1633,7 +1630,6 @@ class ProvRDFSerializer(Serializer):
         stmt: tuple[Node, Node, Node],
         subj: str,
         obj: str,
-        prov_cls_map: dict[str, pm.QualifiedName],
         state: "_DecodeState",
     ) -> bool:
         """Register one subject's record type, if this triple establishes it.
@@ -1643,34 +1639,26 @@ class ProvRDFSerializer(Serializer):
             stmt: The ``rdf:type`` triple.
             subj: ``stmt``'s subject, as a string.
             obj: ``stmt``'s object, as a string.
-            prov_cls_map: Maps a PROV-O class URI to its base record type.
             state: Decode state, mutated in place.
 
         Returns:
             Whether the triple's object should *also* be recorded as a
-            ``prov:type`` attribute. It is true for a derivation subtype or
-            an extra type on a blank node, and for a subject already typed
-            unless the object is the class of the record type registered
-            for it, such as ``prov:Derivation`` beside ``prov:Revision``.
+            ``prov:type`` attribute, which it is unless it is the class of the
+            subject's record type, such as ``prov:Derivation`` beside
+            ``prov:Revision``.
         """
+        if subj in state.record_types:
+            return state.record_types[subj].uri != obj
         blank = isinstance(stmt[0], BNode)
         if not blank and self.valid_identifier(subj) is None:
             # Register the subject's namespace (side effect) so a later
             # valid_identifier(subj) resolves; tolerates trailing PROV-N
             # metacharacters that compute_qname would refuse to split (#294).
             self._resolve_iri(subj, graph)
-        prov_obj = prov_cls_map[obj]
-        # objects of rdf:type triples are URIRefs (str subclass);
-        # rdflib types them only as Node
-        isderivation = any(
-            subtype.uri in cast(str, stmt[2]) for subtype in _DERIVATION_SUBTYPES
-        )
-        if subj in state.record_types:
-            return state.record_types[subj].uri != obj
-        if not (prov_obj.uri == obj or isderivation or blank):
-            return True
-        state.register(subj, prov_obj, blank=blank)
-        return (blank or isderivation) and prov_obj.uri != obj
+        prov_obj = _RECORD_TYPE_OF_CLASS[obj]
+        if blank or prov_obj == PROV_DERIVATION or prov_obj.uri == obj:
+            state.register(subj, prov_obj, blank=blank)
+        return prov_obj.uri != obj
 
     def _decode_triples(
         self,
