@@ -5,7 +5,7 @@ import io
 import re
 import typing
 from collections import OrderedDict
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -216,6 +216,12 @@ _QUALIFIED_ONLY_RELATIONS = frozenset(
 _DERIVATION_SUBTYPES = frozenset(
     {PROV["Revision"], PROV["Quotation"], PROV["PrimarySource"]}
 )
+
+#: Maps a PROV-O class URI to its base record type, e.g. ``prov:Revision`` to
+#: ``prov:Derivation``; a class with no base type maps to itself.
+_RECORD_TYPE_OF_CLASS = {
+    prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
+}
 
 #: Relation types whose plain binary triple is always emitted (they are not
 #: gated by :data:`_QUALIFIED_ONLY_RELATIONS`) *and* whose second formal
@@ -1185,8 +1191,6 @@ class ProvRDFSerializer(Serializer):
                 is unidentified (in which case a blank node is minted).
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword.
         """
-        bnode = None
-        formal_objects: list[pm.QualifiedName] = []
         used_objects: list[pm.QualifiedName] = []
         formal_qualifiers = False
         for attrid, (_attr, value) in enumerate(record.formal_attributes):
@@ -1196,34 +1200,27 @@ class ProvRDFSerializer(Serializer):
                 formal_qualifiers = True
         has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
 
-        node: RdfSubject | None = identifier
+        node, skip = self._encode_relation_head(
+            container,
+            record,
+            rec_type,
+            identifier,
+            PROV_N_MAP,
+            used_objects,
+            has_qualifiers,
+        )
+        if skip:
+            return
         for attr, value in record.attributes:
-            # The qualification head is (re)built until a blank node is minted
-            # for it; for an identified relation no blank node is ever minted,
-            # so this re-runs per attribute. Each rebuild also removes the
-            # record type's rdf:type triple when a derivation subtype prov:type
-            # is asserted, so an asserted prov:type prov:Derivation survives
-            # only when it is the last attribute (#697).
-            if bnode is None:
-                node, bnode, skip = self._encode_relation_head(
-                    container,
-                    record,
-                    rec_type,
-                    node,
-                    PROV_N_MAP,
-                    formal_objects,
-                    used_objects,
-                    has_qualifiers,
-                )
-                if skip:
-                    continue
             if value is not None and attr not in used_objects:
                 container.add(
                     (
                         # a qualified relation always has a URIRef or
                         # BNode identifier by this point
                         cast(RdfSubject, node),
-                        self._qualified_attr_predicate(rec_type, attr, formal_objects),
+                        self._qualified_attr_predicate(
+                            rec_type, attr, record.FORMAL_ATTRIBUTES
+                        ),
                         self.encode_rdf_representation(value),
                     )
                 )
@@ -1235,11 +1232,14 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         identifier: RdfSubject | None,
         PROV_N_MAP: RecordTypeLabels,
-        formal_objects: list[pm.QualifiedName],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
-    ) -> tuple[RdfSubject | None, BNode | None, bool]:
+    ) -> tuple[RdfSubject | None, bool]:
         """Emit a relation's binary triple and its ``prov:qualified*`` node.
+
+        Runs before the caller writes any attribute, because the qualification
+        node may remove the record type's ``rdf:type`` triple, which an asserted
+        ``prov:type`` writes back.
 
         Args:
             container: Graph to add triples to.
@@ -1247,25 +1247,17 @@ class ProvRDFSerializer(Serializer):
             rec_type: ``record``'s record type QualifiedName.
             identifier: The relation's subject URIRef, or ``None``.
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword.
-            formal_objects: Accumulator, extended with the record's formal
-                attribute names (used to recognise formal attributes later).
-            used_objects: Accumulator, replaced in place with the formal
-                attributes already consumed by the binary triple.
+            used_objects: Accumulator, filled with the formal attributes
+                consumed by the binary triple.
             has_qualifiers: Whether the relation carries anything beyond the
                 two attributes of its binary triple.
 
         Returns:
-            ``(node, bnode, skip)``: the subject to hang remaining attributes
-            off, the blank node minted for it (``None`` if none was), and
-            whether the caller should skip this attribute entirely.
+            ``(node, skip)``: the subject to hang remaining attributes off,
+            and whether the caller writes no further attributes.
         """
         pred = _prov_uri(PROV_N_MAP[rec_type])
-        valid_formal_indices = set()
-        for idx, (key, val) in enumerate(record.formal_attributes):
-            formal_objects.append(key)
-            if val:
-                valid_formal_indices.add(idx)
-        used_objects[:] = [record.formal_attributes[0][0]]
+        used_objects.append(record.formal_attributes[0][0])
         subj: RdfTerm | None = None
         if record.formal_attributes[0][1]:
             subj = URIRef(record.formal_attributes[0][1].uri)
@@ -1276,22 +1268,21 @@ class ProvRDFSerializer(Serializer):
                 rec_type,
                 pred,
                 subj,
-                valid_formal_indices,
                 used_objects,
                 has_qualifiers,
             )
         if rec_type in [PROV_ALTERNATE]:
             # #258/#250 territory: alternateOf emits only its binary triple,
             # so any extra attributes it carries are dropped. Preserved as-is.
-            return identifier, None, True
+            return identifier, True
         if subj and (has_qualifiers or identifier):
             return (
-                *self._encode_qualification_node(
+                self._encode_qualification_node(
                     container, record, rec_type, identifier, subj
                 ),
                 False,
             )
-        return identifier, None, False
+        return identifier, False
 
     def _encode_relation_binary_triple(
         self,
@@ -1300,7 +1291,6 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         pred: URIRef,
         subj: RdfTerm,
-        valid_formal_indices: set[int],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
     ) -> bool:
@@ -1312,7 +1302,6 @@ class ProvRDFSerializer(Serializer):
             rec_type: ``record``'s record type QualifiedName.
             pred: The relation's PROV-O predicate.
             subj: Subject term for the binary triple.
-            valid_formal_indices: Indices of formal attributes that have a value.
             used_objects: Accumulator, extended with the formal attributes
                 consumed by the emitted triple(s).
             has_qualifiers: Current qualification flag.
@@ -1326,10 +1315,12 @@ class ProvRDFSerializer(Serializer):
             obj_val = None
         if not obj_val:
             return has_qualifiers
-        if rec_type in _QUALIFIED_ONLY_RELATIONS and not (
-            valid_formal_indices == {0, 1} and len(record.extra_attributes) == 0
-        ):
-            return has_qualifiers
+        if rec_type in _QUALIFIED_ONLY_RELATIONS:
+            filled = {
+                idx for idx, (_, val) in enumerate(record.formal_attributes) if val
+            }
+            if filled != {0, 1} or record.extra_attributes:
+                return has_qualifiers
         # #250: skip the object append when a qualification node will be
         # minted for this influencer relation and will assert the influencer
         # attribute directly (as a rewrite of the formal attribute).
@@ -1357,7 +1348,7 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         identifier: RdfSubject | None,
         subj: RdfTerm,
-    ) -> tuple[RdfSubject, BNode | None]:
+    ) -> RdfSubject:
         """Link (and, when anonymous, create and type) a ``prov:qualified*`` node.
 
         A ``prov:type`` of ``prov:Revision``/``prov:Quotation``/
@@ -1373,8 +1364,8 @@ class ProvRDFSerializer(Serializer):
             subj: Subject the qualification node hangs off.
 
         Returns:
-            ``(node, bnode)``: the qualification node, and the blank node
-            minted for it (``None`` when ``identifier`` was already set).
+            The qualification node: ``identifier``, or the blank node minted
+            for it.
         """
         qualifier = rec_type._localpart
         rec_uri = rec_type.uri
@@ -1387,23 +1378,23 @@ class ProvRDFSerializer(Serializer):
         QRole = _prov_uri("qualified" + qualifier)
         if identifier is not None:
             container.add((subj, QRole, identifier))
-            return identifier, None
+            return identifier
         # #250: the anonymous qualification node's influencer property (e.g.
-        # `prov:agent` on an attribution/delegation node) is *not* added
-        # here -- for _BINARY_TRIPLE_INFLUENCER_RELATIONS it is asserted by
-        # the main _encode_relation() loop once this node exists (see the
-        # `used_objects.remove(...)` in _encode_relation_binary_triple),
-        # exactly like every other attribute hanging off the node.
+        # `prov:agent` on an attribution/delegation node) is not added here.
+        # _encode_relation_binary_triple skips the influencer's used_objects
+        # append for _BINARY_TRIPLE_INFLUENCER_RELATIONS, so the
+        # _encode_relation() loop writes it like every other attribute
+        # hanging off the node.
         bnode = BNode()
         container.add((subj, QRole, bnode))
         container.add((bnode, RDF.type, URIRef(rec_uri)))
-        return bnode, bnode
+        return bnode
 
     def _qualified_attr_predicate(
         self,
         rec_type: pm.QualifiedName,
         attr: pm.QualifiedNameCandidate,
-        formal_objects: list[pm.QualifiedName],
+        formal_attributes: Sequence[pm.QualifiedName],
     ) -> RdfTerm:
         """Return the PROV-O predicate for one attribute of a qualified relation.
 
@@ -1414,13 +1405,13 @@ class ProvRDFSerializer(Serializer):
         Args:
             rec_type: The relation's record type QualifiedName.
             attr: The attribute name being encoded.
-            formal_objects: The relation's formal attribute names.
+            formal_attributes: The relation's formal attribute names.
 
         Returns:
             The predicate term to use for ``attr``.
         """
         pred: RdfTerm
-        if attr in formal_objects:
+        if attr in formal_attributes:
             pred = attr2rdf(cast(QualifiedName, attr))
         elif isinstance(attr, pm.QualifiedName) and attr in _QUALIFIED_ATTR_PREDICATES:
             pred = _QUALIFIED_ATTR_PREDICATES[attr]
@@ -1591,11 +1582,8 @@ class ProvRDFSerializer(Serializer):
             UserWarning: If, after decoding, some attributes could not be
                 matched to any formal attribute or converted.
         """
-        prov_cls_map = {
-            prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
-        }
         state = _DecodeState()
-        self._decode_type_triples(graph, state, prov_cls_map)
+        self._decode_type_triples(graph, state)
         self._decode_triples(graph, bundle, state, relation_mapper, predicate_mapper)
         self._emit_decoded_records(bundle, state)
 
@@ -1608,30 +1596,24 @@ class ProvRDFSerializer(Serializer):
                 UserWarning,
             )
 
-    def _decode_type_triples(
-        self,
-        graph: Graph,
-        state: "_DecodeState",
-        prov_cls_map: dict[str, pm.QualifiedName],
-    ) -> None:
+    def _decode_type_triples(self, graph: Graph, state: "_DecodeState") -> None:
         """Reconstruct each subject's record type from its ``rdf:type`` triples.
 
         Registers a record type in ``state`` for every subject typed with a
         known PROV-O class; every other ``rdf:type`` object (and the extra
-        types of an already-registered subject) becomes a ``prov:type``
-        attribute instead.
+        types of an already-registered subject, other than its record type's
+        own class) becomes a ``prov:type`` attribute instead.
 
         Args:
             graph: The RDF (sub)graph being decoded.
             state: Decode state, mutated in place.
-            prov_cls_map: Maps a PROV-O class URI to its base record type.
         """
         for stmt in graph.triples((None, RDF.type, None)):
             subj = str(stmt[0])
             obj = str(stmt[2])
             try:
-                if obj not in prov_cls_map or self._register_record_type(
-                    graph, stmt, subj, obj, prov_cls_map, state
+                if obj not in _RECORD_TYPE_OF_CLASS or self._register_record_type(
+                    graph, stmt, subj, obj, state
                 ):
                     state.other_attributes.setdefault(subj, []).append(
                         (
@@ -1648,7 +1630,6 @@ class ProvRDFSerializer(Serializer):
         stmt: tuple[Node, Node, Node],
         subj: str,
         obj: str,
-        prov_cls_map: dict[str, pm.QualifiedName],
         state: "_DecodeState",
     ) -> bool:
         """Register one subject's record type, if this triple establishes it.
@@ -1658,32 +1639,26 @@ class ProvRDFSerializer(Serializer):
             stmt: The ``rdf:type`` triple.
             subj: ``stmt``'s subject, as a string.
             obj: ``stmt``'s object, as a string.
-            prov_cls_map: Maps a PROV-O class URI to its base record type.
             state: Decode state, mutated in place.
 
         Returns:
             Whether the triple's object should *also* be recorded as a
-            ``prov:type`` attribute (true for a derivation subtype or an
-            extra type on a blank node, and for any subject already typed).
+            ``prov:type`` attribute, which it is unless it is the class of the
+            subject's record type, such as ``prov:Derivation`` beside
+            ``prov:Revision``.
         """
+        if subj in state.record_types:
+            return state.record_types[subj].uri != obj
         blank = isinstance(stmt[0], BNode)
         if not blank and self.valid_identifier(subj) is None:
             # Register the subject's namespace (side effect) so a later
             # valid_identifier(subj) resolves; tolerates trailing PROV-N
             # metacharacters that compute_qname would refuse to split (#294).
             self._resolve_iri(subj, graph)
-        prov_obj = prov_cls_map[obj]
-        # objects of rdf:type triples are URIRefs (str subclass);
-        # rdflib types them only as Node
-        isderivation = any(
-            subtype.uri in cast(str, stmt[2]) for subtype in _DERIVATION_SUBTYPES
-        )
-        if subj in state.record_types or not (
-            prov_obj.uri == obj or isderivation or blank
-        ):
-            return True
-        state.register(subj, prov_obj, blank=blank)
-        return (blank or isderivation) and prov_obj.uri != obj
+        prov_obj = _RECORD_TYPE_OF_CLASS[obj]
+        if blank or prov_obj == PROV_DERIVATION or prov_obj.uri == obj:
+            state.register(subj, prov_obj, blank=blank)
+        return prov_obj.uri != obj
 
     def _decode_triples(
         self,
@@ -1779,7 +1754,6 @@ class ProvRDFSerializer(Serializer):
                 :class:`~prov.model.ProvBundle` factory method names.
         """
         factory = getattr(bundle, relation_mapper[pred])
-        subj = str(subj_node)
         subj_name = self._relation_node(subj_node, graph)
         obj_name = self._relation_node(obj, graph)
         if "alternateOf" in pred:
@@ -1787,9 +1761,7 @@ class ProvRDFSerializer(Serializer):
             return
         if "mentionOf" in pred:
             last_bundle = None
-            for stmt in graph.triples(
-                (URIRef(subj), URIRef(pm.PROV["asInBundle"].uri), None)
-            ):
+            for stmt in graph.triples((subj_node, _prov_uri("asInBundle"), None)):
                 last_bundle = stmt[2]
             mention_bundle = (
                 None if last_bundle is None else self._relation_node(last_bundle, graph)
@@ -1801,9 +1773,7 @@ class ProvRDFSerializer(Serializer):
             qualifier = "qualified" + name.upper()[0] + name[1:]
             qualifier_bnode = None
             influencer_pred = _QUALIFIED_RELATION_INFLUENCER[name]
-            for stmt in graph.triples(
-                (URIRef(subj), URIRef(pm.PROV[qualifier].uri), None)
-            ):
+            for stmt in graph.triples((subj_node, _prov_uri(qualifier), None)):
                 candidate = stmt[2]
                 # #226/#250: a subject may point at more than one
                 # qualification node of the same kind -- e.g. two

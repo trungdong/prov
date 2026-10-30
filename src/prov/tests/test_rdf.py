@@ -19,7 +19,7 @@ from io import BytesIO, StringIO
 
 import pytest
 import rdflib as rl
-from rdflib import RDF, URIRef
+from rdflib import RDF, BNode, URIRef
 from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
@@ -29,6 +29,7 @@ from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifie
 from prov.serializers.provrdf import (
     ProvRDFException,
     ProvRDFSerializer,
+    _DecodeState,
     literal_rdf_representation,
 )
 from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
@@ -344,6 +345,7 @@ _TURTLE_PREFIXES = (
     "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
     "@prefix ex: <http://example.org/> .\n"
 )
+_DEFAULT_PREFIX = "@prefix : <http://d.example/> .\n"
 _FOAF_PREFIX = "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n"
 _NT_ATTRIBUTION = (
     "<http://example.org/e>"
@@ -542,6 +544,139 @@ def test_encode_container_builds_or_reuses_its_container() -> None:
 
     assert result is container
     assert len(list(container.triples((None, None, None)))) > 0
+
+
+@pytest.mark.parametrize(
+    "types",
+    [
+        pytest.param(["Revision", "Derivation"], id="revision-then-derivation"),
+        pytest.param(["Derivation", "Revision"], id="derivation-then-revision"),
+        pytest.param(["Quotation", "Derivation"], id="quotation-then-derivation"),
+        pytest.param(["Derivation", "Quotation"], id="derivation-then-quotation"),
+        pytest.param(
+            ["PrimarySource", "Derivation"], id="primary-source-then-derivation"
+        ),
+        pytest.param(
+            ["Derivation", "PrimarySource"], id="derivation-then-primary-source"
+        ),
+        pytest.param(["Revision"], id="revision-alone"),
+    ],
+)
+def test_an_identified_derivation_writes_an_asserted_prov_derivation(
+    types: list[str],
+) -> None:
+    # The qualification head is built once, so an asserted prov:Derivation
+    # survives beside a subtype in either attribute order (#697). A subtype
+    # alone replaces the record type's rdf:type prov:Derivation.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.wasDerivedFrom(
+        "ex:g",
+        "ex:u",
+        identifier="ex:d",
+        other_attributes=[("prov:type", PROV[name]) for name in types],
+    )
+
+    graph = ProvRDFSerializer(document=doc).encode_document(doc)
+
+    assert set(graph.objects(URIRef("http://example.org/d"), RDF.type)) == {
+        URIRef(PROV[name].uri) for name in types
+    }
+
+
+def test_an_own_type_prov_type_does_not_round_trip_through_prov_o() -> None:
+    # C12: a prov:type equal to the record's own class is its rdf:type triple.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e", {"prov:type": PROV["Entity"]})
+
+    roundtripped = roundtrip_document(document, "rdf")
+
+    (entity,) = roundtripped.get_records(pm.ProvEntity)
+    assert entity.get_attribute("prov:type") == set()
+    assert roundtripped != document
+
+
+@pytest.mark.parametrize(
+    ("subject", "types", "expected"),
+    [
+        pytest.param(
+            "d",
+            ["Derivation", "Revision"],
+            [False, True],
+            id="derivation-then-revision",
+        ),
+        pytest.param(
+            "d",
+            ["Revision", "Derivation"],
+            [True, False],
+            id="revision-then-derivation",
+        ),
+        pytest.param(
+            "d",
+            ["Derivation", "Quotation"],
+            [False, True],
+            id="derivation-then-quotation",
+        ),
+        pytest.param(
+            "d",
+            ["Quotation", "Derivation"],
+            [True, False],
+            id="quotation-then-derivation",
+        ),
+        pytest.param(
+            "d",
+            ["Derivation", "PrimarySource"],
+            [False, True],
+            id="derivation-then-primary-source",
+        ),
+        pytest.param(
+            "d",
+            ["PrimarySource", "Derivation"],
+            [True, False],
+            id="primary-source-then-derivation",
+        ),
+        pytest.param(
+            None, ["Agent", "Person"], [False, True], id="blank-agent-then-person"
+        ),
+        pytest.param(
+            None, ["Person", "Agent"], [True, False], id="blank-person-then-agent"
+        ),
+        pytest.param(
+            "x",
+            ["Entity", "Activity"],
+            [False, True],
+            id="different-base-class-stays-a-prov-type",
+        ),
+    ],
+)
+def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
+    subject: str | None, types: list[str], expected: list[bool]
+) -> None:
+    # Each call returns whether the rdf:type triple also becomes a prov:type.
+    # Whichever triple comes first, a base class beside its subclass adds
+    # none and the subclass adds one; a class that is no base of the record
+    # type stays a prov:type. A ``None`` subject is a blank node. The order
+    # is driven by hand because rdflib yields a parsed graph's triples in
+    # hash-seed order.
+    graph = Graph()
+    graph.bind("ex", "http://example.org/")
+    node = BNode() if subject is None else URIRef("http://example.org/" + subject)
+    serializer = ProvRDFSerializer(document=ProvDocument())
+    state = _DecodeState()
+
+    returned = [
+        serializer._register_record_type(
+            graph,
+            (node, RDF.type, URIRef(PROV[name].uri)),
+            str(node),
+            PROV[name].uri,
+            state,
+        )
+        for name in types
+    ]
+
+    assert returned == expected
 
 
 def test_decode_document_without_contexts_uses_plain_graph_path() -> None:
@@ -1358,6 +1493,73 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
     assert entity.get_attribute("ex:ref") == set()
 
 
+@pytest.mark.parametrize(
+    ("body", "record_type", "expected"),
+    [
+        (
+            "_:a a prov:Activity ; prov:wasAssociatedWith ex:ag ;"
+            " prov:qualifiedAssociation"
+            " [ a prov:Association ; prov:agent ex:ag ; prov:hadPlan ex:plan ] .\n"
+            "ex:ag a prov:Agent . ex:plan a prov:Plan .\n",
+            pm.ProvAssociation,
+            {("http://example.org/ag", "http://example.org/plan")},
+        ),
+        (
+            "_:a a prov:Activity ;"
+            " prov:wasAssociatedWith ex:ag1 , ex:ag2 ;"
+            " prov:qualifiedAssociation"
+            " [ a prov:Association ; prov:agent ex:ag1 ; prov:hadPlan ex:p1 ] ,"
+            " [ a prov:Association ; prov:agent ex:ag2 ; prov:hadPlan ex:p2 ] .\n"
+            "ex:ag1 a prov:Agent . ex:ag2 a prov:Agent .\n"
+            "ex:p1 a prov:Plan . ex:p2 a prov:Plan .\n",
+            pm.ProvAssociation,
+            {
+                ("http://example.org/ag1", "http://example.org/p1"),
+                ("http://example.org/ag2", "http://example.org/p2"),
+            },
+        ),
+        (
+            "_:m a prov:Entity ; prov:mentionOf ex:f ; prov:asInBundle ex:b .\n"
+            "ex:f a prov:Entity .\n",
+            pm.ProvMention,
+            {("http://example.org/f", "http://example.org/b")},
+        ),
+        (
+            "_:m a prov:Entity ; prov:mentionOf ex:f .\nex:f a prov:Entity .\n",
+            pm.ProvMention,
+            {("http://example.org/f",)},
+        ),
+    ],
+    ids=["association", "two-associations", "mention", "mention-no-bundle"],
+)
+def test_a_blank_node_subject_finds_its_qualification(
+    body: str,
+    record_type: type[pm.ProvRecord],
+    expected: set[tuple[str, ...]],
+) -> None:
+    # A blank-node subject takes its prov:qualified* node and its
+    # prov:asInBundle bundle from the node itself, as an IRI subject does
+    # (#674). The `:` prefix resolves the blank-node element (#639).
+    turtle = _TURTLE_PREFIXES + _DEFAULT_PREFIX + body
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", pm.ProvWarning)
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+    records = document.get_records(record_type)
+    (blank,) = (
+        element
+        for element in document.get_records((pm.ProvActivity, pm.ProvEntity))
+        if element.identifier.uri.startswith("http://d.example/")
+    )
+    assert all(record.formal_attributes[0][1] == blank.identifier for record in records)
+    assert len(records) == len(expected)
+    assert {
+        tuple(v.uri for _, v in record.formal_attributes[1:] if v is not None)
+        for record in records
+    } == expected
+
+
 def test_find_diff_detects_single_triple_difference() -> None:
     # #304: find_diff must report a mismatch for graphs differing by a single
     # triple. The [1:] slices that removed a leading blank line from nt
@@ -1546,8 +1748,7 @@ def test_unsplittable_iri_raises_clear_error() -> None:
             r"urn:uuid:8",
         ),
         (
-            "@prefix : <http://d.example/> .\n"
-            "_:b a prov:Entity .\n"
+            _DEFAULT_PREFIX + "_:b a prov:Entity .\n"
             "ex:e a prov:Entity ; prov:wasDerivedFrom _:b .\n",
             pm.ProvDerivation,
             "prov:usedEntity",

@@ -250,7 +250,7 @@ format.
 
 ## Edge cases
 
-A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no row covers.
+A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to inputs no row covers.
 
 - **C3. PROV-XML escapes attribute names that are not NCNames.** A name may start with a digit
   or contain `' ( ) , : ; [ ] =`; each illegal character is written as `_xHHHH_`, the OpenXML
@@ -292,6 +292,16 @@ A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no 
   holds either pair under one attribute therefore raises `decimal.InvalidOperation` when
   written to PROV-O in those four syntaxes. N-Triples, N-Quads, RDF/XML, JSON-LD, TriX and
   Hext write such a record, as does every other format.
+- **C12. A `prov:type` equal to the record's own type.** PROV-O writes `prov:type` as
+  `rdf:type`, so an asserted `prov:type` equal to the record's own class, such as `prov:Entity`
+  on an entity or `prov:Derivation` on a derivation, is the same triple as the record's type.
+  The reader cannot tell the two apart, so the value does not survive a round trip through
+  PROV-O, and every other format keeps it. A subject typed with the class of its record type
+  and with a subclass of that class, such as `prov:Derivation` and `prov:Revision`, reads
+  back with the subclass as a `prov:type` and without the record type's class, in every
+  triple order. A subject typed with the classes of two record types, such as
+  `prov:Influence` and `prov:Derivation`, takes its record type from whichever of the two
+  `rdf:type` triples the reader meets first.
 
 ## Corpus evidence
 
