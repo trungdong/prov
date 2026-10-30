@@ -409,23 +409,6 @@ class NamespaceManager(dict[str, Namespace]):
                 return namespace
         return None
 
-    def reject_default_iri(self, text: str) -> None:
-        """Raise when ``text`` is the IRI of a default namespace in reach.
-
-        Called by the assertion paths after ``text`` resolved to nothing. The
-        IRI has no qualified-name form, so the model rejects it and mints no
-        prefix for it (#473).
-
-        Args:
-            text: The identifier text being asserted.
-
-        Raises:
-            ProvExceptionInvalidQualifiedName: If ``text`` equals the IRI of
-                this manager's default or an enclosing one.
-        """
-        if self._is_default_iri_in_reach(text):
-            raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
-
     def _is_default_iri_in_reach(self, text: str) -> bool:
         """Whether ``text`` equals the IRI of a default namespace in reach."""
         return any(
