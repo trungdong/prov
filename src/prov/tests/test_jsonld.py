@@ -458,6 +458,10 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
             'A Bundle requires an "@id"',
         ),
         (
+            {"@context": [], "@graph": [{"@type": "Bundle", "@id": None}]},
+            'A Bundle requires an "@id"',
+        ),
+        (
             {
                 "@context": [{"ex": "http://example.org/"}],
                 "@graph": [
@@ -878,10 +882,6 @@ _E1 = "prov:Entity 'ex:e1'"
 _U1 = "prov:Usage 'ex:u1'"
 
 
-def _statement_with(statement_type: str, **members: Any) -> str:
-    return _statement_text({"@type": statement_type, **members})
-
-
 @pytest.mark.parametrize(
     ("content", "label", "text", "attr"),
     [
@@ -949,8 +949,13 @@ def _statement_with(statement_type: str, **members: Any) -> str:
             id="datatype-blank",
         ),
         pytest.param(
-            _statement_with(
-                "Usage", **{"@id": "ex:u1", "activity": "ex:a", "entity": "zz:e"}
+            _statement_text(
+                {
+                    "@type": "Usage",
+                    "@id": "ex:u1",
+                    "activity": "ex:a",
+                    "entity": "zz:e",
+                }
             ),
             _U1,
             "zz:e",
@@ -958,9 +963,13 @@ def _statement_with(statement_type: str, **members: Any) -> str:
             id="formal-value",
         ),
         pytest.param(
-            _statement_with(
-                "Membership",
-                **{"@id": "ex:m1", "collection": "ex:c", "entity": ["ex:e", "zz:e"]},
+            _statement_text(
+                {
+                    "@type": "Membership",
+                    "@id": "ex:m1",
+                    "collection": "ex:c",
+                    "entity": ["ex:e", "zz:e"],
+                }
             ),
             "prov:Membership 'ex:m1'",
             "zz:e",
@@ -975,36 +984,41 @@ def _statement_with(statement_type: str, **members: Any) -> str:
             id="attribute-key",
         ),
         pytest.param(
-            _statement_with("Entity", **{"@id": "zz:e"}),
+            _statement_text({"@type": "Entity", "@id": "zz:e"}),
             "prov:Entity 'zz:e'",
             "zz:e",
             None,
             id="element-prefix",
         ),
         pytest.param(
-            _statement_with("Entity", **{"@id": "http://other.org/e"}),
+            _statement_text({"@type": "Entity", "@id": "http://other.org/e"}),
             "prov:Entity 'http://other.org/e'",
             "http://other.org/e",
             None,
             id="element-iri",
         ),
         pytest.param(
-            _statement_with("Entity", **{"@id": "_:e"}),
+            _statement_text({"@type": "Entity", "@id": "_:e"}),
             "prov:Entity '_:e'",
             "_:e",
             None,
             id="element-blank",
         ),
         pytest.param(
-            _statement_with("Entity", **{"@id": "e"}),
+            _statement_text({"@type": "Entity", "@id": "e"}),
             "prov:Entity 'e'",
             "e",
             None,
             id="element-no-prefix",
         ),
         pytest.param(
-            _statement_with(
-                "Usage", **{"@id": "zz:u", "activity": "ex:a", "entity": "ex:e"}
+            _statement_text(
+                {
+                    "@type": "Usage",
+                    "@id": "zz:u",
+                    "activity": "ex:a",
+                    "entity": "ex:e",
+                }
             ),
             "prov:Usage 'zz:u'",
             "zz:u",

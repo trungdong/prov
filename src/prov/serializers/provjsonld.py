@@ -655,8 +655,9 @@ def _decode_statement_attributes(
             attribute's value is not a JSON array; or if a formal time is not
             an ``xsd:dateTime`` string.
         ProvExceptionInvalidQualifiedName: If no namespace resolves a
-            formal attribute's value or a non-formal attribute's key. The
-            error names the formal attribute, and
+            formal attribute's value, a non-formal attribute's key or a
+            non-formal value's node reference (an ``@id``-typed bare string
+            or a datatype). The error names the formal attribute, and
             :func:`decode_jsonld_statement` labels it.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
@@ -729,10 +730,11 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             value is not a JSON array. The model resolves every name, so a
             name no namespace resolves is the model's
             ``ProvExceptionInvalidQualifiedName``. Every error raised while
-            reading the statement, the reader's own and the model's, other
-            than the two raised before the statement has a label and a
-            missing party, carries the statement's label (the model's error
-            is the ``__cause__``).
+            reading the statement, the reader's own and the model's, carries
+            the statement's label, with the model's error as the
+            ``__cause__``, except the two raised before the statement has
+            one, an unrecognised ``@type`` and an element with no ``@id``.
+            A missing party warns instead (see Warns).
 
     Warns:
         ProvWarning: If the model refuses the statement for a missing party
@@ -813,7 +815,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         if not is_bundle:
             decode_jsonld_statement(item, document)
             continue
-        if "@id" not in item:
+        if item.get("@id") is None:
             raise ProvJSONLDException(f'A Bundle requires an "@id"; found {item!r}')
         bundle = ProvBundle(document=document)
         _decode_context(item.get("@context", []), bundle)
