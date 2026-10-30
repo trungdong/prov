@@ -196,7 +196,7 @@ def test_unified_corpus_characterization(xml_path: Path) -> None:
         if xml_path.name in PARTY_SKIPS
         else contextlib.nullcontext()
     )
-    with open(xml_path, "rb") as f, warns:
+    with warns, open(xml_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if xml_path.name in UNIFICATION_REJECTS:
         # Every rejection goes through _unify_same_type_group: the
