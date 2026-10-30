@@ -89,13 +89,40 @@ records an activity, usage and generation, draws every element by default. Set
 dot_binary = prov_to_dot(document, show_nary=False)
 ```
 
+## Draw one bundle
+
+`prov_to_dot()` and `plot()` take a document. A bundle that is not a document draws with
+a `DeprecationWarning`, and 4.0 draws documents only. To draw one bundle, copy it into a
+document of its own. The new document declares the source's namespaces and default, and
+the bundle copy declares the bundle's own default, so every name resolves as it does in
+the source. The new document draws the bundle as a cluster, as its source document does,
+where a bundle passed alone draws its records at the top level:
+
+```python
+bundle = document.bundle("b")
+bundle.entity("e2")
+
+alone = pm.ProvDocument(namespaces=document.get_registered_namespaces())
+default = document.get_default_namespace()
+if default is not None:
+    alone.set_default_namespace(default.uri)
+copy = alone.bundle(bundle.identifier)
+own = bundle.get_default_namespace()
+if own is not None:
+    copy.set_default_namespace(own.uri)
+copy.update(bundle)
+
+dot_bundle = prov_to_dot(alone)
+```
+
 ## Plot in a notebook or window
 
-{py:meth}`~prov.model.ProvBundle.plot` draws the same graph. With no filename it shows the
-image through matplotlib, in an interactive window or inline in a notebook, which needs the
-`plot` extra that {doc}`../installation` lists. With a filename it writes the file through
-Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes `show_nary`,
-`use_labels`, `show_element_attributes` and `show_relation_attributes`, and no `direction`.
+{py:meth}`~prov.model.ProvDocument.plot` draws the same graph. With no filename it shows
+the image through matplotlib, in an interactive window or inline in a notebook, which needs
+the `plot` extra that {doc}`../installation` lists. With a filename it writes the file
+through Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes
+`show_nary`, `use_labels`, `show_element_attributes` and `show_relation_attributes`, and no
+`direction`.
 
 ```python
 document.plot("document.png", use_labels=True)

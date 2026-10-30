@@ -18,6 +18,8 @@ classes.
    :members:
    :show-inheritance:
 
+   .. automethod:: plot
+
 .. autoclass:: prov.model.ProvBundle
    :members:
    :show-inheritance:

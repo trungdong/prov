@@ -22,7 +22,7 @@ used, not at `import prov` time.
 | `xml` | `lxml>=3.3.5` | `prov.serializers.provxml`, PROV-XML |
 | `dot` | `pydot>=1.2.0`, `networkx>=2.0` | `prov.dot`, Graphviz rendering |
 | `graph` | `networkx>=2.0` | `prov.graph`, NetworkX interop |
-| `plot` | `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0` | The interactive display in `ProvBundle.plot()` |
+| `plot` | `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0` | The interactive display in `ProvDocument.plot()` |
 | `pygments` | `pygments>=2.13` | `prov.pygments`, PROV-N highlighting through the `pygments.lexers` entry point |
 
 ### `rdf`

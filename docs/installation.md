@@ -18,7 +18,7 @@ to install.
 | `xml` | PROV-XML serializer and deserializer | `lxml` |
 | `dot` | Graphviz export through `prov.dot` | `pydot`, `networkx` |
 | `graph` | NetworkX conversion through `prov.graph` | `networkx` |
-| `plot` | The interactive display in `ProvBundle.plot()` | `matplotlib`, `pydot`, `networkx` |
+| `plot` | The interactive display in `ProvDocument.plot()` | `matplotlib`, `pydot`, `networkx` |
 | `pygments` | Installs Pygments for PROV-N syntax highlighting; `prov` alone enables highlighting wherever Pygments is already present | `pygments` |
 
 The `dot` and `plot` extras also need a local [Graphviz](https://graphviz.org/download/)

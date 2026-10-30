@@ -330,8 +330,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   records. `graph_to_prov()` of the graph of a document with bundles returns the flattened
   document, with a bundle's own default namespace declared under a prefix, as
   `ProvDocument.flattened()` declares it. `prov_to_graph()` takes a document only, where
-  3.2.3 also drew a bundle's own records; pass the bundle's document. `prov_to_dot()` is
-  unchanged and draws bundles as asserted
+  3.2.3 also drew a bundle's own records; pass the bundle's document. `prov_to_dot()` draws
+  each bundle's records inside that bundle, not flattened, as 3.2.3 did
   ([#651](https://github.com/trungdong/prov/issues/651))
 - An `xsd:dateTime` with more than six fractional digits is no longer read.
   `parse_xsd_datetime` returns `None` for it, so a time of a statement is rejected as a
@@ -588,6 +588,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the PROV-N reader raises the sentence at its line and column, where 3.2.3 said `cannot
   resolve 'zz:e': prefix 'zz' is not declared`
   ([#725](https://github.com/trungdong/prov/issues/725))
+- `prov_to_dot()` and `plot()` with `use_labels=True` draw an element that has no
+  `prov:label` with its identifier once, where 3.2.3 drew the identifier twice, as the
+  node text and again beneath it ([#695](https://github.com/trungdong/prov/issues/695))
 
 ### Project
 
@@ -645,6 +648,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   that belongs to no document is unified by adding it to a document with
   `ProvDocument.add_bundle()` and unifying that document.
   ([#652](https://github.com/trungdong/prov/issues/652))
+- `prov_to_dot()` and `plot()` given a bundle that is not a document warn
+  `DeprecationWarning`, because 4.0 draws documents only, and [Draw one
+  bundle](https://prov.readthedocs.io/en/latest/howto/graphics.html#draw-one-bundle) shows how
+  to draw a single bundle ([#652](https://github.com/trungdong/prov/issues/652))
 - `ProvRecord.get_provn` and `ProvBundle.get_provn` take a `width` argument. A bundle passes
   it to every record by keyword, and `str(record)` passes `width=None`, so a subclass that
   overrides `ProvRecord.get_provn(self, strict=False)` or `ProvBundle.get_provn` without it

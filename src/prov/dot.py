@@ -13,7 +13,6 @@ References:
 """
 
 import typing
-import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape, unescape
@@ -28,7 +27,7 @@ except ImportError as e:  # pragma: no cover -- pydot (dot extra) absent; covere
         'install "prov[dot]" to use graphical export'
     ) from e
 
-from prov._warnings import external_stacklevel
+from prov._warnings import warn
 from prov.constants import XSD_ANYURI
 from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.identifier import QualifiedName
@@ -48,6 +47,7 @@ from prov.model import (
     PROV_GENERATION,
     PROV_INFLUENCE,
     PROV_INVALIDATION,
+    PROV_LABEL,
     PROV_MEMBERSHIP,
     PROV_MENTION,
     PROV_SPECIALIZATION,
@@ -341,18 +341,13 @@ def _add_node(
 ) -> pydot.Node:
     state.node_count += 1
     node_id = f"n{state.node_count}"
-    if state.use_labels:
-        if record.label == record.identifier:
-            node_label = _quoted(str(record.label))
-        else:
-            # Fancier label if both are different. The label will be
-            # the main node text, whereas the identifier will be a
-            # kind of subtitle.
-            node_label = (
-                f"<{escape(str(record.label))}<br />"
-                f'<font color="#333333" point-size="10">'
-                f"{escape(str(record.identifier))}</font>>"
-            )
+    if state.use_labels and record.get_attribute(PROV_LABEL):
+        # the label as the node text, the identifier as its subtitle
+        node_label = (
+            f"<{escape(str(record.label))}<br />"
+            f'<font color="#333333" point-size="10">'
+            f"{escape(str(record.identifier))}</font>>"
+        )
     else:
         node_label = _quoted(str(record.identifier))
 
@@ -475,11 +470,10 @@ def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) ->
         if node is None
     ]
     if unset:
-        warnings.warn(
+        warn(
             f"{rec!r} has no value for {', '.join(unset)}; drawing the "
             "relation to a blank node",
             ProvWarning,
-            stacklevel=external_stacklevel(),
         )
     other_attributes = [
         (attr_name, value)
@@ -546,14 +540,18 @@ def prov_to_dot(
     show_element_attributes: bool = True,
     show_relation_attributes: bool = True,
 ) -> pydot.Dot:
-    """Convert a provenance bundle/document into a DOT graphical representation.
+    """Convert a provenance document into a DOT graphical representation.
 
-    The bundle is first :meth:`~prov.model.ProvBundle.unified`; if that
-    raises :class:`~prov.model.ProvException` (the bundle cannot be
-    unified), the original, non-unified bundle is rendered instead.
+    A bundle that is not a document warns :class:`DeprecationWarning` and is
+    drawn as a document would be, and 4.0 draws documents only. The graphics
+    how-to guide, in its section on drawing one bundle, shows the replacement.
+
+    The document is first :meth:`~prov.model.ProvDocument.unified`; if that
+    raises :class:`~prov.model.ProvException` (the document cannot be
+    unified), the original, non-unified document is rendered instead.
 
     Args:
-        bundle: The provenance bundle/document to be converted.
+        bundle: The provenance document to be converted.
         show_nary: Show all elements of n-ary relations (i.e. relations with
             more than two formal attributes), not just the first two.
         use_labels: Use the ``prov:label`` property of an element as its
@@ -582,10 +580,17 @@ def prov_to_dot(
         show_nary=show_nary,
     )
 
+    is_document = bundle.is_document()
+    if not is_document:
+        warn(
+            "Drawing a bundle that is not a document is deprecated and 4.0 "
+            "draws documents only; pass a ProvDocument that holds the bundle",
+            DeprecationWarning,
+        )
     try:
-        unified = bundle.unified()
+        unified = bundle.unified() if is_document else bundle._unified_copy(None)
     except ProvException:
-        # Could not unify this bundle
+        # Could not unify the argument
         # try the original document anyway
         unified = bundle
 
