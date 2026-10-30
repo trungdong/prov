@@ -5,7 +5,7 @@ Created on Aug 13, 2015
 """
 
 import datetime
-import shutil
+import re
 import warnings
 
 import pytest
@@ -111,6 +111,19 @@ def test_show_element_attributes_false_skips_annotation() -> None:
     assert b"value" not in svg_content
 
 
+def _add_conflicting_generations(target: ProvBundle) -> None:
+    """Add an activity and two generations of ``ex:e1`` that share ``ex:gen1``
+    and disagree on ``prov:time``, so the bundle cannot be unified."""
+    target.activity(identifier="ex:a1")
+    for day in (1, 2):
+        target.generation(
+            "ex:e1",
+            "ex:a1",
+            identifier="ex:gen1",
+            time=datetime.datetime(2020, 1, day),
+        )
+
+
 def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     """Covers prov_to_dot()'s ``except ProvException`` fallback when
     ``bundle.unified()`` raises ``ProvUnificationError`` because two relations
@@ -120,13 +133,7 @@ def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity(identifier="ex:e1")
-    doc.activity(identifier="ex:a1")
-    doc.generation(
-        "ex:e1", "ex:a1", identifier="ex:gen1", time=datetime.datetime(2020, 1, 1)
-    )
-    doc.generation(
-        "ex:e1", "ex:a1", identifier="ex:gen1", time=datetime.datetime(2020, 1, 2)
-    )
+    _add_conflicting_generations(doc)
 
     # bundle.unified() raises ProvUnificationError here (conflicting prov:time
     # values for the same identifier); prov_to_dot() must catch it — the
@@ -135,6 +142,7 @@ def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     dot = prov_to_dot(doc)
     svg_content = dot.create(format="svg", encoding="utf-8")
     assert len(svg_content) > MIN_SVG_SIZE
+    assert dot.to_string().count("label=wasGeneratedBy") == 2
 
 
 # Link and label hardening: identifier URIs and labels are document content
@@ -317,79 +325,51 @@ def _standalone_bundle() -> ProvBundle:
 
 def _bundle_with_conflicting_generations() -> ProvBundle:
     bundle = _nested_bundle()
-    bundle.activity("ex:a1")
-    for day in (1, 2):
-        bundle.generation(
-            "ex:e1",
-            "ex:a1",
-            identifier="ex:gen1",
-            time=datetime.datetime(2020, 1, day),
-        )
+    _add_conflicting_generations(bundle)
     return bundle
 
 
-_NEEDS_DOT = pytest.mark.skipif(
-    not shutil.which("dot"), reason="graphviz 'dot' binary not available"
-)
 _NOT_A_DOCUMENT = (
     "Drawing a bundle that is not a document is deprecated and 4.0 draws "
-    "documents only; pass the ProvDocument"
+    "documents only; pass a ProvDocument that holds the bundle"
 )
 
 
 @pytest.mark.parametrize(
-    ("build", "via_plot", "warnings_expected", "needle", "drawn"),
+    ("build", "needle", "drawn"),
     [
-        pytest.param(_nested_bundle, False, 1, 'label="ex:e1"', 1, id="nested-bundle"),
-        pytest.param(
-            _standalone_bundle, False, 1, 'label="ex:e1"', 1, id="standalone-bundle"
-        ),
+        pytest.param(_nested_bundle, 'label="ex:e1"', 1, id="nested-bundle"),
+        pytest.param(_standalone_bundle, 'label="ex:e1"', 1, id="standalone-bundle"),
         pytest.param(
             _bundle_with_conflicting_generations,
-            False,
-            1,
             "label=wasGeneratedBy",
             2,
             id="non-unifying-bundle",
         ),
-        pytest.param(
-            _nested_bundle, True, 1, None, None, id="plot-bundle", marks=_NEEDS_DOT
-        ),
-        pytest.param(
-            _nested_document,
-            True,
-            0,
-            None,
-            None,
-            id="plot-document",
-            marks=_NEEDS_DOT,
-        ),
     ],
 )
-def test_drawing_a_bundle_that_is_not_a_document_warns_once(
-    build, via_plot, warnings_expected, needle, drawn, tmp_path
+def test_prov_to_dot_warns_once_for_a_bundle_that_is_not_a_document(
+    build, needle, drawn
 ) -> None:
     """A bundle that is not a document draws with one ``DeprecationWarning``
-    attributed to the caller, and a document draws with none."""
-    subject = build()
+    attributed to the caller."""
+    with pytest.warns(DeprecationWarning, match=re.escape(_NOT_A_DOCUMENT)) as record:
+        dot = prov_to_dot(build())
+
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert dot.to_string().count(needle) == drawn
+
+
+def test_plot_warns_once_and_saves_a_nested_bundle(tmp_path) -> None:
     path = tmp_path / "out.svg"
 
-    with warnings.catch_warnings(record=True) as record:
-        warnings.simplefilter("always")
-        if via_plot:
-            subject.plot(filename=path)
-        else:
-            dot = prov_to_dot(subject)
+    with pytest.warns(DeprecationWarning, match=re.escape(_NOT_A_DOCUMENT)) as record:
+        _nested_bundle().plot(filename=path)
 
-    assert len(record) == warnings_expected
-    if warnings_expected:
-        assert issubclass(record[0].category, DeprecationWarning)
-        assert _NOT_A_DOCUMENT in str(record[0].message)
-        assert record[0].filename == __file__
-    if via_plot:
-        assert path.stat().st_size > 0
-    else:
-        assert dot.to_string().count(needle) == drawn
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert path.stat().st_size > 0
 
 
 def test_prov_to_dot_draws_a_document_unified_rejects_as_asserted() -> None:

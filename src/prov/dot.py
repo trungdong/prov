@@ -13,7 +13,6 @@ References:
 """
 
 import typing
-import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape, unescape
@@ -28,7 +27,7 @@ except ImportError as e:  # pragma: no cover -- pydot (dot extra) absent; covere
         'install "prov[dot]" to use graphical export'
     ) from e
 
-from prov._warnings import external_stacklevel
+from prov._warnings import warn
 from prov.constants import XSD_ANYURI
 from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.identifier import QualifiedName
@@ -471,11 +470,10 @@ def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) ->
         if node is None
     ]
     if unset:
-        warnings.warn(
+        warn(
             f"{rec!r} has no value for {', '.join(unset)}; drawing the "
             "relation to a blank node",
             ProvWarning,
-            stacklevel=external_stacklevel(),
         )
     other_attributes = [
         (attr_name, value)
@@ -550,8 +548,7 @@ def prov_to_dot(
 
     The document is first :meth:`~prov.model.ProvDocument.unified`; if that
     raises :class:`~prov.model.ProvException` (the document cannot be
-    unified), the original, non-unified document is rendered instead. A bundle
-    that is not a document is unified and falls back in the same way.
+    unified), the original, non-unified document is rendered instead.
 
     Args:
         bundle: The provenance document to be converted.
@@ -585,11 +582,10 @@ def prov_to_dot(
 
     is_document = bundle.is_document()
     if not is_document:
-        warnings.warn(
+        warn(
             "Drawing a bundle that is not a document is deprecated and 4.0 "
-            "draws documents only; pass the ProvDocument",
+            "draws documents only; pass a ProvDocument that holds the bundle",
             DeprecationWarning,
-            stacklevel=external_stacklevel(),
         )
     try:
         unified = bundle.unified() if is_document else bundle._unified_copy(None)
