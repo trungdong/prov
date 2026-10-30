@@ -1311,6 +1311,13 @@ def test_mention_1(roundtrip) -> None:
     roundtrip(document)
 
 
+@pytest.mark.parametrize("fmt", MENTION_TARGETS)
+def test_mention_2(roundtrip) -> None:
+    document = new_document()
+    document.mention(EX_NS["e2"], EX_NS["e1"], EX_NS["b"])
+    roundtrip(document)
+
+
 _EX_URI = "http://example.org/"
 _NO_ENTITY = "hadMember requires a value for prov:entity"
 _PROVN_PARTYLESS = (
@@ -1468,13 +1475,6 @@ def test_a_reader_skips_a_relation_missing_a_party(
     assert len(list(scope.get_records())) == 1 + len(extra)
     if scope is not document:
         assert list(document.get_records()) == []
-
-
-@pytest.mark.parametrize("fmt", MENTION_TARGETS)
-def test_mention_2(roundtrip) -> None:
-    document = new_document()
-    document.mention(EX_NS["e2"], EX_NS["e1"], EX_NS["b"])
-    roundtrip(document)
 
 
 def test_membership_1(roundtrip) -> None:

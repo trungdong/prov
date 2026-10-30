@@ -745,6 +745,9 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'A {type_term} statement requires an "@id"; found {item!r}'
         )
+    named = (
+        f"{rec_type} {rec_id!r}" if rec_id is not None else f"an anonymous {rec_type}"
+    )
     try:
         attributes, other_attributes, members = _decode_statement_attributes(
             item, bundle, rec_type, type_term, formal_by_term
@@ -761,16 +764,10 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             for member in members
         ]
         _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
+    except ProvMissingFormalAttribute as exc:
+        warn(f"{named}: {exc}")
     except ProvException as exc:
-        named = (
-            f"{rec_type} {rec_id!r}"
-            if rec_id is not None
-            else f"an anonymous {rec_type}"
-        )
-        if isinstance(exc, ProvMissingFormalAttribute):
-            warn(f"{named}: {exc}")
-        else:
-            raise ProvJSONLDException(f"{named}: {exc}") from exc
+        raise ProvJSONLDException(f"{named}: {exc}") from exc
 
 
 def decode_jsonld_document(container: Any, document: ProvDocument) -> None:

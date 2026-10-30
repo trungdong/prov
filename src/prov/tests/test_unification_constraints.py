@@ -63,6 +63,7 @@ umbrella issue #253.
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 from collections.abc import Iterator
 from pathlib import Path
@@ -190,12 +191,13 @@ def test_corpus_inventory() -> None:
 
 @pytest.mark.parametrize("xml_path", list(_cases()))
 def test_unified_corpus_characterization(xml_path: Path) -> None:
-    with open(xml_path, "rb") as f:
-        if xml_path.name in PARTY_SKIPS:
-            with pytest.warns(ProvWarning, match="requires a value for"):
-                document = ProvDocument.deserialize(f, format="xml")
-        else:
-            document = ProvDocument.deserialize(f, format="xml")
+    warns = (
+        pytest.warns(ProvWarning, match="requires a value for")
+        if xml_path.name in PARTY_SKIPS
+        else contextlib.nullcontext()
+    )
+    with open(xml_path, "rb") as f, warns:
+        document = ProvDocument.deserialize(f, format="xml")
     if xml_path.name in UNIFICATION_REJECTS:
         # Every rejection goes through _unify_same_type_group: the
         # conflicting-values branch, or _check_non_expandable after the merge.

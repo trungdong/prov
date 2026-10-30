@@ -505,9 +505,12 @@ def test_a_relation_missing_a_party_is_refused(build, message: str) -> None:
     with pytest.raises(ProvMissingFormalAttribute) as ctx:
         build(doc)
     assert str(ctx.value) == message
-    assert isinstance(ctx.value, ProvException)
     assert list(doc.get_records()) == []
     assert all(list(b.get_records()) == [] for b in doc.bundles)
+
+
+def test_a_missing_party_error_is_a_prov_exception() -> None:
+    assert issubclass(ProvMissingFormalAttribute, ProvException)
 
 
 def test_a_mention_may_omit_its_bundle() -> None:
