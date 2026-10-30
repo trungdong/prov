@@ -95,7 +95,8 @@ dot_binary = prov_to_dot(document, show_nary=False)
 a `DeprecationWarning`, and 4.0 draws documents only. To draw one bundle, copy it into a
 document of its own. The new document declares the source's namespaces and default, and
 the bundle copy declares the bundle's own default, so every name resolves as it does in
-the source:
+the source. The new document draws the bundle as a cluster, as its source document does,
+where a bundle passed alone draws its records at the top level:
 
 ```python
 bundle = document.bundle("b")

@@ -648,11 +648,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   that belongs to no document is unified by adding it to a document with
   `ProvDocument.add_bundle()` and unifying that document.
   ([#652](https://github.com/trungdong/prov/issues/652))
-- `prov_to_dot()` and `plot()` draw a document, and given a bundle that is not a document
-  they warn `DeprecationWarning` and draw it as before, because 4.0 draws documents only,
-  where 3.2.3 drew either without a warning. To draw one bundle, add it to a document of
-  its own that declares the source document's namespaces, as the graphics how-to shows
-  ([#652](https://github.com/trungdong/prov/issues/652))
+- `prov_to_dot()` and `plot()` given a bundle that is not a document warn
+  `DeprecationWarning`, because 4.0 draws documents only, and [Draw one
+  bundle](https://prov.readthedocs.io/en/latest/howto/graphics.html#draw-one-bundle) shows how
+  to draw a single bundle ([#652](https://github.com/trungdong/prov/issues/652))
 - `ProvRecord.get_provn` and `ProvBundle.get_provn` take a `width` argument. A bundle passes
   it to every record by keyword, and `str(record)` passes `width=None`, so a subclass that
   overrides `ProvRecord.get_provn(self, strict=False)` or `ProvBundle.get_provn` without it
