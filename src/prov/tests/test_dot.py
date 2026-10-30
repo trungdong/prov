@@ -297,12 +297,15 @@ def test_complete_relation_draws_without_warning() -> None:
         prov_to_dot(document)
 
 
-def _nested_bundle() -> ProvBundle:
+def _nested_document() -> ProvDocument:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
-    bundle = document.bundle("ex:b")
-    bundle.entity("ex:e1")
-    return bundle
+    document.bundle("ex:b").entity("ex:e1")
+    return document
+
+
+def _nested_bundle() -> ProvBundle:
+    return next(iter(_nested_document().bundles))
 
 
 def _standalone_bundle() -> ProvBundle:
@@ -353,7 +356,7 @@ _NOT_A_DOCUMENT = (
             _nested_bundle, True, 1, None, None, id="plot-bundle", marks=_NEEDS_DOT
         ),
         pytest.param(
-            lambda: _nested_bundle().document,
+            _nested_document,
             True,
             0,
             None,
