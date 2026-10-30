@@ -490,11 +490,8 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
 def _resolve_reference(
     bundle: ProvBundle, text: str, attr: QualifiedName
 ) -> QualifiedName:
-    """The qualified name a declared namespace gives ``text``, or raise.
-
-    Raises:
-        ProvJSONLDException: If no declared namespace resolves ``text``.
-    """
+    """The qualified name a declared namespace gives ``text``, or
+    ``ProvJSONLDException`` when none does."""
     resolved = bundle.valid_qualified_name(text)
     if resolved is not None:
         return resolved
@@ -518,8 +515,9 @@ def decode_jsonld_value(
     the text. A value object is a language-tagged or datatyped
     :class:`~prov.model.Literal`, which the model resolves when its datatype
     is ``xsd:QName`` or ``prov:QUALIFIED_NAME`` (#168, #238), or the text
-    when it has no type. A value object's datatype resolves as a node
-    reference does, so one no declared namespace resolves raises.
+    when it has no type. A value object's datatype resolves by the node
+    reference's rule, with no blank-node drop, so a datatype no declared
+    namespace resolves raises.
 
     Args:
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
@@ -587,8 +585,7 @@ def _decode_value_object(
         return text
     if not isinstance(datatype_str, str):
         raise ProvJSONLDException(
-            f'A value object for {term!r} must hold a string "@type"; '
-            f"found {datatype_str!r}"
+            f'A value object for {term!r} must hold a string "@type"; found {value!r}'
         )
     return Literal(text, _resolve_reference(bundle, datatype_str, attr))
 
