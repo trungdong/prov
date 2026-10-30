@@ -925,6 +925,11 @@ class ProvBundle:
 
         Returns:
             The newly created and added :class:`ProvRecord`.
+
+        Raises:
+            ProvMissingFormalAttribute: If ``record_type`` is a ``hadMember``,
+                ``alternateOf``, ``specializationOf`` or ``mentionOf`` and
+                ``attributes`` leave a party without a value.
         """
         attr_list: list[AttributePair] = []
         if attributes:
@@ -952,6 +957,11 @@ class ProvBundle:
 
         Returns:
             The newly created :class:`ProvRecord` belonging to this bundle.
+
+        Raises:
+            ProvMissingFormalAttribute: If ``record`` is a ``hadMember``,
+                ``alternateOf``, ``specializationOf`` or ``mentionOf`` with a
+                party missing.
         """
         return self.new_record(
             record.get_type(),
@@ -1584,6 +1594,10 @@ class ProvBundle:
 
         Returns:
             The new :class:`ProvSpecialization` record.
+
+        Raises:
+            ProvMissingFormalAttribute: If ``specificEntity`` or ``generalEntity``
+                is ``None``.
         """
         attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
@@ -1606,6 +1620,10 @@ class ProvBundle:
 
         Returns:
             The new :class:`ProvAlternate` record.
+
+        Raises:
+            ProvMissingFormalAttribute: If ``alternate1`` or ``alternate2``
+                is ``None``.
         """
         attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ALTERNATE1: alternate1,
@@ -1632,6 +1650,10 @@ class ProvBundle:
 
         Returns:
             The new :class:`ProvMention` record.
+
+        Raises:
+            ProvMissingFormalAttribute: If ``specificEntity`` or ``generalEntity``
+                is ``None``.
         """
         attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
@@ -1676,6 +1698,10 @@ class ProvBundle:
 
         Returns:
             The new :class:`ProvMembership` record.
+
+        Raises:
+            ProvMissingFormalAttribute: If ``collection`` or ``entity``
+                is ``None``.
         """
         attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_COLLECTION: collection,

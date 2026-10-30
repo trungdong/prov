@@ -1979,10 +1979,11 @@ class ProvRDFSerializer(Serializer):
                 on one identified qualified node) -- the documented,
                 permanent PROV-O representational limitation described in
                 ``docs/reference/conformance.md``. Any other ``ProvException``
-                (not ``ProvMissingFormalAttribute``, which is warned and
-                skipped) raised while constructing a record (e.g. an unresolvable
+                raised while constructing a record (e.g. an unresolvable
                 qualified name) is wrapped in a ``ProvRDFException`` naming
-                the subject, with the model's exception as the cause.
+                the subject, with the model's exception as the cause, other
+                than ``ProvMissingFormalAttribute``, which is warned and
+                skipped.
         """
         for subj in state.record_types:
             attrs = state.other_attributes.get(subj)

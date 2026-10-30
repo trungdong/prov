@@ -158,7 +158,8 @@ departure from the Recommendations without one.
 Every reader warns {py:class}`~prov.model.ProvWarning` and skips a `hadMember`,
 `alternateOf`, `specializationOf` or `mentionOf` that is missing a party, naming the
 statement as the reader's errors do, and the rest of the document reads. A `mentionOf`
-without its bundle reads.
+without its bundle reads. A party given as JSON `null` (PROV-JSON, PROV-JSONLD) or as a
+blank `<prov:entity/>` still raises the reader's error.
 
 ### PROV-N profiles
 

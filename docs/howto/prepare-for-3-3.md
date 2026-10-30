@@ -324,7 +324,9 @@ already read a list, where 3.2.3 read one record holding every entity.
 
 Every reader skips a `hadMember`, `alternateOf`, `specializationOf` or `mentionOf` that is
 missing a party with a {py:class}`~prov.model.ProvWarning`, and the rest of the document
-reads. A `mentionOf` may still omit its bundle.
+reads. A `mentionOf` may still omit its bundle. A document whose only statements are such
+relations reads as empty, so {py:func}`prov.read` without a `format` cannot detect it, and
+passing `format=` reads it with the warnings.
 
 ## Equality
 

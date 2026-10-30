@@ -1423,6 +1423,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``alternate2`` is ``None``.
         """
         self._bundle.alternate(self, alternate2)
         return self
@@ -1435,6 +1438,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``generalEntity`` is ``None``.
         """
         self._bundle.specialization(self, generalEntity)
         return self
@@ -1448,6 +1454,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``entity`` is ``None``.
         """
         self._bundle.membership(self, entity)
         return self
@@ -1550,6 +1559,9 @@ class ProvEntity(ProvElement):
 
         Returns:
             This entity (to allow chaining).
+
+        Raises:
+            ProvMissingFormalAttribute: If ``generalEntity`` is ``None``.
         """
         self._bundle.mention(self, generalEntity, bundle)
         return self

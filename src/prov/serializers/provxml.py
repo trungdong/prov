@@ -336,11 +336,10 @@ class ProvXMLSerializer(Serializer):
                 namespace; if a ``<prov:bundleContent>`` has no
                 ``prov:id`` or is nested in a bundle; or, naming the
                 element and, when it has one, its line, if the element is
-                not a PROV element or the model rejects, other than for a
-                missing party, a record, a bundle
+                not a PROV element or the model rejects a record, a bundle
                 or the default namespace ``xml_doc`` declares, such as one
                 that starts with ``@`` (the model's error is the
-                ``__cause__``).
+                ``__cause__``), other than for a missing party.
 
         Warns:
             UserWarning: For each ``<prov:other>`` child, which is otherwise
