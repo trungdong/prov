@@ -34,7 +34,7 @@ dependencies = [
     "networkx>=2.0",
     # Supporting graphic outputs (e.g. PNG, SVG, PDF) - a local graphviz is required
     "pydot>=1.2.0",
-    "python-dateutil>=2.2",  # TODO: is this really needed?
+    "python-dateutil>=3.0.0",  # TODO: is this really needed?
 ]
 
 [project.optional-dependencies]
