@@ -377,18 +377,21 @@ REJECTED_DOCUMENTS = [
     ],
     *[
         pytest.param(
-            f"document\n{before}prefix {name} <http://y/>\n{EX_PREFIX}entity(ex:e)\nendDocument",
+            f"document\nprefix {name} <http://y/>\n{EX_PREFIX}entity(ex:e)\nendDocument",
             EVERY,
             "a prefix cannot contain an escape",
-            (line, 8),
-            id=f"prefix {name}{suffix}",
+            (2, 8),
+            id=f"prefix {name}",
         )
-        for before, name, line, suffix in (
-            ("", r"a\.b", 2, ""),
-            ("", r"a\-b", 2, ""),
-            ("prefix a.b <http://x/>\n", r"a\.b", 3, " after a.b"),
-        )
+        for name in (r"a\.b", r"a\-b")
     ],
+    pytest.param(
+        f"document\nprefix a.b <http://x/>\nprefix a\\.b <http://y/>\n{EX_PREFIX}entity(ex:e)\nendDocument",
+        EVERY,
+        "a prefix cannot contain an escape",
+        (3, 8),
+        id="prefix a\\.b after a.b",
+    ),
     pytest.param(
         f'{STATEMENT_PREFIX}entity(ex:e, [ex:k="caf\\u00e9"])\nendDocument',
         EVERY,

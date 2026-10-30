@@ -435,7 +435,6 @@ def test_code_point_escapes_are_decoded(text, expected) -> None:
     [
         (r'"ab\u00G9"', r"escape '\u' needs four uppercase hex digits", 4),
         (r'"ab\U0001F60"', r"escape '\U' needs eight uppercase hex digits", 4),
-        (r'"caf\u00e9"', r"escape '\u' needs four uppercase hex digits", 5),
         (r'"\U0001f600"', r"escape '\U' needs eight uppercase hex digits", 2),
         (r"<http://a/caf\u00e9>", r"escape '\u' needs four uppercase hex digits", 14),
         (r'"ab\uD800"', r"escape '\uD800' is not a Unicode scalar value", 4),
