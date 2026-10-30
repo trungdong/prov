@@ -479,8 +479,12 @@ class ProvNParser:
         except ProvNSyntaxError as error:
             self._skip_or_raise(error)
         except ProvMissingFormalAttribute as exc:
-            # A relation missing a party is skipped under every profile.
-            self._skip(ProvNSyntaxError(str(exc), start.line, start.column))
+            # The model refuses the relation after its closing ')' is consumed,
+            # so the skip needs no resync and the tokens that follow still parse.
+            self.skipped.append(
+                "PROV-N statement skipped: "
+                f"{ProvNSyntaxError(str(exc), start.line, start.column)}"
+            )
         except (ProvException, ValueError, OverflowError) as exc:
             # A model rejection (e.g. from new_record()) is reported as a
             # positioned syntax error and, under lenient, skipped.
@@ -491,9 +495,6 @@ class ProvNParser:
     def _skip_or_raise(self, error: ProvNSyntaxError) -> None:
         if not self._profile.recover:
             raise error
-        self._skip(error)
-
-    def _skip(self, error: ProvNSyntaxError) -> None:
         self.skipped.append(f"PROV-N statement skipped: {error}")
         self._resync()
 
