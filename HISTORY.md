@@ -108,13 +108,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   attribute value or a `hadMember` member the same way, where 3.2.3 compacted a full IRI
   or dropped a value it could not resolve. Every reader resolves a qualified name by its
   prefix in scope and never by matching a declared namespace IRI against the text, so
-  `http://example.org/x` is the prefix `http` (PROV-JSONLD's `@id` and `@type` are IRIs,
-  which a declared namespace compacts), and a prefix the document declares is found
-  from a bundle before the bundle's own namespaces could compact the text. A value equal
-  to a default namespace IRI in reach is rejected because the IRI has no qualified-name
-  form and needs a prefix, from PROV-N, PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O, and in
-  code. The `lenient` PROV-N profile skips the statement with a `ProvWarning` and emits
-  nothing else about it ([#675](https://github.com/trungdong/prov/issues/675),
+  `http://example.org/x` is the prefix `http`, and a prefix the document declares is found
+  from a bundle before the bundle's own namespaces could compact the text. The PROV-JSONLD
+  reader is the exception for an `@id` or a value object's `@type`, each an IRI that a
+  declared namespace compacts. A value equal to a default namespace IRI in reach is
+  rejected because the IRI has no qualified-name form and needs a prefix, from PROV-N,
+  PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O, and in code. The `lenient` PROV-N profile
+  skips the statement with a `ProvWarning` and emits nothing else about it
+  ([#675](https://github.com/trungdong/prov/issues/675),
   [#516](https://github.com/trungdong/prov/issues/516),
   [#551](https://github.com/trungdong/prov/issues/551),
   [#553](https://github.com/trungdong/prov/issues/553),
