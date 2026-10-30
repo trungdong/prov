@@ -436,8 +436,9 @@ REJECTED_DOCUMENTS = [
         (3, 15),
         id="undeclared xsi",
     ),
-    # An attribute block or a datatype stops at a structural keyword that is
-    # not a name there, so lenient resync finds the keyword.
+    # A structural keyword where an attribute name or a datatype is expected,
+    # and not followed by a token that may follow one, ends the statement, so
+    # lenient resync finds the keyword.
     *[
         pytest.param(
             f"{STATEMENT_PREFIX}ex:f(ex:a, [{pairs}\nendDocument",
