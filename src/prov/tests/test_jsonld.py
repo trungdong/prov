@@ -300,13 +300,20 @@ def test_deserialize_empty_key_and_vocab_in_one_context_object() -> None:
         _ = ProvDocument.deserialize(content=text, format="jsonld")
 
 
-def _unresolved(text: str, attr: str) -> str:
-    """The regex for the sentence a reference no namespace resolves raises (5.8)."""
-    prefix = text.partition(":")[0]
-    reason = "is reserved for blank nodes" if prefix == "_" else "is not declared"
+def _unresolved(label: str, text: str, attr: str | None) -> str:
+    """The regex for the message a statement raises when no namespace resolves
+    ``text``: the label, the model's frame and its sentence (spec 5, 3.7)."""
+    prefix, colon, _ = text.partition(":")
+    if not colon:
+        reason = "it has no prefix and no default namespace is declared"
+    elif prefix == "_":
+        reason = "its prefix '_' is reserved for blank nodes"
+    else:
+        reason = f"its prefix {prefix!r} is not declared"
+    of = f" of {attr}" if attr else ""
     return re.escape(
-        f"the qualified name {text!r} of {attr} does not resolve, "
-        f"because its prefix {prefix!r} {reason}"
+        f"{label}: Invalid Qualified Name: {text}, "
+        f"the qualified name {text!r}{of} does not resolve, because {reason}"
     )
 
 
@@ -317,7 +324,8 @@ def test_deserialize_bundle_id_equal_to_the_vocab_iri_is_rejected() -> None:
             "@graph": [{"@type": "Bundle", "@id": EX_URI, "@graph": []}],
         }
     )
-    with pytest.raises(ProvJSONLDException, match=r"@graph entry 0.*declare a prefix"):
+    match = re.escape(f"prov:Bundle {EX_URI!r}: Invalid Qualified Name: {EX_URI}, ")
+    with pytest.raises(ProvJSONLDException, match=match + ".*declare a prefix"):
         _ = ProvDocument.deserialize(content=text, format="jsonld")
 
 
@@ -419,7 +427,7 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
                 "@context": [],
                 "@graph": [{"@type": "Generation", "entity": ["ex:e1", "ex:e2"]}],
             },
-            "single",
+            "an anonymous prov:Generation: The formal attribute 'entity'.*single",
         ),
         ({"@context": [], "@graph": [{"@type": None}]}, "@type"),
         ({"@context": [], "@graph": [{"@type": 123}]}, "@type"),
@@ -489,6 +497,41 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
                 ],
             },
             'cannot hold both "@language" and "@type"',
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Usage",
+                        "@id": "ex:u1",
+                        "activity": "ex:a",
+                        "entity": 5,
+                    }
+                ],
+            },
+            re.escape("prov:Usage 'ex:u1': Invalid Qualified Name: 5"),
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Membership",
+                        "@id": "ex:m1",
+                        "collection": "ex:c",
+                        "entity": ["ex:e", 5],
+                    }
+                ],
+            },
+            re.escape("prov:Membership 'ex:m1': Invalid Qualified Name: 5"),
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [{"@type": "Entity", "@id": 5}],
+            },
+            re.escape("prov:Entity 5: Invalid Qualified Name: 5"),
         ),
     ],
 )
@@ -831,72 +874,158 @@ def test_deserialize_blank_node_relation_id_reads_anonymous() -> None:
     assert usage.identifier is None
 
 
+_E1 = "prov:Entity 'ex:e1'"
+_U1 = "prov:Usage 'ex:u1'"
+
+
+def _statement_with(statement_type: str, **members: Any) -> str:
+    return _statement_text({"@type": statement_type, **members})
+
+
 @pytest.mark.parametrize(
-    ("content", "text", "attr"),
+    ("content", "label", "text", "attr"),
     [
         pytest.param(
             _entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
+            _E1,
             "http://other.org/x",
             "ex:ref",
             id="node-iri",
         ),
         pytest.param(
             _entity_with("ex:ref", [{"@id": "nope:thing"}]),
+            _E1,
             "nope:thing",
             "ex:ref",
             id="node-prefix",
         ),
         pytest.param(
             _entity_with("type", ["http://other.org/x"]),
+            _E1,
             "http://other.org/x",
             "prov:type",
             id="bare-type-iri",
         ),
         pytest.param(
             _entity_with("type", ["zz:x"]),
+            _E1,
             "zz:x",
             "prov:type",
             id="bare-type-prefix",
         ),
         pytest.param(
             _usage_with("role", ["zz:R"]),
+            _U1,
             "zz:R",
             "prov:role",
             id="bare-role",
         ),
         pytest.param(
             _entity_with("location", ["zz:L"]),
+            _E1,
             "zz:L",
             "prov:location",
             id="bare-location",
         ),
         pytest.param(
             _entity_with("ex:a", [{"@value": "1", "@type": "zz:t"}]),
+            _E1,
             "zz:t",
             "ex:a",
             id="datatype-prefix",
         ),
         pytest.param(
             _entity_with("ex:a", [{"@value": "1", "@type": "http://other.org/t"}]),
+            _E1,
             "http://other.org/t",
             "ex:a",
             id="datatype-iri",
         ),
         pytest.param(
             _entity_with("ex:a", [{"@value": "1", "@type": "_:b1"}]),
+            _E1,
             "_:b1",
             "ex:a",
             id="datatype-blank",
         ),
+        pytest.param(
+            _statement_with(
+                "Usage", **{"@id": "ex:u1", "activity": "ex:a", "entity": "zz:e"}
+            ),
+            _U1,
+            "zz:e",
+            "prov:entity",
+            id="formal-value",
+        ),
+        pytest.param(
+            _statement_with(
+                "Membership",
+                **{"@id": "ex:m1", "collection": "ex:c", "entity": ["ex:e", "zz:e"]},
+            ),
+            "prov:Membership 'ex:m1'",
+            "zz:e",
+            "prov:entity",
+            id="member",
+        ),
+        pytest.param(
+            _entity_with("zz:a", ["x"]),
+            _E1,
+            "zz:a",
+            None,
+            id="attribute-key",
+        ),
+        pytest.param(
+            _statement_with("Entity", **{"@id": "zz:e"}),
+            "prov:Entity 'zz:e'",
+            "zz:e",
+            None,
+            id="element-prefix",
+        ),
+        pytest.param(
+            _statement_with("Entity", **{"@id": "http://other.org/e"}),
+            "prov:Entity 'http://other.org/e'",
+            "http://other.org/e",
+            None,
+            id="element-iri",
+        ),
+        pytest.param(
+            _statement_with("Entity", **{"@id": "_:e"}),
+            "prov:Entity '_:e'",
+            "_:e",
+            None,
+            id="element-blank",
+        ),
+        pytest.param(
+            _statement_with("Entity", **{"@id": "e"}),
+            "prov:Entity 'e'",
+            "e",
+            None,
+            id="element-no-prefix",
+        ),
+        pytest.param(
+            _statement_with(
+                "Usage", **{"@id": "zz:u", "activity": "ex:a", "entity": "ex:e"}
+            ),
+            "prov:Usage 'zz:u'",
+            "zz:u",
+            None,
+            id="relation-id",
+        ),
+        pytest.param(
+            _statement_text({"@type": "Bundle", "@id": "zz:b", "@graph": []}),
+            "prov:Bundle 'zz:b'",
+            "zz:b",
+            None,
+            id="bundle-id",
+        ),
     ],
 )
-def test_deserialize_reference_no_namespace_resolves_is_rejected(
-    content: str, text: str, attr: str
+def test_deserialize_name_no_namespace_resolves_is_rejected(
+    content: str, label: str, text: str, attr: str | None
 ) -> None:
-    # A node reference, a bare string under an @id-typed term or a value
-    # object's datatype that no declared namespace resolves raises the 5.8
-    # sentence (#609, #673).
-    with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr)):
+    # A name in any position that no declared namespace resolves raises the
+    # model's sentence under the statement's label (#609, #673, #725).
+    with pytest.raises(ProvJSONLDException, match=_unresolved(label, text, attr)):
         ProvDocument.deserialize(content=content, format="jsonld")
 
 
