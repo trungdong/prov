@@ -174,6 +174,12 @@ _IDENTIFIER_FOLLOW = (
     TokenKind.SEMICOLON,
     TokenKind.RBRACE,
 )
+_DATATYPE_FOLLOW = (
+    TokenKind.COMMA,
+    TokenKind.RBRACKET,
+    TokenKind.RPAREN,
+    TokenKind.RBRACE,
+)
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
 # Brackets an extensibility argument may open (N53): [50] and [51].
@@ -282,12 +288,13 @@ class ProvNParser:
         follow: tuple[TokenKind, ...] = _IDENTIFIER_FOLLOW,
         expected: str = "an identifier",
     ) -> None:
-        """Refuse a bare structural keyword as an identifier or argument
-        unless it is immediately followed by one of ``follow``. Anything else
-        means a statement left open by a missing ')'/']'/'}' has read straight
-        through a following 'bundle', 'endBundle' or 'endDocument' as if it
-        were data; raising here without consuming the token lets lenient
-        resync (and, outside lenient, the enclosing loop) still find it.
+        """Refuse a bare structural keyword as an identifier, an argument, an
+        attribute name or a datatype unless it is immediately followed by one
+        of ``follow``. Anything else means a statement left open by a missing
+        ')'/']'/'}' has read straight through a following 'bundle',
+        'endBundle' or 'endDocument' as if it were data; raising here without
+        consuming the token lets lenient resync (and, outside lenient, the
+        enclosing loop) still find it.
         """
         current = self._current
         if current.kind is not TokenKind.NAME:
@@ -757,11 +764,7 @@ class ProvNParser:
         self._expect(TokenKind.RBRACKET)
 
     def _extension_pair(self) -> None:
-        self._reject_unclosed_structural_keyword(
-            (TokenKind.EQUALS,), "an attribute name"
-        )
-        if self._digit_run_as_name() is None:
-            self._expect(TokenKind.NAME, "an attribute name")
+        self._attribute_name()
         self._expect(TokenKind.EQUALS)
         self._literal_tokens()
 
@@ -810,6 +813,15 @@ class ProvNParser:
 
     # -- attributes and literals -----------------------------------------------
 
+    def _attribute_name(self) -> Token:
+        """Consume an attribute name, refusing an unclosed structural keyword."""
+        self._reject_unclosed_structural_keyword(
+            (TokenKind.EQUALS,), "an attribute name"
+        )
+        return self._digit_run_as_name() or self._expect(
+            TokenKind.NAME, "an attribute name"
+        )
+
     def _attributes(self, bundle: ProvBundle) -> _AttributeBlock:
         """Parse an attribute block into (name, value, name token) triples."""
         self._expect(TokenKind.LBRACKET)
@@ -818,9 +830,7 @@ class ProvNParser:
             self._advance()
             return pairs
         while True:
-            name = self._digit_run_as_name() or self._expect(
-                TokenKind.NAME, "an attribute name"
-            )
+            name = self._attribute_name()
             attr = self._resolve(name, bundle)
             self._expect(TokenKind.EQUALS)
             pairs.append((attr, self._literal(bundle), name))
@@ -843,6 +853,7 @@ class ProvNParser:
                 return token, self._advance()
             if self._current.kind is TokenKind.TYPED:
                 self._advance()
+                self._reject_unclosed_structural_keyword(_DATATYPE_FOLLOW, "a datatype")
                 return token, self._digit_run_as_name() or self._expect(
                     TokenKind.NAME, "a datatype"
                 )

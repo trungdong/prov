@@ -436,8 +436,8 @@ REJECTED_DOCUMENTS = [
         (3, 15),
         id="undeclared xsi",
     ),
-    # An expression's attribute block stops at a structural keyword that is
-    # not an attribute name, so lenient resync finds the keyword.
+    # An attribute block or a datatype stops at a structural keyword that is
+    # not a name there, so lenient resync finds the keyword.
     *[
         pytest.param(
             f"{STATEMENT_PREFIX}ex:f(ex:a, [{pairs}\nendDocument",
@@ -448,6 +448,28 @@ REJECTED_DOCUMENTS = [
         )
         for label, pairs in (("opened", ""), ("after a pair", 'ex:k="v",'))
     ],
+    pytest.param(
+        f'{STATEMENT_PREFIX}bundle ex:b\nentity(ex:a, [ex:v="x" %%\nendBundle'
+        "\nendDocument",
+        STATEMENT,
+        "expected a datatype, found 'endBundle'",
+        (5, 1),
+        id="an attribute datatype before endBundle",
+    ),
+    pytest.param(
+        f"{STATEMENT_PREFIX}bundle ex:b\nentity(ex:a, [\nendBundle\nendDocument",
+        STATEMENT,
+        "expected an attribute name, found 'endBundle'",
+        (5, 1),
+        id="an attribute block opened before endBundle",
+    ),
+    pytest.param(
+        f'{STATEMENT_PREFIX}ex:f(ex:a, "x" %%\nendDocument',
+        STATEMENT,
+        "expected a datatype, found 'endDocument'",
+        (4, 1),
+        id="an extension datatype before endDocument",
+    ),
     # Statement rules (#523, #519 b and c). An attribute named after one of
     # the statement's own arguments is rejected at the attribute; under
     # strict, a statement after a bundle at the statement, and an identifier
@@ -893,6 +915,14 @@ ACCEPTED_STATEMENTS = [
             " name, found 'endBundle'",
         ),
         id="an unclosed attribute block ends at endBundle",
+    ),
+    pytest.param(
+        "bundle ex:b\ndefault <http://d.org/>\n"
+        'entity(ex:e, [endBundle="x" %% endBundle, ex:k="y" %% bundle])\n'
+        'ex:f({"y" %% bundle}, "x" %% endBundle)\nendBundle',
+        EVERY,
+        (_dropped(6, 1, "ex:f"),),
+        id="a structural keyword as an attribute name or a datatype",
     ),
     pytest.param(
         'zz:hadMembers(zz:m; zz:d, zz:set(zz:pair("k1",zz:e1),\n'
