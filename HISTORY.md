@@ -588,6 +588,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the PROV-N reader raises the sentence at its line and column, where 3.2.3 said `cannot
   resolve 'zz:e': prefix 'zz' is not declared`
   ([#725](https://github.com/trungdong/prov/issues/725))
+- `prov_to_dot()` and `plot()` with `use_labels=True` draw an element that has no
+  `prov:label` with its identifier once, where 3.2.3 drew the identifier twice, as the
+  node text and again beneath it ([#695](https://github.com/trungdong/prov/issues/695))
 
 ### Project
 

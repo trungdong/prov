@@ -48,6 +48,7 @@ from prov.model import (
     PROV_GENERATION,
     PROV_INFLUENCE,
     PROV_INVALIDATION,
+    PROV_LABEL,
     PROV_MEMBERSHIP,
     PROV_MENTION,
     PROV_SPECIALIZATION,
@@ -341,18 +342,13 @@ def _add_node(
 ) -> pydot.Node:
     state.node_count += 1
     node_id = f"n{state.node_count}"
-    if state.use_labels:
-        if record.label == record.identifier:
-            node_label = _quoted(str(record.label))
-        else:
-            # Fancier label if both are different. The label will be
-            # the main node text, whereas the identifier will be a
-            # kind of subtitle.
-            node_label = (
-                f"<{escape(str(record.label))}<br />"
-                f'<font color="#333333" point-size="10">'
-                f"{escape(str(record.identifier))}</font>>"
-            )
+    if state.use_labels and record.get_attribute(PROV_LABEL):
+        # the label as the node text, the identifier as its subtitle
+        node_label = (
+            f"<{escape(str(record.label))}<br />"
+            f'<font color="#333333" point-size="10">'
+            f"{escape(str(record.identifier))}</font>>"
+        )
     else:
         node_label = _quoted(str(record.identifier))
 

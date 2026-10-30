@@ -75,20 +75,26 @@ def test_valid_direction_is_preserved() -> None:
     assert dot.get_rankdir() == "LR"
 
 
-def test_use_labels_with_explicit_label_differing_from_identifier() -> None:
-    """Covers the use_labels=True node-rendering branch (docs/test-gap-
-    checklist.md, T13 item under dot.py). The label==identifier branch
-    (dot.py:281-282) is unreachable via any real record: ProvRecord.label
-    always returns a plain `str`, while `.identifier` is a QualifiedName, and
-    `str.__eq__`/`QualifiedName.__eq__` can never consider the two equal --
-    confirmed empirically; left deferred (see checklist)."""
+def test_use_labels_draws_the_label_over_the_identifier_or_the_identifier_once() -> (
+    None
+):
+    """With ``use_labels=True`` an element with a ``prov:label`` shows the label as
+    the node text and its identifier beneath; an element without one shows its
+    identifier once, as ``use_labels=False`` does."""
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1", other_attributes={"prov:label": "My Entity"})
+    doc.entity("ex:e2")
 
     dot = prov_to_dot(doc, use_labels=True)
-    svg_content = dot.create(format="svg", encoding="utf-8")
-    assert b"My Entity" in svg_content
+
+    labelled = _node_with_label_fragment(dot, "<My Entity<br")
+    assert labelled.get_label() == (
+        '<My Entity<br /><font color="#333333" point-size="10">ex:e1</font>>'
+    )
+    unlabelled = _node_with_label_fragment(dot, "ex:e2")
+    assert unlabelled.get_label() == '"ex:e2"'
+    assert dot.create(format="svg", encoding="utf-8")
 
 
 def test_show_element_attributes_false_skips_annotation() -> None:
