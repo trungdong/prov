@@ -350,9 +350,10 @@ class ProvNParser:
         bundle's own declarations before the bundle exists, to resolve its
         identifier against them).
 
-        Raises at a repeated default, at a prefix that is not a PN_PREFIX, at
-        an IRI that is empty or starts with ``@``, and under the strict profile
-        at a default that follows a prefix and at a declaration of prov or xsd.
+        Raises at a repeated default, at a prefix that holds an escape or is
+        not a PN_PREFIX, at an IRI that is empty or starts with ``@``, and
+        under the strict profile at a default that follows a prefix and at a
+        declaration of prov or xsd.
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -361,6 +362,8 @@ class ProvNParser:
             if self._at_keyword("prefix"):
                 self._advance()
                 name = self._expect(TokenKind.NAME, "a prefix")
+                if "\\" in name.text:
+                    raise self._error("a prefix cannot contain an escape", name)
                 prefix, local = name.value
                 if prefix:
                     raise self._error(f"expected a prefix, found {name.text!r}", name)
