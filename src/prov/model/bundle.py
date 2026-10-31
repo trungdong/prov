@@ -451,14 +451,25 @@ class ProvBundle:
             namespaces: Optional namespaces to register, as a ``{prefix: uri}``
                 mapping or an iterable of :class:`~prov.identifier.Namespace`
                 (default: ``None``).
-            document: Optional parent document for the bundle (default:
+            document: Deprecated parent document for the bundle (default:
                 ``None``).
+
+        .. deprecated:: 3.3.0
+            Create the bundle with :meth:`ProvDocument.bundle` or add it with
+            :meth:`ProvDocument.add_bundle`; 4.0 removes the ``document``
+            argument. Passing ``None`` does not warn.
         """
         #  Initializing bundle-specific attributes
         self._identifier = identifier
         self._records: list[ProvRecord] = []
         self._id_map: dict[QualifiedName, list[ProvRecord]] = defaultdict(list)
         if document is not None:
+            warn(
+                "The document argument of ProvBundle() is deprecated and 4.0 "
+                "removes it; create the bundle with ProvDocument.bundle() or "
+                "add it with ProvDocument.add_bundle()",
+                DeprecationWarning,
+            )
             _parent = document
         self._document = document
         self._namespaces: NamespaceManager = NamespaceManager(
@@ -484,7 +495,17 @@ class ProvBundle:
 
     @property
     def document(self) -> ProvDocument | None:
-        """The parent document of this bundle, or ``None`` if it has none."""
+        """The parent document of this bundle, or ``None`` if it has none.
+
+        .. deprecated:: 3.3.0
+            Keep a reference to the :class:`ProvDocument` that holds the
+            bundle; 4.0 removes this property.
+        """
+        warn(
+            "ProvBundle.document is deprecated and 4.0 removes it; keep a "
+            "reference to the ProvDocument that holds the bundle",
+            DeprecationWarning,
+        )
         return self._document
 
     @property

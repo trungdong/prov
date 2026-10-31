@@ -652,6 +652,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `DeprecationWarning`, because 4.0 draws documents only, and [Draw one
   bundle](https://prov.readthedocs.io/en/latest/howto/graphics.html#draw-one-bundle) shows how
   to draw a single bundle ([#652](https://github.com/trungdong/prov/issues/652))
+- `ProvBundle.document` and the `document` argument of `ProvBundle()` are deprecated and warn
+  `DeprecationWarning`, and 4.0 removes both, where 3.2.3 warned nothing. A bundle's names
+  resolve through the document that holds it, and `prov` keeps that link in the bundle's
+  namespaces. Keep a reference to the document, and create a bundle in it with
+  `ProvDocument.bundle()` or add one with `ProvDocument.add_bundle()`
+  ([#650](https://github.com/trungdong/prov/issues/650))
 - `ProvRecord.get_provn` and `ProvBundle.get_provn` take a `width` argument. A bundle passes
   it to every record by keyword, and `str(record)` passes `width=None`, so a subclass that
   overrides `ProvRecord.get_provn(self, strict=False)` or `ProvBundle.get_provn` without it

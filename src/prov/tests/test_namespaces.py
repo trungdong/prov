@@ -194,7 +194,7 @@ def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() ->
     bundle.entity("p:e")
     with pytest.warns(DeprecationWarning):
         unified = bundle.unified()
-    assert unified.document is None
+    assert unified._namespaces.parent is None
     assert _spellings(unified) == _spellings(bundle)
     assert unified.get_default_namespace() == doc.get_default_namespace()
     assert sorted((n.prefix, n.uri) for n in unified.get_registered_namespaces()) == [
@@ -243,7 +243,7 @@ def test_add_bundle_refuses_a_bundle_of_another_document() -> None:
     with pytest.raises(ProvException, match="belongs to another document"):
         target.add_bundle(bundle)
     assert not target.has_bundles()
-    assert bundle.document is source
+    assert bundle._namespaces.parent is source._namespaces
     assert _spellings(bundle) == [("c", "http://d.org/c")]
     assert list(source.bundles) == [bundle]
 

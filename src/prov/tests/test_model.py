@@ -819,7 +819,7 @@ def test_standalone_bundle_properties() -> None:
     b = ProvBundle()
     assert b.records == []
     assert b.identifier is None
-    assert b.document is None
+    assert b._namespaces.parent is None
 
 
 def test_add_namespace_without_uri_raises() -> None:
@@ -998,13 +998,55 @@ def test_bundle_unified_is_deprecated(in_document: bool) -> None:
 
     assert len(record) == 1
     assert record[0].filename == __file__
-    assert unified.document is None
+    assert unified._namespaces.parent is None
     assert len(unified.get_records()) == 1
 
     # The document method unifies each bundle in place and does not warn.
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         doc.unified()
+
+
+_DOCUMENT_MESSAGE = r"ProvBundle\.document is deprecated and 4\.0 removes it"
+_ARGUMENT_MESSAGE = r"The document argument of ProvBundle\(\) is deprecated"
+
+
+@pytest.mark.parametrize("case", ["held", "added", "standalone", "keyword", "none"])
+def test_bundle_document_and_the_document_argument_are_deprecated(case: str) -> None:
+    # 4.0 removes both; until then each still answers as in 3.2.3.
+    d = ProvDocument()
+    d.add_namespace("ex", "http://example.org/")
+
+    if case == "none":
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            bundle = ProvBundle(document=None)
+        assert bundle._namespaces.parent is None
+        return
+
+    if case == "keyword":
+        with pytest.warns(DeprecationWarning, match=_ARGUMENT_MESSAGE) as record:
+            bundle = ProvBundle(document=d)
+        assert len(record) == 1
+        assert record[0].filename == __file__
+        assert bundle._namespaces.parent is d._namespaces
+        return
+
+    if case == "held":
+        bundle = d.bundle("ex:b")
+        expected: ProvDocument | None = d
+    elif case == "added":
+        bundle = ProvBundle()
+        d.add_bundle(bundle, "ex:b")
+        expected = d
+    else:
+        bundle = ProvBundle()
+        expected = None
+    with pytest.warns(DeprecationWarning, match=_DOCUMENT_MESSAGE) as record:
+        found = bundle.document
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert found is expected
 
 
 # The following cover ProvDocument.plot()'s filename-based save path and its
