@@ -23,7 +23,7 @@ from prov.model import (
 
 from . import examples
 from .attribute_values import document as attribute_values_document
-from .conftest import Roundtrip, default_namespace
+from .conftest import Roundtrip, default_namespace, ex_document
 from .test_provn_corpus import (
     CORPUS,
     EXCLUDED_PROVTOOLBOX_DOCUMENTS,
@@ -194,7 +194,7 @@ def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() ->
     bundle.entity("p:e")
     with pytest.warns(DeprecationWarning):
         unified = bundle.unified()
-    assert unified.document is None
+    assert unified._namespaces.parent is None
     assert _spellings(unified) == _spellings(bundle)
     assert unified.get_default_namespace() == doc.get_default_namespace()
     assert sorted((n.prefix, n.uri) for n in unified.get_registered_namespaces()) == [
@@ -243,9 +243,57 @@ def test_add_bundle_refuses_a_bundle_of_another_document() -> None:
     with pytest.raises(ProvException, match="belongs to another document"):
         target.add_bundle(bundle)
     assert not target.has_bundles()
-    assert bundle.document is source
+    assert bundle._namespaces.parent is source._namespaces
     assert _spellings(bundle) == [("c", "http://d.org/c")]
     assert list(source.bundles) == [bundle]
+
+
+@pytest.mark.filterwarnings("error::DeprecationWarning:prov")
+def test_every_bundle_reads_its_document_through_its_namespace_parent(
+    roundtrip: Roundtrip,
+) -> None:
+    doc = _document_with_default_and_a_bundle()
+
+    reloaded = roundtrip(doc)
+
+    assert reloaded.has_bundles()
+    assert all(b._namespaces.parent is reloaded._namespaces for b in reloaded.bundles)
+    unified = reloaded.unified()
+    assert unified.has_bundles()
+    assert all(b._namespaces.parent is unified._namespaces for b in unified.bundles)
+
+
+@pytest.mark.parametrize(
+    ("own", "failing", "error", "match"),
+    [
+        (False, "zz:x", ProvExceptionInvalidQualifiedName, None),
+        (False, "ex:a", ProvException, "already exists"),
+        (True, "ex:a", ProvException, "already exists"),
+    ],
+    ids=["unresolvable", "collision", "own document"],
+)
+def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
+    own: bool,
+    failing: str,
+    error: type[ProvException],
+    match: str | None,
+) -> None:
+    d1 = ex_document()
+    d2 = ex_document()
+    held = d1.bundle("ex:a")
+    bundle = held if own else ProvBundle()
+    bundles = list(d1.bundles)
+
+    with pytest.raises(error, match=match):
+        d1.add_bundle(bundle, failing)
+
+    assert bundle._namespaces.parent is (d1._namespaces if own else None)
+    assert bundle.identifier == (d1.valid_qualified_name("ex:a") if own else None)
+    assert list(d1.bundles) == bundles
+    if not own:
+        d2.add_bundle(bundle, "ex:b")
+        assert bundle._namespaces.parent is d2._namespaces
+        assert list(d2.bundles) == [bundle]
 
 
 def test_update_into_a_document_without_a_default_is_rejected() -> None:
