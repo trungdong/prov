@@ -15,6 +15,7 @@ from prov.model import (
     ProvUnificationError,
     ProvWarning,
 )
+from prov.tests.conftest import ex_document
 from prov.tests.examples import tests
 
 
@@ -213,8 +214,7 @@ def test_records_inside_a_bundle_are_nodes_and_edges(document: ProvDocument) -> 
 
 
 def test_a_graph_of_one_bundles_records_keeps_its_documents_declarations() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://example.org/")
+    doc = ex_document()
     doc.set_default_namespace("http://d/")
     bundle = doc.bundle("ex:b")
     bundle.entity("ex:e1")
@@ -222,8 +222,6 @@ def test_a_graph_of_one_bundles_records_keeps_its_documents_declarations() -> No
     bundle.wasDerivedFrom("e2", "ex:e1")
     graph = nx.MultiDiGraph()
     records = list(bundle.get_records())
-    for record in records[:2]:
-        graph.add_node(record)
     graph.add_edge(records[0], records[1], relation=records[2])
 
     result = graph_to_prov(graph)
@@ -231,9 +229,7 @@ def test_a_graph_of_one_bundles_records_keeps_its_documents_declarations() -> No
     assert [(ns.prefix, ns.uri) for ns in result.get_registered_namespaces()] == [
         ("ex", "http://example.org/")
     ]
-    default = result.get_default_namespace()
-    assert default is not None
-    assert default.uri == "http://d/"
+    assert result.get_default_namespace() == doc.get_default_namespace()
 
 
 def test_one_identifier_in_two_bundles_gives_one_node(document: ProvDocument) -> None:

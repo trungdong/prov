@@ -23,7 +23,7 @@ from prov.model import (
 
 from . import examples
 from .attribute_values import document as attribute_values_document
-from .conftest import Roundtrip, default_namespace
+from .conftest import Roundtrip, default_namespace, ex_document
 from .test_provn_corpus import (
     CORPUS,
     EXCLUDED_PROVTOOLBOX_DOCUMENTS,
@@ -252,10 +252,7 @@ def test_add_bundle_refuses_a_bundle_of_another_document() -> None:
 def test_every_bundle_reads_its_document_through_its_namespace_parent(
     roundtrip: Roundtrip,
 ) -> None:
-    doc = ProvDocument()
-    doc.set_default_namespace("http://d.org/")
-    doc.add_namespace("ex", "http://example.org/")
-    doc.bundle("ex:b").entity("ex:e")
+    doc = _document_with_default_and_a_bundle()
 
     reloaded = roundtrip(doc)
 
@@ -266,68 +263,34 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
     assert all(b._namespaces.parent is unified._namespaces for b in unified.bundles)
 
 
-def _unattached_bundle(d1: ProvDocument) -> ProvBundle:
-    return ProvBundle()
-
-
-def _unattached_bundle_beside_ex_b(d1: ProvDocument) -> ProvBundle:
-    d1.bundle("ex:b")
-    return ProvBundle()
-
-
-def _bundle_held_as_ex_a(d1: ProvDocument) -> ProvBundle:
-    return d1.bundle("ex:a")
-
-
 @pytest.mark.parametrize(
-    ("build", "failing", "error", "match", "linked"),
+    ("own", "failing", "error", "match"),
     [
-        (
-            _unattached_bundle,
-            "zz:x",
-            ProvExceptionInvalidQualifiedName,
-            None,
-            False,
-        ),
-        (
-            _unattached_bundle_beside_ex_b,
-            "ex:b",
-            ProvException,
-            "A bundle with that identifier already exists",
-            False,
-        ),
-        (
-            _bundle_held_as_ex_a,
-            "ex:a",
-            ProvException,
-            "A bundle with that identifier already exists",
-            True,
-        ),
+        (False, "zz:x", ProvExceptionInvalidQualifiedName, None),
+        (False, "ex:a", ProvException, "already exists"),
+        (True, "ex:a", ProvException, "already exists"),
     ],
     ids=["unresolvable", "collision", "own document"],
 )
 def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
-    build: Callable[[ProvDocument], ProvBundle],
+    own: bool,
     failing: str,
     error: type[ProvException],
     match: str | None,
-    linked: bool,
 ) -> None:
-    d1 = ProvDocument()
-    d1.add_namespace("ex", "http://example.org/")
-    d2 = ProvDocument()
-    d2.add_namespace("ex", "http://example.org/")
-    bundle = build(d1)
-    identifier = bundle.identifier
-    held = list(d1.bundles)
+    d1 = ex_document()
+    d2 = ex_document()
+    held = d1.bundle("ex:a")
+    bundle = held if own else ProvBundle()
+    bundles = list(d1.bundles)
 
     with pytest.raises(error, match=match):
         d1.add_bundle(bundle, failing)
 
-    assert bundle._namespaces.parent is (d1._namespaces if linked else None)
-    assert bundle.identifier == identifier
-    assert list(d1.bundles) == held
-    if not linked:
+    assert bundle._namespaces.parent is (d1._namespaces if own else None)
+    assert bundle.identifier == (d1.valid_qualified_name("ex:a") if own else None)
+    assert list(d1.bundles) == bundles
+    if not own:
         d2.add_bundle(bundle, "ex:b")
         assert bundle._namespaces.parent is d2._namespaces
         assert list(d2.bundles) == [bundle]

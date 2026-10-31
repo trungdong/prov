@@ -1046,8 +1046,7 @@ def _bundle_in_no_document(d: ProvDocument) -> ProvBundle:
 def test_bundle_document_is_deprecated(
     build: Callable[[ProvDocument], ProvBundle], in_document: bool
 ) -> None:
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
+    d = ex_document()
     bundle = build(d)
 
     with pytest.warns(DeprecationWarning, match=_DOCUMENT_MESSAGE) as record:
@@ -1058,21 +1057,16 @@ def test_bundle_document_is_deprecated(
     assert found is (d if in_document else None)
 
 
-@pytest.mark.parametrize(
-    ("linked", "warnings_expected"), [(True, 1), (False, 0)], ids=["d", "None"]
-)
-def test_the_document_argument_is_deprecated(
-    linked: bool, warnings_expected: int
-) -> None:
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
+@pytest.mark.parametrize("linked", [True, False], ids=["d", "None"])
+def test_the_document_argument_is_deprecated(linked: bool) -> None:
+    d = ex_document()
     document = d if linked else None
 
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter("always")
         bundle = ProvBundle(document=document)
 
-    assert len(record) == warnings_expected
+    assert len(record) == int(linked)
     assert all(re.search(_ARGUMENT_MESSAGE, str(w.message)) for w in record)
     assert all(w.filename == __file__ for w in record)
     assert bundle._namespaces.parent is (d._namespaces if linked else None)
