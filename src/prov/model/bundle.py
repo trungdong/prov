@@ -471,7 +471,7 @@ class ProvBundle:
                 DeprecationWarning,
             )
             _parent = document
-        self._document = document
+        self._document = _parent
         self._namespaces: NamespaceManager = NamespaceManager(
             namespaces, parent=(_parent._namespaces if _parent is not None else None)
         )
@@ -873,7 +873,7 @@ class ProvBundle:
         # a standalone copy declares what the bundle reads through its document;
         # the branch goes in 4.0 with ProvBundle.unified() and with prov_to_dot,
         # which draws a bundle that is not a document
-        enclosing = self._document if document is None else None
+        enclosing = self._namespaces.parent if document is None else None
         if enclosing is not None:
             # first, so a namespace both scopes bind keeps the document's prefix
             for namespace in enclosing.get_registered_namespaces():
@@ -2127,7 +2127,6 @@ class ProvDocument(ProvBundle):
         if valid_id in self._bundles:
             raise ProvException("A bundle with that identifier already exists")
         b = ProvBundle(identifier=valid_id, _parent=self)
-        b._document = self
         self._bundles[valid_id] = b
         return b
 

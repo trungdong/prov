@@ -266,38 +266,68 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
     assert all(b._namespaces.parent is unified._namespaces for b in unified.bundles)
 
 
+def _unattached_bundle(d1: ProvDocument) -> ProvBundle:
+    return ProvBundle()
+
+
+def _unattached_bundle_beside_ex_b(d1: ProvDocument) -> ProvBundle:
+    d1.bundle("ex:b")
+    return ProvBundle()
+
+
+def _bundle_held_as_ex_a(d1: ProvDocument) -> ProvBundle:
+    return d1.bundle("ex:a")
+
+
 @pytest.mark.parametrize(
-    ("row", "match"),
+    ("build", "failing", "error", "match", "linked"),
     [
-        ("unresolvable", None),
-        ("collision", "A bundle with that identifier already exists"),
-        ("own document", "A bundle with that identifier already exists"),
+        (
+            _unattached_bundle,
+            "zz:x",
+            ProvExceptionInvalidQualifiedName,
+            None,
+            False,
+        ),
+        (
+            _unattached_bundle_beside_ex_b,
+            "ex:b",
+            ProvException,
+            "A bundle with that identifier already exists",
+            False,
+        ),
+        (
+            _bundle_held_as_ex_a,
+            "ex:a",
+            ProvException,
+            "A bundle with that identifier already exists",
+            True,
+        ),
     ],
+    ids=["unresolvable", "collision", "own document"],
 )
-def test_a_refused_bundle_reads_as_before_the_call(row: str, match: str | None) -> None:
+def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
+    build: Callable[[ProvDocument], ProvBundle],
+    failing: str,
+    error: type[ProvException],
+    match: str | None,
+    linked: bool,
+) -> None:
     d1 = ProvDocument()
     d1.add_namespace("ex", "http://example.org/")
     d2 = ProvDocument()
     d2.add_namespace("ex", "http://example.org/")
-    if row == "unresolvable":
-        bundle, failing, parent = ProvBundle(), "zz:x", None
-    elif row == "collision":
-        d1.bundle("ex:b")
-        bundle, failing, parent = ProvBundle(), "ex:b", None
-    else:
-        bundle = d1.bundle("ex:a")
-        failing, parent = "ex:a", d1._namespaces
+    bundle = build(d1)
     identifier = bundle.identifier
     held = list(d1.bundles)
 
-    expected = ProvExceptionInvalidQualifiedName if match is None else ProvException
-    with pytest.raises(expected, match=match):
+    with pytest.raises(error, match=match):
         d1.add_bundle(bundle, failing)
 
-    assert bundle._namespaces.parent is parent
+    assert bundle._namespaces.parent is (d1._namespaces if linked else None)
     assert bundle.identifier == identifier
     assert list(d1.bundles) == held
-    if row != "own document":
+    if not linked:
         d2.add_bundle(bundle, "ex:b")
         assert bundle._namespaces.parent is d2._namespaces
         assert list(d2.bundles) == [bundle]

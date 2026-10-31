@@ -953,14 +953,6 @@ def _nested_reference(
     )
 
 
-def _inherited_default(
-    scope: prov.model.ProvDocument | prov.model.ProvBundle,
-) -> prov.identifier.Namespace | None:
-    """The default namespace of the document ``scope`` sits in, if any."""
-    parent = scope._namespaces.parent
-    return None if parent is None else parent.get_default_namespace()
-
-
 def _adopt_own_default(
     element: etree._Element,
     bundle: prov.model.ProvDocument | prov.model.ProvBundle,
@@ -968,12 +960,8 @@ def _adopt_own_default(
     """Make the ``xmlns`` of ``element`` the default of ``bundle`` when it
     differs from the default in scope at ``bundle``."""
     default = element.nsmap.get(None)
-    inherited = _inherited_default(bundle)
-    if (
-        default is not None
-        and default != bundle.default_ns_uri
-        and (inherited is None or default != inherited.uri)
-    ):
+    in_scope = bundle._namespaces._binding_in_scope("")
+    if default is not None and (in_scope is None or default != in_scope.uri):
         bundle.set_default_namespace(default)
 
 
@@ -1039,7 +1027,7 @@ def _bare_name(
         raise ProvXMLException(
             f'Could not create a valid QualifiedName for "{qname_str}"'
         )
-    default = scope.get_default_namespace() or _inherited_default(scope)
+    default = scope._namespaces._binding_in_scope("")
     if default is not None and default.uri == ns_uri:
         return default[qname_str]
     raise ProvXMLException(

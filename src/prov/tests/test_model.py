@@ -8,6 +8,7 @@ import datetime
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import warnings
@@ -1007,46 +1008,76 @@ def test_bundle_unified_is_deprecated(in_document: bool) -> None:
         doc.unified()
 
 
-_DOCUMENT_MESSAGE = r"ProvBundle\.document is deprecated and 4\.0 removes it"
-_ARGUMENT_MESSAGE = r"The document argument of ProvBundle\(\) is deprecated"
+_DOCUMENT_MESSAGE = re.escape(
+    "ProvBundle.document is deprecated and 4.0 removes it; keep a reference "
+    "to the ProvDocument that holds the bundle"
+)
+_ARGUMENT_MESSAGE = re.escape(
+    "The document argument of ProvBundle() is deprecated and 4.0 removes it; "
+    "create the bundle with ProvDocument.bundle() or add it with "
+    "ProvDocument.add_bundle()"
+)
 
 
-@pytest.mark.parametrize("case", ["held", "added", "standalone", "keyword", "none"])
-def test_bundle_document_and_the_document_argument_are_deprecated(case: str) -> None:
-    # 4.0 removes both; until then each still answers as in 3.2.3.
+def _bundle_made_by_the_document(d: ProvDocument) -> ProvBundle:
+    return d.bundle("ex:b")
+
+
+def _bundle_added_to_the_document(d: ProvDocument) -> ProvBundle:
+    bundle = ProvBundle()
+    d.add_bundle(bundle, "ex:b")
+    return bundle
+
+
+def _bundle_in_no_document(d: ProvDocument) -> ProvBundle:
+    return ProvBundle()
+
+
+# 4.0 removes both the property and the keyword; until then each answers as in 3.2.3.
+@pytest.mark.parametrize(
+    ("build", "in_document"),
+    [
+        (_bundle_made_by_the_document, True),
+        (_bundle_added_to_the_document, True),
+        (_bundle_in_no_document, False),
+    ],
+    ids=["held", "added", "standalone"],
+)
+def test_bundle_document_is_deprecated(
+    build: Callable[[ProvDocument], ProvBundle], in_document: bool
+) -> None:
     d = ProvDocument()
     d.add_namespace("ex", "http://example.org/")
+    bundle = build(d)
 
-    if case == "none":
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            bundle = ProvBundle(document=None)
-        assert bundle._namespaces.parent is None
-        return
-
-    if case == "keyword":
-        with pytest.warns(DeprecationWarning, match=_ARGUMENT_MESSAGE) as record:
-            bundle = ProvBundle(document=d)
-        assert len(record) == 1
-        assert record[0].filename == __file__
-        assert bundle._namespaces.parent is d._namespaces
-        return
-
-    if case == "held":
-        bundle = d.bundle("ex:b")
-        expected: ProvDocument | None = d
-    elif case == "added":
-        bundle = ProvBundle()
-        d.add_bundle(bundle, "ex:b")
-        expected = d
-    else:
-        bundle = ProvBundle()
-        expected = None
     with pytest.warns(DeprecationWarning, match=_DOCUMENT_MESSAGE) as record:
         found = bundle.document
+
     assert len(record) == 1
     assert record[0].filename == __file__
-    assert found is expected
+    assert found is (d if in_document else None)
+
+
+@pytest.mark.parametrize(
+    ("linked", "warnings_expected"), [(True, 1), (False, 0)], ids=["d", "None"]
+)
+def test_the_document_argument_is_deprecated(
+    linked: bool, warnings_expected: int
+) -> None:
+    d = ProvDocument()
+    d.add_namespace("ex", "http://example.org/")
+    document = d if linked else None
+
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        bundle = ProvBundle(document=document)
+
+    assert len(record) == warnings_expected
+    assert all(re.search(_ARGUMENT_MESSAGE, str(w.message)) for w in record)
+    assert all(w.filename == __file__ for w in record)
+    assert bundle._namespaces.parent is (d._namespaces if linked else None)
+    with pytest.warns(DeprecationWarning, match=_DOCUMENT_MESSAGE):
+        assert bundle.document is document
 
 
 # The following cover ProvDocument.plot()'s filename-based save path and its
