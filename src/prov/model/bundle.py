@@ -439,6 +439,8 @@ class ProvBundle:
         identifier: QualifiedName | None = None,
         namespaces: NSCollection | None = None,
         document: ProvDocument | None = None,
+        *,
+        _parent: ProvDocument | None = None,
     ):
         """Initialise the bundle.
 
@@ -456,9 +458,11 @@ class ProvBundle:
         self._identifier = identifier
         self._records: list[ProvRecord] = []
         self._id_map: dict[QualifiedName, list[ProvRecord]] = defaultdict(list)
+        if document is not None:
+            _parent = document
         self._document = document
         self._namespaces: NamespaceManager = NamespaceManager(
-            namespaces, parent=(document._namespaces if document is not None else None)
+            namespaces, parent=(_parent._namespaces if _parent is not None else None)
         )
         if records:
             for record in records:
@@ -535,13 +539,13 @@ class ProvBundle:
         """Return the default namespace, or ``None`` if none is set."""
         return self._namespaces.get_default_namespace()
 
-    def _copy_declarations_from(self, source: ProvBundle) -> None:
+    def _copy_declarations_from(self, source: ProvBundle | NamespaceManager) -> None:
         """Declare ``source``'s registered namespaces and default here."""
         for namespace in source.get_registered_namespaces():
             self.add_namespace(namespace)
         self._copy_default_from(source)
 
-    def _copy_default_from(self, source: ProvBundle) -> None:
+    def _copy_default_from(self, source: ProvBundle | NamespaceManager) -> None:
         """Make ``source``'s default namespace, if it has one, this scope's."""
         default = source.get_default_namespace()
         if default is not None:
@@ -844,7 +848,7 @@ class ProvBundle:
 
     def _unified_copy(self, document: ProvDocument | None) -> ProvBundle:
         """The unified bundle, built inside ``document``, or standalone."""
-        bundle = ProvBundle(identifier=self.identifier, document=document)
+        bundle = ProvBundle(identifier=self.identifier, _parent=document)
         # a standalone copy declares what the bundle reads through its document;
         # the branch goes in 4.0 with ProvBundle.unified() and with prov_to_dot,
         # which draws a bundle that is not a document
@@ -2050,7 +2054,8 @@ class ProvDocument(ProvBundle):
             new_bundle.update(bundle)
             bundle = new_bundle
 
-        if bundle._document is not None and bundle._document is not self:
+        previous = bundle._namespaces.parent
+        if previous is not None and previous is not self._namespaces:
             raise ProvException(
                 "the bundle belongs to another document; "
                 "a bundle is not moved between documents"
@@ -2062,16 +2067,19 @@ class ProvDocument(ProvBundle):
         if not identifier:
             raise ProvException("The provided bundle has no identifier")
 
-        # Link the bundle namespace manager to the document's
+        # Link the bundle namespace manager to the document's; a refused
+        # bundle gets its previous parent back
         bundle._namespaces.parent = self._namespaces
+        try:
+            valid_id = bundle.mandatory_valid_qname(identifier)
+            if valid_id in self._bundles:
+                raise ProvException("A bundle with that identifier already exists")
+        except ProvException:
+            bundle._namespaces.parent = previous
+            raise
 
-        valid_id = bundle.mandatory_valid_qname(identifier)
         # IMPORTANT: Rewriting the bundle identifier for consistency
         bundle._identifier = valid_id
-
-        if valid_id in self._bundles:
-            raise ProvException("A bundle with that identifier already exists")
-
         self._bundles[valid_id] = bundle
         bundle._document = self
 
@@ -2097,7 +2105,8 @@ class ProvDocument(ProvBundle):
         valid_id = self.mandatory_valid_qname(identifier)
         if valid_id in self._bundles:
             raise ProvException("A bundle with that identifier already exists")
-        b = ProvBundle(identifier=valid_id, document=self)
+        b = ProvBundle(identifier=valid_id, _parent=self)
+        b._document = self
         self._bundles[valid_id] = b
         return b
 

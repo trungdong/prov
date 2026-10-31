@@ -248,6 +248,61 @@ def test_add_bundle_refuses_a_bundle_of_another_document() -> None:
     assert list(source.bundles) == [bundle]
 
 
+@pytest.mark.filterwarnings("error::DeprecationWarning:prov")
+def test_every_bundle_reads_its_document_through_its_namespace_parent(
+    roundtrip: Roundtrip,
+) -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d.org/")
+    doc.add_namespace("ex", "http://example.org/")
+    doc.bundle("ex:b").entity("ex:e")
+
+    reloaded = roundtrip(doc)
+
+    assert reloaded.has_bundles()
+    assert all(b._namespaces.parent is reloaded._namespaces for b in reloaded.bundles)
+    unified = reloaded.unified()
+    assert unified.has_bundles()
+    assert all(b._namespaces.parent is unified._namespaces for b in unified.bundles)
+
+
+@pytest.mark.parametrize(
+    ("row", "match"),
+    [
+        ("unresolvable", None),
+        ("collision", "A bundle with that identifier already exists"),
+        ("own document", "A bundle with that identifier already exists"),
+    ],
+)
+def test_a_refused_bundle_reads_as_before_the_call(row: str, match: str | None) -> None:
+    d1 = ProvDocument()
+    d1.add_namespace("ex", "http://example.org/")
+    d2 = ProvDocument()
+    d2.add_namespace("ex", "http://example.org/")
+    if row == "unresolvable":
+        bundle, failing, parent = ProvBundle(), "zz:x", None
+    elif row == "collision":
+        d1.bundle("ex:b")
+        bundle, failing, parent = ProvBundle(), "ex:b", None
+    else:
+        bundle = d1.bundle("ex:a")
+        failing, parent = "ex:a", d1._namespaces
+    identifier = bundle.identifier
+    held = list(d1.bundles)
+
+    expected = ProvExceptionInvalidQualifiedName if match is None else ProvException
+    with pytest.raises(expected, match=match):
+        d1.add_bundle(bundle, failing)
+
+    assert bundle._namespaces.parent is parent
+    assert bundle.identifier == identifier
+    assert list(d1.bundles) == held
+    if row != "own document":
+        d2.add_bundle(bundle, "ex:b")
+        assert bundle._namespaces.parent is d2._namespaces
+        assert list(d2.bundles) == [bundle]
+
+
 def test_update_into_a_document_without_a_default_is_rejected() -> None:
     source = ProvDocument()
     source.set_default_namespace("http://u.org/")

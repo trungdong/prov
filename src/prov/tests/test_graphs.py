@@ -212,6 +212,30 @@ def test_records_inside_a_bundle_are_nodes_and_edges(document: ProvDocument) -> 
     assert graph_to_prov(g) == document.flattened().unified()
 
 
+def test_a_graph_of_one_bundles_records_keeps_its_documents_declarations() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.set_default_namespace("http://d/")
+    bundle = doc.bundle("ex:b")
+    bundle.entity("ex:e1")
+    bundle.entity("e2")
+    bundle.wasDerivedFrom("e2", "ex:e1")
+    graph = nx.MultiDiGraph()
+    records = list(bundle.get_records())
+    for record in records[:2]:
+        graph.add_node(record)
+    graph.add_edge(records[0], records[1], relation=records[2])
+
+    result = graph_to_prov(graph)
+
+    assert [(ns.prefix, ns.uri) for ns in result.get_registered_namespaces()] == [
+        ("ex", "http://example.org/")
+    ]
+    default = result.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://d/"
+
+
 def test_one_identifier_in_two_bundles_gives_one_node(document: ProvDocument) -> None:
     document.bundle("ex:b1").entity("ex:e", {"ex:v": 1})
     document.bundle("ex:b2").entity("ex:e", {"ex:w": 2})
