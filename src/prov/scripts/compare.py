@@ -70,9 +70,10 @@ def main(argv: list[str] | None = None) -> int:
 
     Parses two positional file arguments plus ``-f/--format1`` and
     ``-F/--format2`` (each defaulting to ``"auto"``, which takes the file
-    extension, else the content), reads both files, and compares the resulting documents for equality. Files are opened after
-    parsing; ``-`` stands for standard input for at most one of them and is
-    not closed; an unopenable path is a usage error (exit 2).
+    extension, else the content), reads both files, and compares the
+    resulting documents for equality. Files are opened after parsing; ``-``
+    stands for standard input for at most one of them and is not closed; an
+    unopenable path is a usage error (exit 2).
 
     Args:
         argv: The command-line arguments, without the program name. ``None``

@@ -570,15 +570,24 @@ def test_convert_accepts_auto_in_any_case(tmp_path) -> None:
     assert _read_back(target, "xml") == primer_example()
 
 
-def test_convert_explicit_flags_replace_the_extension_table(tmp_path, capsysbinary):
+def test_convert_explicit_flags_replace_the_extension_table(tmp_path) -> None:
+    rdflib_parsers = pytest.importorskip("rdflib.plugins.parsers.notation3")
     source = tmp_path / "doc.json"
     target = tmp_path / "out.ttl"
     _write(source, "json")
     assert convert_main(["-f", "rdf", str(source), str(target)]) == 0
-    assert convert_main(["-f", "rdf", str(source)]) == 0
-    piped = capsysbinary.readouterr().out
     assert _read_back(target, "rdf", rdf_format="trig") == primer_example()
-    assert prov.read(io.BytesIO(piped), "rdf", rdf_format="trig") == primer_example()
+    # The table's Turtle would read back here; the default TriG does not.
+    with pytest.raises(rdflib_parsers.BadSyntax):
+        _read_back(target, "rdf", rdf_format="turtle")
+
+
+def test_convert_input_flag_drops_the_rdf_xml_format(tmp_path, capsys) -> None:
+    pytest.importorskip("rdflib")
+    source = tmp_path / "in.rdf"
+    _write(source, "rdf", rdf_format="xml")
+    assert convert_main(["-i", "rdf", str(source), str(tmp_path / "out.json")]) == 2
+    assert capsys.readouterr().err.startswith("prov-convert: error: ")
 
 
 JSONLD_IN_JSON = (

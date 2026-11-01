@@ -472,21 +472,21 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `prov.tests` or runs `pytest --pyargs prov.tests` against an installed prov takes the
   tests from an unpacked sdist or a checkout, where 3.2.3's wheel held them
   ([#728](https://github.com/trungdong/prov/issues/728))
-- `prov-convert` and `prov-compare` detect formats, and lose the template of their 2014
-  scripts. Without `-i`, `-f` or `-F`, a flagless output file whose extension names a
-  non-JSON format now gets that format, so `prov-convert doc.json out.xml` writes PROV-XML
-  where 3.2.3 wrote PROV-JSON into `out.xml`. An input file's extension now decides its
-  format, so an `export.xml` that holds PROV-JSON exits 2 where 3.2.3 read it as PROV-JSON.
-  The content decides for standard input and for an unknown extension, so an empty
-  document (`{}`) exits 2 there where 3.2.3 read it. `-V` prints `prov-convert 3.3.0` and
-  `prov-compare 3.3.0`, where 3.2.3 printed `prov-convert v0.1 (2026-09-12)`. A runtime
-  error prints one line, `prov-convert: error: <message>`, with a trailing newline, where
-  3.2.3 printed `prov-convert: E: <message>` for an unsupported format and
-  `prov-convert: <message>` for any other error, and `prov-compare: <message>` for every
-  `prov-compare` error, each followed by an indented `for help use --help` with no trailing
-  newline. Ctrl-C exits with status 130 and prints nothing, where 3.2.3's `prov-convert`
-  exited 0 and `prov-compare` raised a traceback. `main(argv)` parses `argv` and leaves
-  `sys.argv` unchanged, where 3.2.3 appended `argv` to `sys.argv` and parsed the result
+- A flagless `prov-convert` output file whose extension names a non-JSON format now gets
+  that format, so `prov-convert doc.json out.xml` writes PROV-XML where 3.2.3 wrote
+  PROV-JSON into `out.xml`. An input file's extension now decides its format, so an
+  `export.xml` that holds PROV-JSON exits 2 where 3.2.3 read it as PROV-JSON, and the
+  content decides for standard input and for an unknown extension, so an empty document
+  (`{}`) exits 2 there where 3.2.3 read it. `prov-convert` and `prov-compare` also lose the
+  template of their 2014 scripts. `-V` prints `prov-convert 3.3.0` and `prov-compare 3.3.0`,
+  where 3.2.3 printed `prov-convert v0.1 (2026-09-12)`. A runtime error prints one line,
+  `prov-convert: error: <message>`, with a trailing newline. 3.2.3 printed
+  `prov-convert: E: <message>` for an unsupported format in `prov-convert`. Every other
+  error printed `prov-convert: <message>` or `prov-compare: <message>`. Each was followed by
+  an indented `for help use --help` and no trailing newline. Ctrl-C exits with status 130
+  and prints nothing, where 3.2.3's `prov-convert` exited 0 and `prov-compare` raised a
+  traceback. `main(argv)` parses `argv` and leaves `sys.argv` unchanged, where 3.2.3
+  appended `argv` to `sys.argv` and parsed the result
   ([#737](https://github.com/trungdong/prov/issues/737))
 
 ### Additions
