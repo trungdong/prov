@@ -80,6 +80,7 @@ requires = ["setuptools>=40.8.0", "wheel"]  # PEP 508 specifications.
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+# The wheel holds only the package-data listed below; MANIFEST.in grafts src/prov/tests into the sdist alone.
 include-package-data = false
 
 [tool.setuptools.dynamic]
