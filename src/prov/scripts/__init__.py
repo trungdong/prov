@@ -75,7 +75,7 @@ def _read(stream: BinaryIO, format: str, options: Mapping[str, Any]) -> ProvDocu
     stream between candidate readers, so a stream that cannot seek (a pipe)
     is read into memory first, as ``BytesIO`` for bytes and ``StringIO`` for text.
     """
-    if format == "auto":
+    if format.lower() == "auto":
         if not stream.seekable():
             content = stream.read()
             stream = cast(

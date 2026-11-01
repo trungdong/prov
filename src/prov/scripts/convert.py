@@ -1,4 +1,5 @@
-"""Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD and Graphviz output formats."""
+"""Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD
+and Graphviz output formats."""
 
 import os
 import sys

@@ -477,16 +477,18 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   PROV-JSON into `out.xml`. An input file's extension now decides its format, so an
   `export.xml` that holds PROV-JSON exits 2 where 3.2.3 read it as PROV-JSON, and the
   content decides for standard input and for an unknown extension, so an empty document
-  (`{}`) exits 2 there where 3.2.3 read it. `prov-convert` and `prov-compare` also lose the
-  template of their 2014 scripts. `-V` prints `prov-convert 3.3.0` and `prov-compare 3.3.0`,
-  where 3.2.3 printed `prov-convert v0.1 (2026-09-12)`. A runtime error prints one line,
-  `prov-convert: error: <message>`, with a trailing newline. 3.2.3 printed
-  `prov-convert: E: <message>` for an unsupported format in `prov-convert`. Every other
-  error printed `prov-convert: <message>` or `prov-compare: <message>`. Each was followed by
-  an indented `for help use --help` and no trailing newline. Ctrl-C exits with status 130
+  (`{}`) exits 2 there where 3.2.3 read it. `--help` of both tools no longer prints the
+  copyright banner and the `USAGE` line. `-V` prints `prov-convert 3.3.0` and
+  `prov-compare 3.3.0`, where 3.2.3 printed `prov-convert v0.1 (2026-09-12)`. A runtime
+  error prints one line, `prov-convert: error: <message>`, with a trailing newline. 3.2.3
+  printed `prov-convert: E: <message>` for an unsupported format in `prov-convert`. Every
+  other error printed `prov-convert: <message>` or `prov-compare: <message>`. Each was
+  followed by an indented `for help use --help` and no trailing newline. Ctrl-C exits with status 130
   and prints nothing, where 3.2.3's `prov-convert` exited 0 and `prov-compare` raised a
   traceback. `main(argv)` parses `argv` and leaves `sys.argv` unchanged, where 3.2.3
-  appended `argv` to `sys.argv` and parsed the result
+  appended `argv` to `sys.argv` and parsed the result. For Python callers,
+  `prov.scripts.convert.CLIError`'s `str()` and `.msg` lose the `E: ` prefix, and
+  `prov.scripts.compare.CLIError` and the `__version__` of both modules are gone
   ([#737](https://github.com/trungdong/prov/issues/737))
 
 ### Additions

@@ -127,8 +127,8 @@ def test_convert_unsupported_format_returns_2_and_writes_one_error_line(
 
 
 def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path) -> None:
-    # Exercise convert_file() directly for the CLIError branch: the message
-    # carries no prefix.
+    # Exercise convert_file() directly for the CLIError branch.
+    # The message carries no prefix.
     assert "bogus" not in GRAPHVIZ_SUPPORTED_FORMATS
     with (
         open(infile) as in_stream,
@@ -149,10 +149,15 @@ def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch) -> No
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(missing), str(outfile)]
     )
-    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    monkeypatch.setenv("COLUMNS", "200")
+    stderr = io.StringIO()
+    monkeypatch.setattr(sys, "stderr", stderr)
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 2
+    usage, error = stderr.getvalue().splitlines()
+    assert usage.startswith("usage: prov-convert ")
+    assert error.startswith("prov-convert: error: can't open ")
 
 
 def test_convert_version_exits_0_without_stdout_buffer(monkeypatch) -> None:
@@ -568,6 +573,10 @@ def test_convert_accepts_auto_in_any_case(tmp_path) -> None:
     _write(source, "provn")
     assert convert_main(["-i", "AUTO", "-f", "auto", str(source), str(target)]) == 0
     assert _read_back(target, "xml") == primer_example()
+    # convert_file() takes the name in any case too.
+    with open(source, "rb") as in_stream, open(tmp_path / "copy.json", "wb") as out:
+        convert_file(in_stream, out, "json", "AUTO")
+    assert _read_back(tmp_path / "copy.json", "json") == primer_example()
 
 
 def test_convert_explicit_flags_replace_the_extension_table(tmp_path) -> None:
@@ -678,6 +687,14 @@ def test_convert_an_empty_document_on_stdin_exits_2(monkeypatch, capsys) -> None
         pytest.param("out.dot", "AUTO", ("dot", {}), id="dot"),
         pytest.param("out.xml", "auto", ("xml", {}), id="table-first"),
         pytest.param("out.ttl", "auto", ("rdf", TURTLE), id="rdf-options"),
+        pytest.param("out.jsonld", "auto", ("jsonld", {}), id="jsonld"),
+        pytest.param("out.trig", "auto", ("rdf", {"rdf_format": "trig"}), id="trig"),
+        pytest.param("out.nt", "auto", ("rdf", {"rdf_format": "nt"}), id="nt"),
+        pytest.param("out.nq", "auto", ("rdf", {"rdf_format": "nquads"}), id="nq"),
+        pytest.param("out.provx", "auto", ("xml", {}), id="provx"),
+        pytest.param("out.rdf", "auto", ("rdf", {"rdf_format": "xml"}), id="rdf-xml"),
+        pytest.param("out.provn", "auto", ("provn", {}), id="provn"),
+        pytest.param("out.JSON", "auto", ("json", {}), id="json-upper-case"),
         pytest.param("-", "auto", ("json", {}), id="stdout"),
         pytest.param("out.bogus", "auto", ("json", {}), id="unknown"),
         pytest.param("out.", "auto", ("json", {}), id="bare-dot"),

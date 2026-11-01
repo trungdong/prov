@@ -62,6 +62,7 @@ cat document.json | prov-convert > copy.json
 | --- | --- |
 | `0` | Success. The converted document is in `outfile`. |
 | `2` | Error, such as an unsupported format, unreadable input or a missing file. The message goes to stderr. |
+| `130` | Interrupted with Ctrl-C. Nothing is printed. |
 
 ```bash
 prov-convert -f bogus document.json out.bogus
@@ -113,6 +114,7 @@ prov-compare -f json -F xml document.json document.xml
 | `0` | The documents are equal. |
 | `1` | The documents differ. |
 | `2` | Error, such as a file that could not be parsed. The message goes to stderr. |
+| `130` | Interrupted with Ctrl-C. Nothing is printed. |
 
 ```bash
 prov-compare document.json document.json; echo $?   # 0
