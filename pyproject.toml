@@ -79,29 +79,19 @@ Discussions = "https://github.com/trungdong/prov/discussions"
 requires = ["setuptools>=40.8.0", "wheel"]  # PEP 508 specifications.
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.dynamic]
 version = {attr = "prov.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["prov.tests", "prov.tests.*"]
 
 [tool.setuptools.package-data]
 prov = ["py.typed"]
 "prov.serializers" = ["*.jsonld"]
-"prov.tests" = [
-    "json/*.json",
-    "xml/*.xml",
-    "rdf/*.ttl",
-    "rdf/*.trig",
-    "jsonld/*",
-    "unification/*.json",
-    "unification/constraints/*",
-    "malformed/*",
-    "schemas/*",
-    "fixtures/written-by-3.2.3/*",
-    "provn/README.md",
-    "provn/spec/prov-n/*.provn",
-    "provn/spec/prov-dm/*.provn",
-    "provn/provtoolbox/*.provn",
-    "provn/provtoolbox-corpus/*.provn",
-]
 
 [dependency-groups]
 dev = [

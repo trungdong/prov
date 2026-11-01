@@ -200,6 +200,21 @@ jobs:
       - run: |
           uv build
           uvx twine check dist/*
+      - name: The wheel leaves out prov.tests and the sdist holds every tracked test file
+        run: |
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          unzip -Z1 dist/*.whl | sort > "$tmp/wheel.txt"
+          tar -tzf dist/*.tar.gz | sed -n 's|^prov-[^/]*/\(src/prov/tests/.*[^/]\)$|\1|p' | sort > "$tmp/sdist-tests.txt"
+          git ls-files src/prov/tests | sort > "$tmp/tracked-tests.txt"
+          for f in wheel.txt sdist-tests.txt tracked-tests.txt; do
+            test -s "$tmp/$f" || { echo "$f is empty"; exit 1; }
+          done
+          if grep -m 5 '^prov/tests/' "$tmp/wheel.txt"; then
+            echo dist/*.whl "holds prov/tests/ entries"
+            exit 1
+          fi
+          diff "$tmp/tracked-tests.txt" "$tmp/sdist-tests.txt"
 
   finish:
     needs: tests
