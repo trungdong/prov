@@ -39,7 +39,7 @@ def test_prov_convert_and_compare_end_to_end(tmp_path) -> None:
     primer_example().serialize(str(infile), format="json")
 
     # prov-convert positional args are: infile outfile; -f/--format
-    # selects the *output* format (default json).
+    # selects the *output* format.
     result = subprocess.run(
         [_console_script("prov-convert"), "-f", "xml", str(infile), str(outfile)],
         capture_output=True,
@@ -49,8 +49,8 @@ def test_prov_convert_and_compare_end_to_end(tmp_path) -> None:
     assert outfile.stat().st_size > 0
 
     # prov-compare positional args are: file1 file2; -f/--format1 and
-    # -F/--format2 select each file's format independently (both
-    # default to json). main() returns `doc1 != doc2` as an int
+    # -F/--format2 select each file's format independently (both are
+    # given here). main() returns `doc1 != doc2` as an int
     # (False/0 == equivalent, True/1 == different), which becomes
     # the process exit code via sys.exit(). The JSON document and
     # its XML round trip are semantically equivalent, so we expect

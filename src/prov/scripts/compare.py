@@ -1,16 +1,18 @@
 """Compare two PROV documents in any registered format for equivalence."""
 
+import contextlib
 import sys
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
-from typing import BinaryIO
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import prov
 from prov.scripts import _format_names, _input_format, _open_binary, _read, _run
 
+_PROG = "prov-compare"
+
 
 def _build_parser() -> ArgumentParser:
     parser = ArgumentParser(
-        prog="prov-compare",
+        prog=_PROG,
         description="Compare two PROV documents for equivalence.",
         epilog="""exit status is 0 if the documents are equal, 1 if they differ and 2 on an error.
 
@@ -49,20 +51,18 @@ examples:
     return parser
 
 
-def _compare(parser: ArgumentParser, args: Namespace) -> int:
-    owned: list[BinaryIO] = []
-    try:
-        sources: list[tuple[BinaryIO, str, dict[str, str]]] = []
+def _compare(argv: list[str] | None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    if args.file1 == "-" and args.file2 == "-":
+        parser.error("only one of file1 and file2 may be '-' (standard input)")
+    with contextlib.ExitStack() as streams:
+        sources = []
         for path, flag in ((args.file1, args.format1), (args.file2, args.format2)):
-            stream, owns = _open_binary(parser, path, "rb", "stdin")
-            if owns:
-                owned.append(stream)
+            stream = streams.enter_context(_open_binary(parser, path, "rb", "stdin"))
             sources.append((stream, *_input_format(path, flag)))
         doc1, doc2 = (_read(*source) for source in sources)
         return int(doc1 != doc2)
-    finally:
-        for stream in owned:
-            stream.close()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -85,11 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         fails, or ``130`` on ``KeyboardInterrupt``. A usage error exits
         through argparse with status 2.
     """
-    parser = _build_parser()
-    args = parser.parse_args(argv)
-    if args.file1 == "-" and args.file2 == "-":
-        parser.error("only one of file1 and file2 may be '-' (standard input)")
-    return _run("prov-compare", lambda: _compare(parser, args))
+    return _run(_PROG, lambda: _compare(argv))
 
 
 if __name__ == "__main__":

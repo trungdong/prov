@@ -1,22 +1,24 @@
 """Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD
 and Graphviz output formats."""
 
+import contextlib
 import os
 import sys
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from collections.abc import Mapping
-from typing import Any, BinaryIO, cast
+from typing import IO, Any, cast
 
 import prov
 from prov import serializers
 from prov.scripts import (
-    _format_from_extension,
     _format_names,
     _input_format,
     _open_binary,
     _read,
     _run,
 )
+
+_PROG = "prov-convert"
 
 GRAPHVIZ_SUPPORTED_FORMATS = {
     "bmp",
@@ -66,8 +68,8 @@ class CLIError(Exception):
 
 
 def convert_file(
-    infile: BinaryIO,
-    outfile: BinaryIO,
+    infile: IO[Any],
+    outfile: IO[Any],
     output_format: str,
     input_format: str = "json",
     *,
@@ -99,12 +101,13 @@ def convert_file(
     Raises:
         CLIError: If ``input_format`` is not a registered serializer format,
             or if ``output_format`` is not a Graphviz format and not a
-            registered serializer format.
+            registered serializer format. The message is the serializer
+            registry's, which names the extra a missing format needs.
     """
     try:
         prov_doc = _read(infile, input_format, reader_options or {})
     except serializers.DoNotExist as e:
-        raise CLIError(f'Input format "{input_format}" is not supported.') from e
+        raise CLIError(str(e)) from e
 
     if output_format in GRAPHVIZ_SUPPORTED_FORMATS:
         from prov.dot import prov_to_dot
@@ -119,7 +122,7 @@ def convert_file(
     try:
         prov_doc.serialize(outfile, format=output_format, **(writer_options or {}))
     except serializers.DoNotExist as e:
-        raise CLIError(f'Output format "{output_format}" is not supported.') from e
+        raise CLIError(str(e)) from e
 
 
 def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
@@ -129,19 +132,16 @@ def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     extension's row, else a Graphviz format named by the extension, else
     PROV-JSON, which is also the format for standard output.
     """
-    flag = flag.lower()
-    if flag != "auto":
-        return flag, {}
-    row = _format_from_extension(path)
-    if row is not None:
-        return row
+    format, options = _input_format(path, flag)
+    if format != "auto":
+        return format, options
     graphviz = os.path.splitext(path)[1][1:].lower()
     return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
 
 
 def _build_parser() -> ArgumentParser:
     parser = ArgumentParser(
-        prog="prov-convert",
+        prog=_PROG,
         description="Convert a PROV document between formats.",
         epilog="""examples:
   prov-convert doc.json doc.provn
@@ -182,15 +182,14 @@ def _build_parser() -> ArgumentParser:
     return parser
 
 
-def _convert(parser: ArgumentParser, args: Namespace) -> int:
-    owned: list[BinaryIO] = []
-    try:
-        infile, owns_infile = _open_binary(parser, args.infile, "rb", "stdin")
-        if owns_infile:
-            owned.append(infile)
-        outfile, owns_outfile = _open_binary(parser, args.outfile, "wb", "stdout")
-        if owns_outfile:
-            owned.append(outfile)
+def _convert(argv: list[str] | None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    with contextlib.ExitStack() as streams:
+        infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))
+        outfile = streams.enter_context(
+            _open_binary(parser, args.outfile, "wb", "stdout")
+        )
         input_format, reader_options = _input_format(args.infile, args.input_format)
         output_format, writer_options = _output_format(args.outfile, args.format)
         convert_file(
@@ -202,9 +201,6 @@ def _convert(parser: ArgumentParser, args: Namespace) -> int:
             writer_options=writer_options,
         )
         outfile.flush()
-    finally:
-        for stream in owned:
-            stream.close()
     return 0
 
 
@@ -226,9 +222,7 @@ def main(argv: list[str] | None = None) -> int:
         ``KeyboardInterrupt``. A usage error exits through argparse with
         status 2.
     """
-    parser = _build_parser()
-    args = parser.parse_args(argv)
-    return _run("prov-convert", lambda: _convert(parser, args))
+    return _run(_PROG, lambda: _convert(argv))
 
 
 if __name__ == "__main__":

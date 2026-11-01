@@ -1,9 +1,10 @@
+import contextlib
 import io
 import os
 import sys
 from argparse import ArgumentParser
 from collections.abc import Callable, Mapping
-from typing import Any, BinaryIO, cast
+from typing import IO, Any, cast
 
 import prov
 from prov.model import ProvDocument
@@ -13,7 +14,9 @@ from prov.serializers import Registry
 def _run(prog: str, action: Callable[[], int]) -> int:
     """Return ``action()``, 130 on Ctrl-C, or 2 after one ``prog: error: ...`` line.
 
-    A message that spans several lines is joined into one.
+    ``action`` builds the parser too, so an interrupt or an import failure while
+    the registry loads is handled here. A message that spans several lines is
+    joined into one, and an empty message becomes the exception's class name.
 
     ``SystemExit`` from argparse or :func:`_open_binary` passes through.
     """
@@ -22,7 +25,8 @@ def _run(prog: str, action: Callable[[], int]) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
-        message = " ".join(line.strip() for line in str(exc).splitlines())
+        lines = (line.strip() for line in str(exc).splitlines())
+        message = " ".join(line for line in lines if line) or type(exc).__name__
         sys.stderr.write(f"{prog}: error: {message}\n")
         return 2
 
@@ -50,12 +54,6 @@ _EXTENSIONS: dict[str, tuple[str, dict[str, str]]] = {
 """Format and reader or writer options by lower-cased file extension, dot included."""
 
 
-def _format_from_extension(path: str) -> tuple[str, dict[str, str]] | None:
-    """Return the format and options ``path``'s extension names, else ``None``."""
-    row = _EXTENSIONS.get(os.path.splitext(path)[1].lower())
-    return None if row is None else (row[0], dict(row[1]))
-
-
 def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     """Resolve the input format and reader options for ``path`` and the ``-i`` ``flag``.
 
@@ -65,24 +63,26 @@ def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     flag = flag.lower()
     if flag != "auto":
         return flag, {}
-    return _format_from_extension(path) or ("auto", {})
+    row = _EXTENSIONS.get(os.path.splitext(path)[1].lower())
+    return ("auto", {}) if row is None else (row[0], dict(row[1]))
 
 
-def _read(stream: BinaryIO, format: str, options: Mapping[str, Any]) -> ProvDocument:
+def _read(stream: IO[Any], format: str, options: Mapping[str, Any]) -> ProvDocument:
     """Read a document from ``stream`` in ``format``, passing ``options`` to the reader.
 
     ``auto`` detects the format from the content. Detection rewinds the
     stream between candidate readers, so a stream that cannot seek (a pipe)
-    is read into memory first, as ``BytesIO`` for bytes and ``StringIO`` for text.
+    (or has no ``seekable`` method) is read into memory first, as ``BytesIO``
+    for bytes and ``StringIO`` for text.
     """
     if format.lower() == "auto":
-        if not stream.seekable():
+        seekable = getattr(stream, "seekable", None)
+        if seekable is None or not seekable():
             content = stream.read()
-            stream = cast(
-                BinaryIO,
+            stream = (
                 io.BytesIO(content)
                 if isinstance(content, bytes)
-                else io.StringIO(content),
+                else io.StringIO(content)
             )
         # prov.read() is annotated "| None", but every path returns a document.
         return cast(ProvDocument, prov.read(stream, None, **options))
@@ -91,23 +91,26 @@ def _read(stream: BinaryIO, format: str, options: Mapping[str, Any]) -> ProvDocu
 
 def _open_binary(
     parser: ArgumentParser, path: str, mode: str, standard_name: str
-) -> tuple[BinaryIO, bool]:
-    """Open ``path`` in binary ``mode``, or return the standard stream for ``"-"``.
+) -> contextlib.AbstractContextManager[IO[Any]]:
+    """Open ``path`` in binary ``mode``, or wrap the standard stream for ``"-"``.
+
+    The result is a context manager. A path yields the opened file, closed on
+    exit. ``"-"`` yields the standard stream inside a
+    :func:`contextlib.nullcontext`, so the process's own stream is never
+    closed.
 
     ``standard_name`` is ``"stdin"`` or ``"stdout"``; its ``.buffer`` is
     resolved only when ``path`` is ``"-"``, so the other standard stream is
     never touched. A standard stream with no ``.buffer`` (a text-only stream,
-    e.g. an ``io.StringIO`` substituted under a test harness) is returned as
-    it is, since every deserializer accepts a text stream. The second
-    element says whether the caller owns the returned stream and must close
-    it; the standard streams belong to the process. An unopenable path is
+    e.g. an ``io.StringIO`` substituted under a test harness) is used as it
+    is, since every deserializer accepts a text stream. An unopenable path is
     reported through :meth:`argparse.ArgumentParser.error`, which exits with
     status 2 like argparse's own file handling did.
     """
     if path == "-":
         standard = getattr(sys, standard_name)
-        return cast(BinaryIO, getattr(standard, "buffer", standard)), False
+        return contextlib.nullcontext(getattr(standard, "buffer", standard))
     try:
-        return cast(BinaryIO, open(path, mode)), True
+        return open(path, mode)
     except OSError as exc:
         parser.error(f"can't open '{path}': {exc}")
