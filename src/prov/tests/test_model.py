@@ -1021,9 +1021,7 @@ _ARGUMENT_MESSAGE = re.escape(
 )
 _RECORD_BUNDLE_MESSAGE = re.escape(
     "ProvRecord.bundle is deprecated and 4.0 removes it; a record's container "
-    "is not public API. Keep the document beside the record, and read which "
-    "bundle holds a record from the document: iterate ProvDocument.bundles and "
-    "each bundle's records."
+    "is not public API. Keep the document or bundle that made the record beside it."
 )
 
 

@@ -914,16 +914,16 @@ class ProvRecord:
         """The bundle that owns this record.
 
         .. deprecated:: 3.3.0
-            Keep the :class:`ProvDocument` beside the record and find the
-            bundle that holds it by iterating :attr:`ProvDocument.bundles` and
-            each bundle's :attr:`ProvBundle.records`; 4.0 removes this
-            property.
+            4.0 removes this property. Keep the document or bundle that made
+            the record beside it. With only the document, find the bundle that
+            holds a record by walking :attr:`ProvDocument.bundles` and testing
+            each bundle's :attr:`ProvBundle.records` with ``is``. A record in
+            no bundle belongs to the document.
         """
         warn(
             "ProvRecord.bundle is deprecated and 4.0 removes it; a record's "
-            "container is not public API. Keep the document beside the record, "
-            "and read which bundle holds a record from the document: iterate "
-            "ProvDocument.bundles and each bundle's records.",
+            "container is not public API. Keep the document or bundle that made "
+            "the record beside it.",
             DeprecationWarning,
         )
         return self._bundle
