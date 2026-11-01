@@ -1,6 +1,39 @@
 import sys
 from argparse import ArgumentParser
-from typing import BinaryIO, cast
+from collections.abc import Callable, Mapping
+from typing import Any, BinaryIO, cast
+
+import prov
+from prov.model import ProvDocument
+from prov.serializers import Registry
+
+
+def _run(prog: str, action: Callable[[], int]) -> int:
+    """Return ``action()``, 130 on Ctrl-C, or 2 after one ``prog: error: ...`` line.
+
+    ``SystemExit`` from argparse or :func:`_open_binary` passes through.
+    """
+    try:
+        return action()
+    except KeyboardInterrupt:
+        return 130
+    except Exception as exc:
+        sys.stderr.write(f"{prog}: error: {exc}\n")
+        return 2
+
+
+def _format_names() -> str:
+    """Name the registered serializer formats, e.g. ``json, rdf, provn, xml or jsonld``."""
+    if Registry.serializers is None:
+        Registry.load_serializers()
+    names = list(Registry.serializers or ())
+    return f"{', '.join(names[:-1])} or {names[-1]}"
+
+
+def _read(stream: BinaryIO, format: str, options: Mapping[str, Any]) -> ProvDocument:
+    """Read a document from ``stream`` in ``format``, passing ``options`` to the reader."""
+    # prov.read() is annotated "| None", but every path returns a document.
+    return cast(ProvDocument, prov.read(stream, format, **options))
 
 
 def _open_binary(

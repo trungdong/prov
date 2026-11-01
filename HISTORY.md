@@ -472,6 +472,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `prov.tests` or runs `pytest --pyargs prov.tests` against an installed prov takes the
   tests from an unpacked sdist or a checkout, where 3.2.3's wheel held them
   ([#728](https://github.com/trungdong/prov/issues/728))
+- `prov-convert` and `prov-compare` lose the template of their 2014 scripts. `-V` prints
+  `prov-convert 3.3.0` and `prov-compare 3.3.0`, where 3.2.3 printed
+  `prov-convert v0.1 (2026-09-12)`. A runtime error prints one line,
+  `prov-convert: error: <message>`, with a trailing newline, where 3.2.3 printed
+  `prov-convert: E: <message>` and an indented `for help use --help` with no trailing
+  newline. Ctrl-C exits with status 130 and prints nothing, where 3.2.3's `prov-convert`
+  exited 0 and `prov-compare` raised a traceback. `main(argv)` parses `argv` and leaves
+  `sys.argv` unchanged, where 3.2.3 appended `argv` to `sys.argv` and parsed the result
+  ([#737](https://github.com/trungdong/prov/issues/737))
 
 ### Additions
 

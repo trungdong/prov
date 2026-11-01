@@ -1,168 +1,89 @@
-#!/usr/bin/env python
-"""
-prov-compare -- Compare two PROV documents (PROV-JSON, PROV-XML, PROV-O or PROV-JSONLD) for equivalence
+"""Compare two PROV documents in any registered format for equivalence."""
 
-@author:     Trung Dong Huynh
-
-@copyright:  2026 Trung Dong Huynh
-
-@license:    MIT Licence
-
-@contact:    trungdong@donggiang.com
-@deffield    updated: 2026-09-12
-"""
-
-import logging
-import os
 import sys
-import traceback
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from typing import BinaryIO
 
-from prov.model import ProvDocument
-from prov.scripts import _open_binary
-
-logger = logging.getLogger(__name__)
-
-__all__: list[str] = []
-__version__ = 0.1
-__date__ = "2015-06-16"
-__updated__ = "2026-09-12"
-
-DEBUG = 0
-TESTRUN = 0
-PROFILE = 0
+import prov
+from prov.scripts import _format_names, _open_binary, _read, _run
 
 
-class CLIError(Exception):
-    """Generic exception to raise and log different fatal errors."""
+def _build_parser() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="prov-compare",
+        description="Compare two PROV documents for equivalence.",
+        epilog="""exit status is 0 if the documents are equal, 1 if they differ and 2 on an error.
 
-    def __init__(self, msg: str):
-        super().__init__(type(self))
-        self.msg = f"E: {msg}"
+examples:
+  prov-compare a.json b.json
+  prov-compare -f json -F xml doc.json doc.xml
+  prov-compare -F provn doc.json doc.provn
+  prov-compare -f json -F xml - doc.xml < doc.json
+""",
+        formatter_class=RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("file1", help="first document ('-' reads standard input)")
+    parser.add_argument("file2", help="second document ('-' reads standard input)")
+    parser.add_argument(
+        "-f",
+        "--format1",
+        default="json",
+        help=f"file 1's format: {_format_names()}; default: %(default)s",
+    )
+    parser.add_argument(
+        "-F",
+        "--format2",
+        default="json",
+        help=f"file 2's format: {_format_names()}; default: %(default)s",
+    )
+    parser.add_argument(
+        "-V", "--version", action="version", version=f"%(prog)s {prov.__version__}"
+    )
+    return parser
 
-    def __str__(self) -> str:
-        return self.msg
+
+def _compare(parser: ArgumentParser, args: Namespace) -> int:
+    owned: list[BinaryIO] = []
+    try:
+        streams: list[BinaryIO] = []
+        for path in (args.file1, args.file2):
+            stream, owns = _open_binary(parser, path, "rb", "stdin")
+            if owns:
+                owned.append(stream)
+            streams.append(stream)
+        doc1 = _read(streams[0], args.format1.lower(), {})
+        doc2 = _read(streams[1], args.format2.lower(), {})
+        return int(doc1 != doc2)
+    finally:
+        for stream in owned:
+            stream.close()
 
 
-def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
+def main(argv: list[str] | None = None) -> int:
     """Run the ``prov-compare`` command-line tool.
 
     Parses two positional file arguments plus ``-f/--format1`` and
-    ``-F/--format2`` (each defaulting to ``"json"``), deserializes both
-    files, and compares the resulting documents for equality. Files are
-    opened after parsing; ``-`` stands for standard input for at most one
-    of them and is not closed; an unopenable path is a usage error
-    (exit 2).
+    ``-F/--format2`` (each defaulting to ``"json"``), reads both files, and
+    compares the resulting documents for equality. Files are opened after
+    parsing; ``-`` stands for standard input for at most one of them and is
+    not closed; an unopenable path is a usage error (exit 2).
 
     Args:
-        argv: Extra command-line arguments. If not ``None``, they are
-            appended to ``sys.argv`` (which is *not* replaced) before
-            argument parsing, so ``sys.argv[0]`` is still used as the
-            program name.
+        argv: The command-line arguments, without the program name. ``None``
+            means ``sys.argv[1:]``. ``sys.argv`` is never modified.
 
     Returns:
-        ``0`` if the two documents are equal, ``1`` if they differ (the
-        truthiness of ``doc1 != doc2``), or ``2`` if an exception was raised
-        while parsing arguments or deserializing a file (unless
-        ``DEBUG``/``TESTRUN`` is set, in which case the exception propagates
-        instead). Unlike ``prov-convert``, ``KeyboardInterrupt`` is not
-        caught here and will propagate.
+        ``0`` if the two documents are equal, ``1`` if they differ, ``2``
+        after printing ``prov-compare: error: ...`` to stderr when reading
+        fails, or ``130`` on ``KeyboardInterrupt``. A usage error exits
+        through argparse with status 2.
     """
-
-    if argv is None:
-        argv = sys.argv
-    else:
-        sys.argv.extend(argv)
-
-    program_name = os.path.basename(sys.argv[0])
-    program_version = f"v{__version__}"
-    program_build_date = str(__updated__)
-    program_version_message = f"%(prog)s {program_version} ({program_build_date})"
-    program_shortdesc = __doc__.split("\n")[1]
-    program_license = f"""{program_shortdesc}
-
-  Copyright 2026 Trung Dong Huynh.
-
-  Licensed under the MIT License
-  https://github.com/trungdong/prov/blob/main/LICENSE
-
-  Distributed on an "AS IS" basis without warranties
-  or conditions of any kind, either express or implied.
-
-USAGE
-"""
-
-    try:
-        # Setup argument parser
-        parser = ArgumentParser(
-            description=program_license, formatter_class=RawDescriptionHelpFormatter
-        )
-        parser.add_argument("file1", help="first document ('-' reads standard input)")
-        parser.add_argument("file2", help="second document ('-' reads standard input)")
-        parser.add_argument(
-            "-f",
-            "--format1",
-            dest="format1",
-            action="store",
-            default="json",
-            help="File 1's format: json, xml, rdf, jsonld or provn",
-        )
-        parser.add_argument(
-            "-F",
-            "--format2",
-            dest="format2",
-            action="store",
-            default="json",
-            help="File 2's format: json, xml, rdf, jsonld or provn",
-        )
-        parser.add_argument(
-            "-V", "--version", action="version", version=program_version_message
-        )
-
-        args = parser.parse_args()
-        if args.file1 == "-" and args.file2 == "-":
-            parser.error("only one of file1 and file2 may be '-' (standard input)")
-        owned: list[BinaryIO] = []
-        try:
-            streams: list[BinaryIO] = []
-            for path in (args.file1, args.file2):
-                stream, owns = _open_binary(parser, path, "rb", "stdin")
-                if owns:
-                    owned.append(stream)
-                streams.append(stream)
-            doc1 = ProvDocument.deserialize(streams[0], format=args.format1.lower())
-            doc2 = ProvDocument.deserialize(streams[1], format=args.format2.lower())
-            return doc1 != doc2
-        finally:
-            for stream in owned:
-                stream.close()
-
-    except Exception as e:
-        if DEBUG or TESTRUN:
-            traceback.print_exc()
-            raise e
-        indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + str(e) + "\n")
-        sys.stderr.write(indent + "  for help use --help")
-        return 2
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    if args.file1 == "-" and args.file2 == "-":
+        parser.error("only one of file1 and file2 may be '-' (standard input)")
+    return _run("prov-compare", lambda: _compare(parser, args))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=(logging.DEBUG if DEBUG else logging.INFO))
-    if TESTRUN:
-        import doctest
-
-        doctest.testmod()
-    if PROFILE:
-        import cProfile
-        import pstats
-
-        profile_filename = "prov_compare_profile.txt"
-        cProfile.run("main()", profile_filename)
-        with open("profile_stats.txt", "wb") as statsfile:
-            p = pstats.Stats(profile_filename, stream=statsfile)
-            stats = p.strip_dirs().sort_stats("cumulative")
-            stats.print_stats()
-        sys.exit(0)
     sys.exit(main())

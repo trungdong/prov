@@ -63,8 +63,7 @@ cat document.json | prov-convert > copy.json
 
 ```bash
 prov-convert -f bogus document.json out.bogus
-# prov-convert: E: Output format "bogus" is not supported.
-#               for help use --help
+# prov-convert: error: Output format "bogus" is not supported.
 echo $?  # 2
 ```
 
