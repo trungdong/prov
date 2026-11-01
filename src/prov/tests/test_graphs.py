@@ -196,6 +196,7 @@ def test_prov_to_graph_raises_when_unified_does(
         _ = prov_to_graph(document)
 
 
+@pytest.mark.filterwarnings("error::DeprecationWarning:prov")
 def test_records_inside_a_bundle_are_nodes_and_edges(document: ProvDocument) -> None:
     # Flattening lifts the bundle's records, so the generation inside the
     # bundle reaches the activity declared at the top level: two declared

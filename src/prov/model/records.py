@@ -915,10 +915,11 @@ class ProvRecord:
 
         .. deprecated:: 3.3.0
             4.0 removes this property. Keep the document or bundle that made
-            the record beside it. With only the document, find the bundle that
-            holds a record by walking :attr:`ProvDocument.bundles` and testing
-            each bundle's :attr:`ProvBundle.records` with ``is``. A record in
-            no bundle belongs to the document.
+            the record beside it. With only the document, test the record with
+            ``is`` against the document's own :attr:`ProvBundle.records` and
+            against the :attr:`ProvBundle.records` of each bundle in
+            :attr:`ProvDocument.bundles`. A record found in none of them
+            belongs to another container.
         """
         warn(
             "ProvRecord.bundle is deprecated and 4.0 removes it; a record's "
