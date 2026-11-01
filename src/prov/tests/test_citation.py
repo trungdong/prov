@@ -1,7 +1,7 @@
 """Repository metadata files must agree with the package.
 
 These files live at the repository root, not in the package, so the tests
-skip when run from an installed wheel.
+skip outside a source checkout.
 """
 
 import json
