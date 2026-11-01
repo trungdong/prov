@@ -357,7 +357,7 @@ warn about it.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in the document that will hold it, or `update()` a fresh bundle of that document from it. Declare the source's namespaces and defaults on the new document and the fresh bundle first, as each sat in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
+| `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in the document that will hold it, or `update()` a fresh bundle of that document from it. Declare the source's namespaces and defaults on the document that will hold the bundle and on the fresh bundle first, as they were declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
 
 ## Equality
 
