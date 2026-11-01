@@ -454,7 +454,7 @@ class ProvNParser:
         namespaces, default = self._declarations()
         # PROV-N 3.1.3: the bundle identifier resolves with the bundle's own
         # declarations first, then the document's.
-        bundle = ProvBundle(document=document)
+        bundle = ProvBundle(_parent=document)
         self._apply_declarations(bundle, namespaces, default)
         try:
             document.add_bundle(bundle, self._resolve(id_token, bundle))

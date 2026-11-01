@@ -191,7 +191,8 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     prov_doc = ProvDocument()
     if source is not None:
         # the records' document; its declarations spell their names
-        prov_doc._copy_declarations_from(source.document or source)
+        parent = source._namespaces.parent
+        prov_doc._copy_declarations_from(source if parent is None else parent)
     for record in records:
         prov_doc.add_record(record)
 

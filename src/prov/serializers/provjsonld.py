@@ -811,7 +811,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         bundle_id = item.get("@id")
         if bundle_id is None:
             raise ProvJSONLDException(f'A Bundle requires an "@id"; found {item!r}')
-        bundle = ProvBundle(document=document)
+        bundle = ProvBundle(_parent=document)
         _decode_context(item.get("@context", []), bundle)
         for stmt in item.get("@graph", []):
             decode_jsonld_statement(_expect_object(stmt, "A bundle statement"), bundle)

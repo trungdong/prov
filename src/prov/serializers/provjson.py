@@ -386,7 +386,7 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
     decode_json_container(content, document)
 
     for bundle_id, bundle_content in bundles.items():
-        bundle = ProvBundle(document=document)
+        bundle = ProvBundle(_parent=document)
         decode_json_container(bundle_content, bundle)
         try:
             document.add_bundle(
