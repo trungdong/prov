@@ -200,6 +200,18 @@ jobs:
       - run: |
           uv build
           uvx twine check dist/*
+      - name: The wheel holds the package's tracked files outside prov.tests and the sdist every tracked test file
+        run: |
+          packaged=$(git -c core.quotePath=false ls-files src/prov ':!src/prov/tests' | sed 's|^src/||' | sort)
+          wheel=$(unzip -Z1 dist/*.whl | grep -v '\.dist-info/' | sort)
+          tracked=$(git -c core.quotePath=false ls-files src/prov/tests | sort)
+          sdist=$(tar -tzf dist/*.tar.gz | sed -n 's|^prov-[^/]*/\(src/prov/tests/.*[^/]\)$|\1|p' | sort)
+          test -n "$packaged"
+          test -n "$wheel"
+          test -n "$tracked"
+          test -n "$sdist"
+          diff <(echo "$packaged") <(echo "$wheel")
+          diff <(echo "$tracked") <(echo "$sdist")
 
   finish:
     needs: tests

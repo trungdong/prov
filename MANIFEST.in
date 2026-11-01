@@ -1,0 +1,2 @@
+graft src/prov/tests
+global-exclude *.py[cod]

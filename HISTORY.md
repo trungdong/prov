@@ -468,6 +468,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   escape with a lowercase hex digit raise `ProvNSyntaxError` under every profile, where
   3.2.3 read the prefix as `a.b` and the escape as its character
   ([#729](https://github.com/trungdong/prov/issues/729))
+- The wheel no longer holds `prov.tests` and its fixtures, so code that imports from
+  `prov.tests` or runs `pytest --pyargs prov.tests` against an installed prov takes the
+  tests from an unpacked sdist or a checkout, where 3.2.3's wheel held them
+  ([#728](https://github.com/trungdong/prov/issues/728))
 
 ### Additions
 
