@@ -26,6 +26,7 @@ from prov.scripts.compare import main as compare_main
 from prov.scripts.convert import (
     GRAPHVIZ_SUPPORTED_FORMATS,
     CLIError,
+    _output_format,
     convert_file,
     main as convert_main,
 )
@@ -442,9 +443,7 @@ def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch) 
 def test_compare_reads_a_text_only_stdin_for_dash(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     monkeypatch.setattr(sys, "stdin", io.StringIO(json_file.read_text()))
-    monkeypatch.setattr(
-        sys, "argv", ["prov-compare", "-f", "json", "-F", "xml", "-", str(xml_file)]
-    )
+    monkeypatch.setattr(sys, "argv", ["prov-compare", "-F", "xml", "-", str(xml_file)])
     assert compare_main() == 0
 
 
@@ -479,3 +478,238 @@ def test_help_is_one_description_with_examples(main, capsys) -> None:
     for name in Registry.serializers:
         assert name in out
     assert ("Graphviz" in out) == (main is convert_main)
+
+
+# Format detection (``auto``).
+
+
+class NonSeekableBytes(io.BytesIO):
+    """A binary stream that reads like a pipe."""
+
+    def seekable(self) -> bool:
+        return False
+
+    def seek(self, *args, **kwargs) -> NoReturn:
+        raise io.UnsupportedOperation("seek")
+
+
+class NonSeekableText(io.StringIO):
+    """A text-only stream (no ``.buffer``) that reads like a pipe."""
+
+    def seekable(self) -> bool:
+        return False
+
+    def seek(self, *args, **kwargs) -> NoReturn:
+        raise io.UnsupportedOperation("seek")
+
+
+STDIN_STREAMS = {
+    "seekable-bytes": lambda data: io.TextIOWrapper(io.BytesIO(data)),
+    "pipe-bytes": lambda data: io.TextIOWrapper(NonSeekableBytes(data)),
+    "pipe-text": lambda data: NonSeekableText(data.decode()),
+}
+
+EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
+TURTLE = {"rdf_format": "turtle"}
+
+
+def _write(path, format: str, **options) -> None:
+    primer_example().serialize(str(path), format=format, **options)
+
+
+def _read_back(path, format: str, **options) -> ProvDocument:
+    return ProvDocument.deserialize(str(path), format=format, **options)
+
+
+@pytest.mark.parametrize(
+    ("in_name", "in_format", "in_options", "out_name", "out_format", "out_options"),
+    [
+        pytest.param("doc.provn", "provn", {}, "out.json", "json", {}, id="provn-in"),
+        pytest.param("IN.PROVN", "provn", {}, "OUT.XML", "xml", {}, id="upper-case"),
+        pytest.param("doc.json", "json", {}, "out.xml", "xml", {}, id="xml-out"),
+        pytest.param("doc.provx", "xml", {}, "out.json", "json", {}, id="provx-in"),
+        pytest.param("doc.txt", "json", {}, "out.json", "json", {}, id="txt-in"),
+        pytest.param("doc.ttl", "rdf", TURTLE, "out.json", "json", {}, id="ttl-in"),
+        pytest.param(
+            "doc.rdf", "rdf", {"rdf_format": "xml"}, "out.json", "json", {}, id="rdf-in"
+        ),
+        pytest.param("doc.json", "json", {}, "out.ttl", "rdf", TURTLE, id="ttl-out"),
+        pytest.param("doc.json", "json", {}, "out.bogus", "json", {}, id="unknown-out"),
+        pytest.param("doc.json", "json", {}, "out.", "json", {}, id="bare-dot-out"),
+    ],
+)
+def test_convert_detects_formats_from_extensions(
+    tmp_path, in_name, in_format, in_options, out_name, out_format, out_options
+) -> None:
+    for name in (in_format, out_format):
+        if name in EXTRAS:
+            pytest.importorskip(EXTRAS[name])
+    source = tmp_path / in_name
+    target = tmp_path / out_name
+    _write(source, in_format, **in_options)
+    assert convert_main([str(source), str(target)]) == 0
+    assert _read_back(target, out_format, **out_options) == primer_example()
+
+
+def test_convert_detects_the_content_when_the_extension_is_unknown(tmp_path) -> None:
+    # "doc" has no extension and sits in a directory whose name looks like PROV-N.
+    folder = tmp_path / "a.provn"
+    folder.mkdir()
+    source = folder / "doc"
+    target = tmp_path / "out.json"
+    _write(source, "provn")
+    assert convert_main([str(source), str(target)]) == 0
+    assert _read_back(target, "json") == primer_example()
+
+
+def test_convert_accepts_auto_in_any_case(tmp_path) -> None:
+    source = tmp_path / "doc.provn"
+    target = tmp_path / "out.xml"
+    _write(source, "provn")
+    assert convert_main(["-i", "AUTO", "-f", "auto", str(source), str(target)]) == 0
+    assert _read_back(target, "xml") == primer_example()
+
+
+def test_convert_explicit_flags_replace_the_extension_table(tmp_path, capsysbinary):
+    source = tmp_path / "doc.json"
+    target = tmp_path / "out.ttl"
+    _write(source, "json")
+    assert convert_main(["-f", "rdf", str(source), str(target)]) == 0
+    assert convert_main(["-f", "rdf", str(source)]) == 0
+    piped = capsysbinary.readouterr().out
+    assert _read_back(target, "rdf", rdf_format="trig") == primer_example()
+    assert prov.read(io.BytesIO(piped), "rdf", rdf_format="trig") == primer_example()
+
+
+JSONLD_IN_JSON = (
+    "'@context' is not a recognised PROV-N record-type keyword "
+    "(e.g. 'entity', 'activity', 'wasGeneratedBy')"
+)
+NOT_DETECTED = (
+    "Could not read from the source. To get a proper error message, "
+    "specify the format with the 'format' parameter."
+)
+
+
+@pytest.mark.parametrize(
+    ("name", "write", "flags", "message"),
+    [
+        pytest.param(
+            "doc.json",
+            lambda path: _write(path, "jsonld"),
+            [],
+            JSONLD_IN_JSON,
+            id="jsonld-in-json-file",
+        ),
+        pytest.param(
+            "export.xml",
+            lambda path: _write(path, "json"),
+            [],
+            None,
+            id="json-in-xml-file",
+        ),
+        pytest.param(
+            "doc.provn",
+            lambda path: _write(path, "provn"),
+            ["-i", "json"],
+            None,
+            id="the-flag-wins-over-the-extension",
+        ),
+        pytest.param(
+            "doc.dat",
+            lambda path: path.write_text("not a PROV document"),
+            [],
+            NOT_DETECTED,
+            id="garbage",
+        ),
+        pytest.param(
+            "doc.dat",
+            lambda path: path.write_text("{}"),
+            [],
+            NOT_DETECTED,
+            id="empty-document",
+        ),
+    ],
+)
+def test_convert_detection_errors_exit_2_with_one_line(
+    tmp_path, capsys, name, write, flags, message
+) -> None:
+    source = tmp_path / name
+    write(source)
+    target = tmp_path / "out.json"
+    assert convert_main([*flags, str(source), str(target)]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("prov-convert: error: ")
+    assert err.count("\n") == 1
+    if message is not None:
+        assert err == f"prov-convert: error: {message}\n"
+
+
+@pytest.mark.parametrize("stream", STDIN_STREAMS)
+@pytest.mark.parametrize("format", ["json", "provn"])
+def test_convert_detects_a_document_on_stdin(
+    tmp_path, monkeypatch, stream, format
+) -> None:
+    data = primer_example().serialize(format=format).encode()
+    monkeypatch.setattr(sys, "stdin", STDIN_STREAMS[stream](data))
+    target = tmp_path / "out.json"
+    assert convert_main(["-", str(target)]) == 0
+    assert _read_back(target, "json") == primer_example()
+
+
+def test_convert_an_empty_document_on_stdin_exits_2(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}"))
+    assert convert_main([]) == 2
+    assert capsys.readouterr().err == f"prov-convert: error: {NOT_DETECTED}\n"
+
+
+@pytest.mark.parametrize(
+    ("path", "flag", "expected"),
+    [
+        pytest.param("OUT.svg", "auto", ("svg", {}), id="graphviz"),
+        pytest.param("out.dot", "AUTO", ("dot", {}), id="dot"),
+        pytest.param("out.xml", "auto", ("xml", {}), id="table-first"),
+        pytest.param("out.ttl", "auto", ("rdf", TURTLE), id="rdf-options"),
+        pytest.param("-", "auto", ("json", {}), id="stdout"),
+        pytest.param("out.bogus", "auto", ("json", {}), id="unknown"),
+        pytest.param("out.", "auto", ("json", {}), id="bare-dot"),
+        pytest.param("out.ttl", "RDF", ("rdf", {}), id="flag-drops-options"),
+        pytest.param("out.svg", "xml", ("xml", {}), id="flag-wins"),
+    ],
+)
+def test_output_format_resolution(path, flag, expected) -> None:
+    assert _output_format(path, flag) == expected
+
+
+# prov-compare.
+
+
+@pytest.fixture
+def provn_and_xml(tmp_path):
+    pytest.importorskip("lxml")
+    provn_file = tmp_path / "a.provn"
+    xml_file = tmp_path / "b.xml"
+    _write(provn_file, "provn")
+    _write(xml_file, "xml")
+    return provn_file, xml_file
+
+
+@pytest.mark.parametrize("flags", [[], ["-f", "auto", "-F", "AUTO"]])
+def test_compare_detects_formats_from_extensions(provn_and_xml, flags) -> None:
+    provn_file, xml_file = provn_and_xml
+    assert compare_main([*flags, str(provn_file), str(xml_file)]) == 0
+
+
+@pytest.mark.parametrize("stream", STDIN_STREAMS)
+def test_compare_detects_a_document_on_stdin(
+    provn_and_xml, monkeypatch, stream
+) -> None:
+    provn_file, xml_file = provn_and_xml
+    monkeypatch.setattr(sys, "stdin", STDIN_STREAMS[stream](provn_file.read_bytes()))
+    assert compare_main(["-", str(xml_file)]) == 0
+
+
+def test_compare_a_flag_replaces_the_extension(provn_and_xml, capsys) -> None:
+    provn_file, xml_file = provn_and_xml
+    assert compare_main(["-f", "json", str(provn_file), str(xml_file)]) == 2
+    assert capsys.readouterr().err.startswith("prov-compare: error: ")

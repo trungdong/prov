@@ -19,8 +19,8 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-V] [infile] [outfile]
 
 | Flag | Argument | Default | Meaning |
 | --- | --- | --- | --- |
-| `-i`, `--input-format` | `INPUT_FORMAT` | `json` | Input format: `json`, `xml`, `rdf`, `jsonld` or `provn` |
-| `-f`, `--format` | `FORMAT` | `json` | Output format: `json`, `xml`, `rdf`, `jsonld`, `provn`, or any Graphviz output format such as `svg`, `pdf` or `png` |
+| `-i`, `--input-format` | `INPUT_FORMAT` | `auto` | Input format: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
+| `-f`, `--format` | `FORMAT` | `auto` | Output format: `auto`, `json`, `xml`, `rdf`, `jsonld`, `provn`, or any Graphviz output format such as `svg`, `pdf` or `png` |
 | `-V`, `--version` | | | Print the version and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `infile` | | stdin | Input file, read in `--input-format` |
@@ -48,7 +48,9 @@ Convert a PROV-JSON file to an SVG diagram:
 prov-convert -f svg document.json document.svg
 ```
 
-Read from stdin and write PROV-JSON, the default, to stdout:
+Read from stdin and write PROV-JSON to stdout. The default, `auto`, takes a file's format
+from its extension and otherwise from its content, and an output to stdout or an unknown
+extension is PROV-JSON:
 
 ```bash
 cat document.json | prov-convert > copy.json
@@ -82,8 +84,8 @@ prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] file1 file2
 
 | Flag | Argument | Default | Meaning |
 | --- | --- | --- | --- |
-| `-f`, `--format1` | `FORMAT1` | `json` | Format of `file1`: `json`, `xml`, `rdf`, `jsonld` or `provn` |
-| `-F`, `--format2` | `FORMAT2` | `json` | Format of `file2`: `json`, `xml`, `rdf`, `jsonld` or `provn` |
+| `-f`, `--format1` | `FORMAT1` | `auto` | Format of `file1`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
+| `-F`, `--format2` | `FORMAT2` | `auto` | Format of `file2`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-V`, `--version` | | | Print the version and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `file1`, `file2` | | | The two files to compare; `-` reads one of them from standard input |

@@ -1,3 +1,5 @@
+import io
+import os
 import sys
 from argparse import ArgumentParser
 from collections.abc import Callable, Mapping
@@ -30,9 +32,57 @@ def _format_names() -> str:
     return f"{', '.join(names[:-1])} or {names[-1]}"
 
 
+_EXTENSIONS: dict[str, tuple[str, dict[str, str]]] = {
+    ".json": ("json", {}),
+    ".provn": ("provn", {}),
+    ".xml": ("xml", {}),
+    ".provx": ("xml", {}),
+    ".jsonld": ("jsonld", {}),
+    ".ttl": ("rdf", {"rdf_format": "turtle"}),
+    ".trig": ("rdf", {"rdf_format": "trig"}),
+    ".nt": ("rdf", {"rdf_format": "nt"}),
+    ".nq": ("rdf", {"rdf_format": "nquads"}),
+    ".rdf": ("rdf", {"rdf_format": "xml"}),
+}
+"""Format and reader or writer options by lower-cased file extension, dot included."""
+
+
+def _format_from_extension(path: str) -> tuple[str, dict[str, str]] | None:
+    """Return the format and options ``path``'s extension names, else ``None``."""
+    row = _EXTENSIONS.get(os.path.splitext(path)[1].lower())
+    return None if row is None else (row[0], dict(row[1]))
+
+
+def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
+    """Resolve the input format and reader options for ``path`` and the ``-i`` ``flag``.
+
+    An explicit flag is used as given, with no options. ``auto`` takes the
+    extension's row, else stays ``auto`` for content detection.
+    """
+    flag = flag.lower()
+    if flag != "auto":
+        return flag, {}
+    return _format_from_extension(path) or ("auto", {})
+
+
 def _read(stream: BinaryIO, format: str, options: Mapping[str, Any]) -> ProvDocument:
-    """Read a document from ``stream`` in ``format``, passing ``options`` to the reader."""
-    # prov.read() is annotated "| None", but every path returns a document.
+    """Read a document from ``stream`` in ``format``, passing ``options`` to the reader.
+
+    ``auto`` detects the format from the content. Detection rewinds the
+    stream between candidate readers, so a stream that cannot seek (a pipe)
+    is read into memory first, as ``BytesIO`` for bytes and ``StringIO`` for text.
+    """
+    if format == "auto":
+        if not stream.seekable():
+            content = stream.read()
+            stream = cast(
+                BinaryIO,
+                io.BytesIO(content)
+                if isinstance(content, bytes)
+                else io.StringIO(content),
+            )
+        # prov.read() is annotated "| None", but every path returns a document.
+        return cast(ProvDocument, prov.read(stream, None, **options))
     return cast(ProvDocument, prov.read(stream, format, **options))
 
 

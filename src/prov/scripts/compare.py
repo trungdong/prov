@@ -5,7 +5,7 @@ from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from typing import BinaryIO
 
 import prov
-from prov.scripts import _format_names, _open_binary, _read, _run
+from prov.scripts import _format_names, _input_format, _open_binary, _read, _run
 
 
 def _build_parser() -> ArgumentParser:
@@ -15,6 +15,7 @@ def _build_parser() -> ArgumentParser:
         epilog="""exit status is 0 if the documents are equal, 1 if they differ and 2 on an error.
 
 examples:
+  prov-compare a.provn b.xml
   prov-compare a.json b.json
   prov-compare -f json -F xml doc.json doc.xml
   prov-compare -F provn doc.json doc.provn
@@ -27,14 +28,20 @@ examples:
     parser.add_argument(
         "-f",
         "--format1",
-        default="json",
-        help=f"file 1's format: {_format_names()}; default: %(default)s",
+        default="auto",
+        help=(
+            f"file 1's format: {_format_names()}, or auto to use the file "
+            "extension, else the content; default: %(default)s"
+        ),
     )
     parser.add_argument(
         "-F",
         "--format2",
-        default="json",
-        help=f"file 2's format: {_format_names()}; default: %(default)s",
+        default="auto",
+        help=(
+            f"file 2's format: {_format_names()}, or auto to use the file "
+            "extension, else the content; default: %(default)s"
+        ),
     )
     parser.add_argument(
         "-V", "--version", action="version", version=f"%(prog)s {prov.__version__}"
@@ -45,14 +52,13 @@ examples:
 def _compare(parser: ArgumentParser, args: Namespace) -> int:
     owned: list[BinaryIO] = []
     try:
-        streams: list[BinaryIO] = []
-        for path in (args.file1, args.file2):
+        sources: list[tuple[BinaryIO, str, dict[str, str]]] = []
+        for path, flag in ((args.file1, args.format1), (args.file2, args.format2)):
             stream, owns = _open_binary(parser, path, "rb", "stdin")
             if owns:
                 owned.append(stream)
-            streams.append(stream)
-        doc1 = _read(streams[0], args.format1.lower(), {})
-        doc2 = _read(streams[1], args.format2.lower(), {})
+            sources.append((stream, *_input_format(path, flag)))
+        doc1, doc2 = (_read(*source) for source in sources)
         return int(doc1 != doc2)
     finally:
         for stream in owned:
@@ -63,8 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     """Run the ``prov-compare`` command-line tool.
 
     Parses two positional file arguments plus ``-f/--format1`` and
-    ``-F/--format2`` (each defaulting to ``"json"``), reads both files, and
-    compares the resulting documents for equality. Files are opened after
+    ``-F/--format2`` (each defaulting to ``"auto"``, which takes the file
+    extension, else the content), reads both files, and compares the resulting documents for equality. Files are opened after
     parsing; ``-`` stands for standard input for at most one of them and is
     not closed; an unopenable path is a usage error (exit 2).
 

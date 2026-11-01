@@ -1,5 +1,6 @@
 """Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD and Graphviz output formats."""
 
+import os
 import sys
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 from collections.abc import Mapping
@@ -7,7 +8,14 @@ from typing import Any, BinaryIO, cast
 
 import prov
 from prov import serializers
-from prov.scripts import _format_names, _open_binary, _read, _run
+from prov.scripts import (
+    _format_from_extension,
+    _format_names,
+    _input_format,
+    _open_binary,
+    _read,
+    _run,
+)
 
 GRAPHVIZ_SUPPORTED_FORMATS = {
     "bmp",
@@ -67,7 +75,8 @@ def convert_file(
 ) -> None:
     """Read a PROV document from ``infile`` and write it to ``outfile`` in ``output_format``.
 
-    ``infile`` is read in ``input_format`` (default PROV-JSON). A name in
+    ``infile`` is read in ``input_format`` (default PROV-JSON; ``"auto"``
+    detects the format from the content). A name in
     :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
     :func:`~prov.dot.prov_to_dot` and Graphviz, and any other
     ``output_format`` is written by
@@ -81,7 +90,8 @@ def convert_file(
         output_format: Target format name (e.g. ``"json"``, ``"xml"``,
             ``"rdf"``, ``"jsonld"``, ``"provn"``, or a Graphviz output format such as
             ``"svg"``/``"pdf"``/``"png"``).
-        input_format: Source format name, any registered serializer format.
+        input_format: Source format name, any registered serializer format, or
+            ``"auto"`` to detect it from the content.
         reader_options: Keyword options for the input format's reader.
         writer_options: Keyword options for the output format's writer.
 
@@ -111,14 +121,31 @@ def convert_file(
         raise CLIError(f'Output format "{output_format}" is not supported.') from e
 
 
+def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
+    """Resolve the output format and writer options for ``path`` and the ``-f`` ``flag``.
+
+    An explicit flag is used as given, with no options. ``auto`` takes the
+    extension's row, else a Graphviz format named by the extension, else
+    PROV-JSON, which is also the format for standard output.
+    """
+    flag = flag.lower()
+    if flag != "auto":
+        return flag, {}
+    row = _format_from_extension(path)
+    if row is not None:
+        return row
+    graphviz = os.path.splitext(path)[1][1:].lower()
+    return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
+
+
 def _build_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog="prov-convert",
         description="Convert a PROV document between formats.",
         epilog="""examples:
-  prov-convert -f provn doc.json doc.provn
-  prov-convert -i provn -f xml doc.provn doc.xml
-  prov-convert -f svg doc.json doc.svg
+  prov-convert doc.json doc.provn
+  prov-convert doc.provn doc.xml
+  prov-convert doc.json doc.svg
   prov-convert -f jsonld < doc.json > doc.jsonld
 """,
         formatter_class=RawDescriptionHelpFormatter,
@@ -126,16 +153,20 @@ def _build_parser() -> ArgumentParser:
     parser.add_argument(
         "-i",
         "--input-format",
-        default="json",
-        help=f"input format: {_format_names()}; default: %(default)s",
+        default="auto",
+        help=(
+            f"input format: {_format_names()}, or auto to use the file "
+            "extension, else the content; default: %(default)s"
+        ),
     )
     parser.add_argument(
         "-f",
         "--format",
-        default="json",
+        default="auto",
         help=(
-            f"output format: {_format_names()}, or a Graphviz output format "
-            "(e.g. svg, pdf, png); default: %(default)s"
+            f"output format: {_format_names()}, a Graphviz output format "
+            "(e.g. svg, pdf, png), or auto to use the file extension, else "
+            "json; default: %(default)s"
         ),
     )
     parser.add_argument(
@@ -159,7 +190,16 @@ def _convert(parser: ArgumentParser, args: Namespace) -> int:
         outfile, owns_outfile = _open_binary(parser, args.outfile, "wb", "stdout")
         if owns_outfile:
             owned.append(outfile)
-        convert_file(infile, outfile, args.format.lower(), args.input_format.lower())
+        input_format, reader_options = _input_format(args.infile, args.input_format)
+        output_format, writer_options = _output_format(args.outfile, args.format)
+        convert_file(
+            infile,
+            outfile,
+            output_format,
+            input_format,
+            reader_options=reader_options,
+            writer_options=writer_options,
+        )
         outfile.flush()
     finally:
         for stream in owned:
