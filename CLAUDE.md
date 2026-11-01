@@ -105,6 +105,8 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 - `fixtures/written-by-3.2.3/` is written only by its `generate.py` under the published
   `prov==3.2.3` wheel, never by hand or by the working tree. A PR that appends to
   `examples.py` or `ATTRIBUTE_VALUES` reruns it.
+- The wheel leaves out `prov.tests`, and `MANIFEST.in` grafts the directory into the sdist,
+  so a new fixture needs no packaging edit.
 
 New shared record types, attributes or serializer behaviours go into the shared parametrised
 modules so every target is exercised, never into per-format tests.

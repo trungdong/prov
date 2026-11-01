@@ -37,7 +37,7 @@ The PROV-N reader and writer set the pattern for any new serializer.
 
 ## Tests
 
-The test suite lives inside the package, at `src/prov/tests/`, and ships with it. Shared
+The test suite lives at `src/prov/tests/`. The sdist holds it and the wheel does not. Shared
 coverage runs once per target through a parametrised round-trip fixture. The targets are the
 in-memory model and the five round-trippable formats, PROV-JSON, PROV-XML, PROV-O,
 PROV-JSONLD and PROV-N. This exercises a new record type or attribute shape against every
