@@ -85,8 +85,8 @@ def test_relation_endpoints_get_inferred_nodes(document) -> None:
     assert isinstance(nodes_by_id["ex:e2"], ProvEntity)
     assert isinstance(nodes_by_id["ex:a2"], ProvActivity)
     # Inferred nodes are placeholders, not attached to any bundle.
-    assert nodes_by_id["ex:e2"].bundle is None
-    assert nodes_by_id["ex:a2"].bundle is None
+    assert nodes_by_id["ex:e2"]._bundle is None
+    assert nodes_by_id["ex:a2"]._bundle is None
     assert len(g.edges()) == 1
 
 
@@ -208,7 +208,7 @@ def test_records_inside_a_bundle_are_nodes_and_edges(document: ProvDocument) -> 
     g = prov_to_graph(document)
 
     assert {str(n.identifier) for n in g.nodes()} == {"ex:a1", "ex:e1"}
-    assert all(n.bundle is not None for n in g.nodes())
+    assert all(n._bundle is not None for n in g.nodes())
     assert g.number_of_edges() == 1
     assert graph_to_prov(g) == document.flattened().unified()
 

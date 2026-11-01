@@ -658,6 +658,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   namespaces. Keep a reference to the document, and create a bundle in it with
   `ProvDocument.bundle()` or add one with `ProvDocument.add_bundle()`
   ([#650](https://github.com/trungdong/prov/issues/650))
+- `ProvRecord.bundle` is deprecated and warns `DeprecationWarning`, and 4.0 removes it, where
+  3.2.3 warned nothing. A record's container is not part of the public model. Keep the
+  document beside the record, and read which bundle holds a record from the document by
+  iterating `ProvDocument.bundles` and each bundle's `records`
+  ([#734](https://github.com/trungdong/prov/issues/734))
 - `ProvRecord.get_provn` and `ProvBundle.get_provn` take a `width` argument. A bundle passes
   it to every record by keyword, and `str(record)` passes `width=None`, so a subclass that
   overrides `ProvRecord.get_provn(self, strict=False)` or `ProvBundle.get_provn` without it

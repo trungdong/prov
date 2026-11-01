@@ -13,7 +13,9 @@ import shutil
 import tempfile
 import warnings
 from collections.abc import Callable
+from operator import attrgetter
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -1017,44 +1019,62 @@ _ARGUMENT_MESSAGE = re.escape(
     "create the bundle with ProvDocument.bundle() or add it with "
     "ProvDocument.add_bundle()"
 )
+_RECORD_BUNDLE_MESSAGE = re.escape(
+    "ProvRecord.bundle is deprecated and 4.0 removes it; a record's container "
+    "is not public API. Keep the document beside the record, and read which "
+    "bundle holds a record from the document: iterate ProvDocument.bundles and "
+    "each bundle's records."
+)
 
 
-def _bundle_made_by_the_document(d: ProvDocument) -> ProvBundle:
-    return d.bundle("ex:b")
+def _bundle_made_by_the_document(d: ProvDocument) -> tuple[ProvBundle, ProvDocument]:
+    return d.bundle("ex:b"), d
 
 
-def _bundle_added_to_the_document(d: ProvDocument) -> ProvBundle:
+def _bundle_added_to_the_document(d: ProvDocument) -> tuple[ProvBundle, ProvDocument]:
     bundle = ProvBundle()
     d.add_bundle(bundle, "ex:b")
-    return bundle
+    return bundle, d
 
 
-def _bundle_in_no_document(d: ProvDocument) -> ProvBundle:
-    return ProvBundle()
+def _bundle_in_no_document(d: ProvDocument) -> tuple[ProvBundle, None]:
+    return ProvBundle(), None
 
 
-# 4.0 removes both the property and the keyword; until then each answers as in 3.2.3.
+def _record_of_the_document(d: ProvDocument) -> tuple[ProvRecord, ProvDocument]:
+    return d.entity("ex:e"), d
+
+
+def _record_of_a_bundle(d: ProvDocument) -> tuple[ProvRecord, ProvBundle]:
+    bundle = d.bundle("ex:b")
+    return bundle.entity("ex:e"), bundle
+
+
+# 4.0 removes both properties and the keyword; until then each answers as in 3.2.3.
 @pytest.mark.parametrize(
-    ("build", "in_document"),
+    ("build", "read", "message"),
     [
-        (_bundle_made_by_the_document, True),
-        (_bundle_added_to_the_document, True),
-        (_bundle_in_no_document, False),
+        (_bundle_made_by_the_document, attrgetter("document"), _DOCUMENT_MESSAGE),
+        (_bundle_added_to_the_document, attrgetter("document"), _DOCUMENT_MESSAGE),
+        (_bundle_in_no_document, attrgetter("document"), _DOCUMENT_MESSAGE),
+        (_record_of_the_document, attrgetter("bundle"), _RECORD_BUNDLE_MESSAGE),
+        (_record_of_a_bundle, attrgetter("bundle"), _RECORD_BUNDLE_MESSAGE),
     ],
-    ids=["held", "added", "standalone"],
+    ids=["held", "added", "standalone", "record-of-document", "record-of-bundle"],
 )
-def test_bundle_document_is_deprecated(
-    build: Callable[[ProvDocument], ProvBundle], in_document: bool
+def test_container_reads_are_deprecated(
+    build: Callable[[ProvDocument], tuple[Any, Any]],
+    read: Callable[[Any], Any],
+    message: str,
 ) -> None:
-    d = ex_document()
-    bundle = build(d)
+    subject, expected = build(ex_document())
 
-    with pytest.warns(DeprecationWarning, match=_DOCUMENT_MESSAGE) as record:
-        found = bundle.document
+    with pytest.warns(DeprecationWarning, match=message) as record:
+        found = read(subject)
 
     assert len(record) == 1
     assert record[0].filename == __file__
-    assert found is (d if in_document else None)
+    assert found is expected
 
 
 @pytest.mark.parametrize("linked", [True, False], ids=["d", "None"])
