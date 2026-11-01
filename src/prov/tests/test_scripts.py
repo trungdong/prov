@@ -582,14 +582,6 @@ def test_convert_explicit_flags_replace_the_extension_table(tmp_path) -> None:
         _read_back(target, "rdf", rdf_format="turtle")
 
 
-def test_convert_input_flag_drops_the_rdf_xml_format(tmp_path, capsys) -> None:
-    pytest.importorskip("rdflib")
-    source = tmp_path / "in.rdf"
-    _write(source, "rdf", rdf_format="xml")
-    assert convert_main(["-i", "rdf", str(source), str(tmp_path / "out.json")]) == 2
-    assert capsys.readouterr().err.startswith("prov-convert: error: ")
-
-
 JSONLD_IN_JSON = (
     "'@context' is not a recognised PROV-N record-type keyword "
     "(e.g. 'entity', 'activity', 'wasGeneratedBy')"
@@ -625,6 +617,13 @@ NOT_DETECTED = (
             id="the-flag-wins-over-the-extension",
         ),
         pytest.param(
+            "in.rdf",
+            lambda path: _write(path, "rdf", rdf_format="xml"),
+            ["-i", "rdf"],
+            None,
+            id="the-flag-drops-the-rdf-format",
+        ),
+        pytest.param(
             "doc.dat",
             lambda path: path.write_text("not a PROV document"),
             [],
@@ -649,7 +648,7 @@ def test_convert_detection_errors_exit_2_with_one_line(
     assert convert_main([*flags, str(source), str(target)]) == 2
     err = capsys.readouterr().err
     assert err.startswith("prov-convert: error: ")
-    assert err.count("\n") == 1
+    assert err.count("\n") == 1 and err.endswith("\n")
     if message is not None:
         assert err == f"prov-convert: error: {message}\n"
 

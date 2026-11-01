@@ -13,6 +13,8 @@ from prov.serializers import Registry
 def _run(prog: str, action: Callable[[], int]) -> int:
     """Return ``action()``, 130 on Ctrl-C, or 2 after one ``prog: error: ...`` line.
 
+    A message that spans several lines is joined into one.
+
     ``SystemExit`` from argparse or :func:`_open_binary` passes through.
     """
     try:
@@ -20,7 +22,8 @@ def _run(prog: str, action: Callable[[], int]) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
-        sys.stderr.write(f"{prog}: error: {exc}\n")
+        message = " ".join(line.strip() for line in str(exc).splitlines())
+        sys.stderr.write(f"{prog}: error: {message}\n")
         return 2
 
 
