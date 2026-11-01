@@ -179,7 +179,7 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
             scope's declarations.
     """
     elements = [
-        n for n in g.nodes() if isinstance(n, ProvRecord) and n.bundle is not None
+        n for n in g.nodes() if isinstance(n, ProvRecord) and n._bundle is not None
     ]
     relations = [
         relation
@@ -187,7 +187,7 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
         if isinstance(relation := edge_data.get("relation"), ProvRecord)
     ]
     records = [*elements, *relations]
-    source = next((r.bundle for r in records if r.bundle is not None), None)
+    source = next((r._bundle for r in records if r._bundle is not None), None)
     prov_doc = ProvDocument()
     if source is not None:
         # the records' document; its declarations spell their names

@@ -66,7 +66,7 @@ def _typed_values_by_name(record, attr_name):
     ``attributes`` (unlike ``get_attribute()``) is the property that still
     exposes every value the record's storage retains (#34).
     """
-    qn = record.bundle.valid_qualified_name(attr_name)
+    qn = record._bundle.valid_qualified_name(attr_name)
     return {(type(v), v) for k, v in record.attributes if k == qn}
 
 

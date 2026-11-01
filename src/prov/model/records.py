@@ -911,7 +911,22 @@ class ProvRecord:
 
     @property
     def bundle(self) -> ProvBundle:
-        """The bundle that owns this record."""
+        """The bundle that owns this record.
+
+        .. deprecated:: 3.3.0
+            4.0 removes this property. Keep the document or bundle that made
+            the record beside it. With only the document, test the record with
+            ``is`` against the document's own :attr:`ProvBundle.records` and
+            against the :attr:`ProvBundle.records` of each bundle in
+            :attr:`ProvDocument.bundles`. A record found in none of them
+            belongs to another container.
+        """
+        warn(
+            "ProvRecord.bundle is deprecated and 4.0 removes it; a record's "
+            "container is not public API. Keep the document or bundle that made "
+            "the record beside it.",
+            DeprecationWarning,
+        )
         return self._bundle
 
     @property

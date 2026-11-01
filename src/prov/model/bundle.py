@@ -374,7 +374,7 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     for record in records:
         attributes.extend(record.extra_attributes)
 
-    merged = PROV_REC_CLS[record_type](first_record.bundle, identifier, attributes)
+    merged = PROV_REC_CLS[record_type](first_record._bundle, identifier, attributes)
     _check_non_expandable(records)
     return merged
 

@@ -350,6 +350,15 @@ reads. A `mentionOf` may still omit its bundle. A document whose only statements
 relations reads as empty, so {py:func}`prov.read` without a `format` cannot detect it, and
 passing `format=` reads it with the warnings.
 
+## Bundles
+
+`prov` 3.3.0 raises {py:class}`~prov.model.ProvException` for this call, and 3.2.3 did not
+warn about it.
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in the document that will hold it, or `update()` a fresh bundle of that document from it. `update()` registers every prefixed namespace by itself. A bundle whose bare names use a default namespace needs that default declared first, on the document that will hold the bundle or on the fresh bundle, where it was declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
+
 ## Equality
 
 `==` on records, bundles, documents and `Literal` values follows one rule in 3.3.0, and
