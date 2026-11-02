@@ -463,22 +463,14 @@ class Literal:
         """Initialise the literal.
 
         Args:
-            value: The literal's value, stored as text: a ``str`` as given, a
-                ``bool`` as ``true`` or ``false``, an ``int`` as its digits, a
-                ``float`` in XSD form (``INF``, ``-INF``, ``NaN`` or its
-                ``repr()``; the decimal text when ``datatype`` is
-                ``xsd:decimal``), a ``Decimal`` in its plain form, a
-                ``datetime``, ``date`` or ``time`` in ISO 8601 form, a
-                ``timedelta`` as an ``xsd:duration``, a ``UUID`` as its URN, a
-                bytes-like value in base64, or in hex, uppercase, when
-                ``datatype`` is ``xsd:hexBinary``, and a value of any other
-                type through ``str()``. The datatype stays as given. A
-                ``Literal`` holds the text its caller gave it, however it was
-                spelled, so ``Literal(Decimal("NaN"), XSD_DECIMAL)`` is the
-                ill-formed text ``NaN``, which compares as text, and a
-                ``bytes`` value under ``xsd:duration`` is its base64 text under
-                that datatype; only a plain Python value given to a record must
-                have a PROV form (#482).
+            value: The literal's value. The stored form follows the table in the
+                :ref:`Python values <python-values>` section of the reference.
+                The datatype stays as given. A ``Literal`` holds the text its
+                caller gave it, however it was spelled, so
+                ``Literal(Decimal("NaN"), XSD_DECIMAL)`` is the ill-formed text
+                ``NaN``, which compares as text, and a ``bytes`` value under
+                ``xsd:duration`` is its base64 text under that datatype. Only a
+                plain Python value given to a record must have a PROV form.
             datatype: The qualified name of the value's datatype (default:
                 ``None``). Any other object, a plain
                 :class:`~prov.model.Identifier` or a ``str`` included, raises
@@ -720,7 +712,7 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         Args:
             qname: The invalid qualified name.
             detail: What is wrong with it, such as a local part PROV-N
-                cannot write (#524).
+                cannot write.
         """
         self.qname = qname
         self.detail = detail

@@ -1,6 +1,8 @@
-"""``ProvWarning``, the 3.2.3 subclass kept for its filters, and the ``warn`` helper.
+"""``ProvWarning``, ``ProvFutureRejectionWarning`` and the ``warn`` helper.
 
 :mod:`prov.model` re-exports both warning classes under their public names.
+``ProvFutureRejectionWarning`` is never raised. It stays importable so that
+filters written for 3.2.3 keep working, and 4.0 removes it.
 The module also holds the :func:`warn` helper every serializer uses.
 
 Attributing a warning to its caller with a fixed ``stacklevel`` only works
