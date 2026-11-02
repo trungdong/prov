@@ -34,9 +34,9 @@ deserializers in turn, as {ref}`auto-detect` describes.
 
 ## Exceptions
 
-Every exception that `prov` raises on purpose derives from {py:class}`prov.Error`. The
-model's refusals derive from {py:class}`~prov.model.ProvException`, and a failure to read
-or write a document derives from {py:class}`~prov.serializers.ProvSerializationError`.
+The exceptions below derive from {py:class}`prov.Error`. The model's refusals derive from
+{py:class}`~prov.model.ProvException`, and a failure to read or write a document derives
+from {py:class}`~prov.serializers.ProvSerializationError`.
 
 ```text
 prov.Error
@@ -64,7 +64,14 @@ record gets the model's exception.
 
 {py:func}`prov.read` raises `ProvFormatNotDetected` when no registered reader produces a
 document. When the source starts with `{` or `document` and the reader that names rejected
-it with its own error, that error is the `__cause__`. Any other source leaves it empty.
+it with a `ProvSerializationError`, that error is the `__cause__`. Otherwise it has no
+cause.
+
+Input that is not well-formed in the underlying syntax raises the parsing library's own
+error, outside the tree: `json.JSONDecodeError` for the two JSON formats, `lxml`'s
+`XMLSyntaxError`, and rdflib's parser error for the chosen `rdf_format`, `BadSyntax` for
+TriG and Turtle. An unsupported value for the `profile` or `context` option raises
+`ValueError`, and an option name that {py:func}`prov.read` does not accept for the format raises `TypeError`.
 
 ```{eval-rst}
 .. autoclass:: prov.serializers.ProvSerializationError

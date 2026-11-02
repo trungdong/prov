@@ -147,13 +147,13 @@ bundles by identifier, and a bundle never equals a document.
 
 ## Python values
 
-`get_attribute()` returns the stored form of a value. A `Decimal`, `date`, `time`,
-`timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` or `Identifier` is stored as a
-{py:class}`~prov.model.Literal` of its XSD datatype, and a record as its identifier. Every
-other type below keeps its Python type. A subclass of a listed type counts as that type. A
-value of any other type, such as a `Fraction` or a `list`, raises
-{py:class}`~prov.model.ProvValueError`. So does a value of a listed type that has no
-lexical form.
+A record stores each attribute value in the form shown below, and `get_attribute()` returns
+a set of those stored forms. A `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`,
+`bytearray`, `memoryview` or `Identifier` is stored as a {py:class}`~prov.model.Literal` of
+its XSD datatype, and a record as its identifier. Every other type below keeps its Python
+type. A subclass of a listed type counts as that type. A value of any other type, such as a
+`Fraction` or a `list`, raises {py:class}`~prov.model.ProvValueError`. So does a value of a
+listed type that has no lexical form.
 
 | Python type | Datatype | Lexical form |
 | --- | --- | --- |
@@ -282,6 +282,8 @@ a type checker reports a call.
 ```
 
 ## Exceptions
+
+{doc}`serializers` shows how these classes and the serialization errors relate.
 
 ```{eval-rst}
 .. autoclass:: prov.Error
