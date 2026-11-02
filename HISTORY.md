@@ -472,6 +472,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `prov.tests` or runs `pytest --pyargs prov.tests` against an installed prov takes the
   tests from an unpacked sdist or a checkout, where 3.2.3's wheel held them
   ([#728](https://github.com/trungdong/prov/issues/728))
+- A flagless `prov-convert` output file whose extension names a format, such as `out.xml`,
+  is written in that format, where 3.2.3 wrote PROV-JSON. The input extension now decides
+  the input format, and `-V`, the one-line error, exit 130 and `main(argv)` changed
+  ([how-to](https://prov.readthedocs.io/en/latest/howto/cli.html),
+  [#737](https://github.com/trungdong/prov/issues/737))
+- `prov.scripts.convert.CLIError` lacks the `E:` prefix in its `str()` or `.msg` and holds the
+  library's message. `prov.scripts.compare.CLIError` and the `__version__` of both modules
+  are gone ([#737](https://github.com/trungdong/prov/issues/737))
 
 ### Additions
 
@@ -479,6 +487,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `pygmentize`, Sphinx, MkDocs, Pelican and the other Pygments-based tools that load
   plugins highlight a `provn` code block once `prov` is installed. The `pygments` extra
   installs Pygments for an environment that has none ([#628](https://github.com/trungdong/prov/issues/628))
+- `prov-convert` and `prov-compare` detect formats by default. They read the input from its
+  extension or else its content, and `prov-convert` writes the output by its extension or
+  else as PROV-JSON ([#737](https://github.com/trungdong/prov/issues/737))
 
 ### Fixes
 

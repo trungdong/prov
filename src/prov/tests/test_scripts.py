@@ -7,11 +7,9 @@ measurement. This module calls ``main()`` (and, for ``convert``,
 ``convert_file()``) directly in-process so the bulk of both modules is
 actually measured, while leaving the smoke test untouched.
 
-Quirk worth flagging: ``main(argv)`` *extends* ``sys.argv`` rather than
-replacing it (see ``if argv is None: argv = sys.argv else: sys.argv.extend
-(argv)``). So the pattern used throughout is to patch ``sys.argv`` to the
-full desired argv (program name included) and then call ``main()`` with no
-argument, rather than passing ``argv=[...]`` to ``main()``.
+``main(argv)`` parses ``argv`` and leaves ``sys.argv`` alone; ``main()`` with
+no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
+``main()``; those that pass ``argv`` leave ``sys.argv`` untouched.
 """
 
 import contextlib
@@ -22,14 +20,18 @@ from typing import NoReturn
 
 import pytest
 
+import prov
 from prov.model import ProvDocument
+from prov.scripts import _format_names, _run
 from prov.scripts.compare import main as compare_main
 from prov.scripts.convert import (
     GRAPHVIZ_SUPPORTED_FORMATS,
     CLIError,
+    _output_format,
     convert_file,
     main as convert_main,
 )
+from prov.serializers import Registry
 from prov.tests.examples import primer_example, w3c_publication_1
 
 
@@ -38,6 +40,56 @@ def infile(tmp_path):
     path = tmp_path / "doc.json"
     primer_example().serialize(str(path), format="json")
     return path
+
+
+class _Pipe:
+    """Makes a stream read like a pipe."""
+
+    def seekable(self) -> bool:
+        return False
+
+    def seek(self, *args, **kwargs) -> NoReturn:
+        raise io.UnsupportedOperation("seek")
+
+
+class NonSeekableBytes(_Pipe, io.BytesIO):
+    """A binary stream that reads like a pipe."""
+
+
+class NonSeekableText(_Pipe, io.StringIO):
+    """A text-only stream (no ``.buffer``) that reads like a pipe."""
+
+
+class ReadOnlyBytes:
+    """A stream with a ``read`` method and nothing else."""
+
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+
+    def read(self, *args) -> bytes:
+        return self._data
+
+
+STDIN_STREAMS = {
+    "seekable-bytes": lambda data: io.TextIOWrapper(io.BytesIO(data)),
+    "pipe-bytes": lambda data: io.TextIOWrapper(NonSeekableBytes(data)),
+    "pipe-text": lambda data: NonSeekableText(data.decode()),
+    "no-seekable": ReadOnlyBytes,
+}
+
+EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
+TURTLE = {"rdf_format": "turtle"}
+
+
+def _write(path, fmt: str, **options) -> None:
+    primer_example().serialize(str(path), format=fmt, **options)
+
+
+def _read_back(path, fmt: str, **options) -> ProvDocument:
+    return ProvDocument.deserialize(str(path), format=fmt, **options)
+
+
+# prov-convert.
 
 
 def test_convert_to_xml(infile, tmp_path, monkeypatch) -> None:
@@ -60,18 +112,15 @@ def test_convert_format_is_case_insensitive(infile, tmp_path, monkeypatch) -> No
     assert outfile.stat().st_size > 0
 
 
-def test_convert_explicit_argv_extends_sys_argv(infile, tmp_path, monkeypatch) -> None:
-    # Pin the documented quirk: main(argv) *extends* sys.argv rather than
-    # replacing it, and argparse then reads the combined sys.argv. A
-    # future "fix" that silently changes this to replacement should trip
-    # this test so the behaviour change is a deliberate (3.0) decision.
+def test_convert_parses_explicit_argv_and_leaves_sys_argv_alone(
+    infile, tmp_path
+) -> None:
     outfile = tmp_path / "doc.xml"
-    argv = ["-f", "xml", str(infile), str(outfile)]
-    monkeypatch.setattr(sys, "argv", ["prov-convert"])
-    rc = convert_main(argv)
-    assert sys.argv == ["prov-convert", *argv]
+    before = list(sys.argv)
+    rc = convert_main(["-f", "xml", str(infile), str(outfile)])
     assert rc == 0
-    assert outfile.stat().st_size > 0
+    assert sys.argv == before
+    assert b"<prov:document" in outfile.read_bytes()
 
 
 def test_convert_to_provn(infile, tmp_path, monkeypatch) -> None:
@@ -83,10 +132,12 @@ def test_convert_to_provn(infile, tmp_path, monkeypatch) -> None:
     assert rc == 0
     content = outfile.read_text(encoding="utf-8")
     assert content
-    # Sanity-check this really went through get_provn(), not a serializer:
     # PROV-N documents open/close with these keywords.
     assert content.startswith("document")
     assert "endDocument" in content
+    # serialize(format="provn") writes exactly get_provn(), byte for byte.
+    expected = ProvDocument.deserialize(str(infile), format="json").get_provn()
+    assert outfile.read_bytes() == expected.encode()
 
 
 @pytest.mark.skipif(
@@ -115,23 +166,20 @@ def test_convert_to_rendered_graphviz_format(infile, tmp_path, monkeypatch) -> N
     assert outfile.stat().st_size > 0
 
 
-def test_convert_unsupported_format_returns_2_and_writes_stderr(
-    infile, tmp_path, monkeypatch
+def test_convert_unsupported_format_returns_2_and_writes_one_error_line(
+    infile, tmp_path, capsys
 ) -> None:
-    outfile = tmp_path / "doc.bogus"
-    stderr = io.StringIO()
-    monkeypatch.setattr(
-        sys, "argv", ["prov-convert", "-f", "bogus", str(infile), str(outfile)]
-    )
-    monkeypatch.setattr(sys, "stderr", stderr)
-    rc = convert_main()
+    rc = convert_main(["-f", "bogus", str(infile), str(tmp_path / "doc.bogus")])
     assert rc == 2
-    assert 'E: Output format "bogus" is not supported.' in stderr.getvalue()
+    assert (
+        capsys.readouterr().err
+        == 'prov-convert: error: No serializer available for the format "bogus"\n'
+    )
 
 
 def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path) -> None:
-    # Exercise convert_file() directly for the CLIError branch and its
-    # __str__ (the "E: ..." prefix).
+    # Exercise convert_file() directly for the CLIError branch.
+    # The message carries no prefix.
     assert "bogus" not in GRAPHVIZ_SUPPORTED_FORMATS
     with (
         open(infile) as in_stream,
@@ -139,7 +187,8 @@ def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path) 
         pytest.raises(CLIError) as ctx,
     ):
         convert_file(in_stream, out_stream, "bogus")
-    assert str(ctx.value) == 'E: Output format "bogus" is not supported.'
+    assert str(ctx.value) == 'No serializer available for the format "bogus"'
+    assert ctx.value.msg == 'No serializer available for the format "bogus"'
 
 
 def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch) -> None:
@@ -151,34 +200,15 @@ def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch) -> No
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(missing), str(outfile)]
     )
-    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    monkeypatch.setenv("COLUMNS", "200")
+    stderr = io.StringIO()
+    monkeypatch.setattr(sys, "stderr", stderr)
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 2
-
-
-def test_convert_version_exits_0_without_stdout_buffer(monkeypatch) -> None:
-    # Files are opened after parsing, so --version never needs
-    # sys.stdout.buffer; a plain StringIO stdout must do.
-    monkeypatch.setattr(sys, "argv", ["prov-convert", "--version"])
-    monkeypatch.setattr(sys, "stdout", io.StringIO())
-    with pytest.raises(SystemExit) as ctx:
-        convert_main()
-    assert ctx.value.code == 0
-
-
-def test_convert_returns_0_on_keyboard_interrupt(infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "doc.xml"
-
-    def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr("prov.scripts.convert.convert_file", raise_keyboard_interrupt)
-    monkeypatch.setattr(
-        sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
-    )
-    rc = convert_main()
-    assert rc == 0
+    usage, error = stderr.getvalue().splitlines()
+    assert usage.startswith("usage: prov-convert ")
+    assert error.startswith("prov-convert: error: can't open ")
 
 
 def test_convert_closes_files_even_when_conversion_fails(
@@ -187,9 +217,7 @@ def test_convert_closes_files_even_when_conversion_fails(
     outfile = tmp_path / "doc.xml"
     captured = {}
 
-    def spy_convert_file(
-        in_stream, out_stream, output_format, input_format="json"
-    ) -> NoReturn:
+    def spy_convert_file(in_stream, out_stream, *args, **kwargs) -> NoReturn:
         captured["infile"] = in_stream
         captured["outfile"] = out_stream
         raise RuntimeError("boom")
@@ -246,7 +274,10 @@ def test_convert_unknown_input_format_exits_2(
         sys, "argv", ["prov-convert", "-i", "nope", str(infile), str(outfile)]
     )
     assert convert_main() == 2
-    assert "nope" in capsys.readouterr().err
+    assert (
+        capsys.readouterr().err
+        == 'prov-convert: error: No serializer available for the format "nope"\n'
+    )
 
 
 def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch) -> None:
@@ -259,18 +290,6 @@ def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch) -> 
         monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out))
         assert convert_main() == 0
     assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
-
-
-def test_convert_help_under_redirected_stdout(monkeypatch) -> None:
-    # --help formats usage to sys.stdout; the old sys.stdout.buffer default
-    # broke when stdout was something without a .buffer attribute (e.g.
-    # contextlib.redirect_stdout(io.StringIO())).
-    monkeypatch.setattr(sys, "argv", ["prov-convert", "--help"])
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf), pytest.raises(SystemExit) as ctx:
-        convert_main()
-    assert ctx.value.code == 0
-    assert buf.getvalue().startswith("usage:")
 
 
 def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch) -> None:
@@ -314,6 +333,187 @@ def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch) -
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("in_name", "in_format", "in_options", "out_name", "out_format", "out_options"),
+    [
+        pytest.param("doc.provn", "provn", {}, "out.json", "json", {}, id="provn-in"),
+        pytest.param("IN.PROVN", "provn", {}, "OUT.XML", "xml", {}, id="upper-case"),
+        pytest.param("doc.json", "json", {}, "out.xml", "xml", {}, id="xml-out"),
+        pytest.param("doc.provx", "xml", {}, "out.json", "json", {}, id="provx-in"),
+        pytest.param("doc.txt", "json", {}, "out.json", "json", {}, id="txt-in"),
+        pytest.param("doc.ttl", "rdf", TURTLE, "out.json", "json", {}, id="ttl-in"),
+        pytest.param(
+            "doc.rdf", "rdf", {"rdf_format": "xml"}, "out.json", "json", {}, id="rdf-in"
+        ),
+        pytest.param("doc.json", "json", {}, "out.ttl", "rdf", TURTLE, id="ttl-out"),
+    ],
+)
+def test_convert_detects_formats_from_extensions(
+    tmp_path, in_name, in_format, in_options, out_name, out_format, out_options
+) -> None:
+    for name in (in_format, out_format):
+        if name in EXTRAS:
+            pytest.importorskip(EXTRAS[name])
+    source = tmp_path / in_name
+    target = tmp_path / out_name
+    _write(source, in_format, **in_options)
+    assert convert_main([str(source), str(target)]) == 0
+    assert _read_back(target, out_format, **out_options) == primer_example()
+
+
+def test_convert_detects_the_content_when_the_extension_is_unknown(tmp_path) -> None:
+    # "doc" has no extension and sits in a directory whose name looks like PROV-N.
+    folder = tmp_path / "a.provn"
+    folder.mkdir()
+    source = folder / "doc"
+    target = tmp_path / "out.json"
+    _write(source, "provn")
+    assert convert_main([str(source), str(target)]) == 0
+    assert _read_back(target, "json") == primer_example()
+
+
+def test_convert_accepts_auto_in_any_case(tmp_path) -> None:
+    source = tmp_path / "doc.provn"
+    target = tmp_path / "out.xml"
+    _write(source, "provn")
+    assert convert_main(["-i", "AUTO", "-f", "auto", str(source), str(target)]) == 0
+    assert _read_back(target, "xml") == primer_example()
+    # convert_file() takes the name in any case too.
+    with open(source, "rb") as in_stream, open(tmp_path / "copy.json", "wb") as out:
+        convert_file(in_stream, out, "json", "AUTO")
+    assert _read_back(tmp_path / "copy.json", "json") == primer_example()
+
+
+def test_convert_explicit_flags_replace_the_extension_table(tmp_path) -> None:
+    rdflib_parsers = pytest.importorskip("rdflib.plugins.parsers.notation3")
+    source = tmp_path / "doc.json"
+    target = tmp_path / "out.ttl"
+    _write(source, "json")
+    assert convert_main(["-f", "rdf", str(source), str(target)]) == 0
+    assert _read_back(target, "rdf", rdf_format="trig") == primer_example()
+    # The table's Turtle would read back here; the default TriG does not.
+    with pytest.raises(rdflib_parsers.BadSyntax):
+        _read_back(target, "rdf", rdf_format="turtle")
+
+
+JSONLD_IN_JSON = (
+    "'@context' is not a recognised PROV-N record-type keyword "
+    "(e.g. 'entity', 'activity', 'wasGeneratedBy')"
+)
+NOT_DETECTED = (
+    "Could not read from the source. To get a proper error message, "
+    "specify the format with the 'format' parameter."
+)
+
+
+@pytest.mark.parametrize(
+    ("name", "write", "flags", "message"),
+    [
+        pytest.param(
+            "doc.json",
+            lambda path: _write(path, "jsonld"),
+            [],
+            JSONLD_IN_JSON,
+            id="jsonld-in-json-file",
+        ),
+        pytest.param(
+            "export.xml",
+            lambda path: _write(path, "json"),
+            [],
+            None,
+            id="json-in-xml-file",
+        ),
+        pytest.param(
+            "doc.provn",
+            lambda path: _write(path, "provn"),
+            ["-i", "json"],
+            None,
+            id="the-flag-wins-over-the-extension",
+        ),
+        pytest.param(
+            "in.rdf",
+            lambda path: _write(path, "rdf", rdf_format="xml"),
+            ["-i", "rdf"],
+            None,
+            id="the-flag-drops-the-rdf-format",
+        ),
+        pytest.param(
+            "doc.dat",
+            lambda path: path.write_text("not a PROV document"),
+            [],
+            NOT_DETECTED,
+            id="garbage",
+        ),
+        pytest.param(
+            "doc.dat",
+            lambda path: path.write_text("{}"),
+            [],
+            NOT_DETECTED,
+            id="empty-document",
+        ),
+    ],
+)
+def test_convert_detection_errors_exit_2_with_one_line(
+    tmp_path, capsys, name, write, flags, message
+) -> None:
+    source = tmp_path / name
+    write(source)
+    target = tmp_path / "out.json"
+    assert convert_main([*flags, str(source), str(target)]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("prov-convert: error: ")
+    assert err.count("\n") == 1 and err.endswith("\n")
+    if message is not None:
+        assert err == f"prov-convert: error: {message}\n"
+
+
+@pytest.mark.parametrize("stream", STDIN_STREAMS)
+@pytest.mark.parametrize("fmt", ["json", "provn"])
+def test_convert_detects_a_document_on_stdin(
+    tmp_path, monkeypatch, stream, fmt
+) -> None:
+    data = primer_example().serialize(format=fmt).encode()
+    monkeypatch.setattr(sys, "stdin", STDIN_STREAMS[stream](data))
+    target = tmp_path / "out.json"
+    assert convert_main(["-", str(target)]) == 0
+    assert _read_back(target, "json") == primer_example()
+
+
+def test_convert_an_empty_document_on_stdin_exits_2(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(sys, "stdin", io.StringIO("{}"))
+    assert convert_main([]) == 2
+    assert capsys.readouterr().err == f"prov-convert: error: {NOT_DETECTED}\n"
+
+
+@pytest.mark.parametrize(
+    ("path", "flag", "expected"),
+    [
+        pytest.param("OUT.svg", "auto", ("svg", {}), id="graphviz"),
+        pytest.param("out.dot", "AUTO", ("dot", {}), id="dot"),
+        pytest.param("out.xml", "auto", ("xml", {}), id="table-first"),
+        pytest.param("out.ttl", "auto", ("rdf", TURTLE), id="rdf-options"),
+        pytest.param("out.jsonld", "auto", ("jsonld", {}), id="jsonld"),
+        pytest.param("out.trig", "auto", ("rdf", {"rdf_format": "trig"}), id="trig"),
+        pytest.param("out.nt", "auto", ("rdf", {"rdf_format": "nt"}), id="nt"),
+        pytest.param("out.nq", "auto", ("rdf", {"rdf_format": "nquads"}), id="nq"),
+        pytest.param("out.provx", "auto", ("xml", {}), id="provx"),
+        pytest.param("out.rdf", "auto", ("rdf", {"rdf_format": "xml"}), id="rdf-xml"),
+        pytest.param("out.provn", "auto", ("provn", {}), id="provn"),
+        pytest.param("out.JSON", "auto", ("json", {}), id="json-upper-case"),
+        pytest.param("-", "auto", ("json", {}), id="stdout"),
+        pytest.param("out.bogus", "auto", ("json", {}), id="unknown"),
+        pytest.param("out.", "auto", ("json", {}), id="bare-dot"),
+        pytest.param("out.ttl", "RDF", ("rdf", {}), id="flag-drops-options"),
+        pytest.param("out.svg", "xml", ("xml", {}), id="flag-wins"),
+    ],
+)
+def test_output_format_resolution(path, flag, expected) -> None:
+    assert _output_format(path, flag) == expected
+
+
+# prov-compare.
 
 
 @pytest.fixture
@@ -365,21 +565,14 @@ def test_different_documents_return_1(compare_files, tmp_path, monkeypatch) -> N
     assert rc == 1
 
 
-def test_bad_format_returns_2_and_writes_stderr(compare_files, monkeypatch) -> None:
+def test_bad_format_returns_2_and_writes_one_error_line(compare_files, capsys) -> None:
     json_file, xml_file = compare_files
-    stderr = io.StringIO()
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["prov-compare", "-f", "bogus", str(json_file), str(xml_file)],
-    )
-    monkeypatch.setattr(sys, "stderr", stderr)
-    rc = compare_main()
+    rc = compare_main(["-f", "bogus", str(json_file), str(xml_file)])
     assert rc == 2
-    # Unlike convert.py's unsupported-format case, this failure comes
-    # straight out of the serializer registry (no CLIError wrapping), so
-    # there is no "E: " prefix -- just the program name and message.
-    assert 'No serializer available for the format "bogus"' in stderr.getvalue()
+    assert (
+        capsys.readouterr().err
+        == 'prov-compare: error: No serializer available for the format "bogus"\n'
+    )
 
 
 def test_missing_file_exits_2(compare_files, tmp_path, monkeypatch) -> None:
@@ -392,26 +585,17 @@ def test_missing_file_exits_2(compare_files, tmp_path, monkeypatch) -> None:
     assert ctx.value.code == 2
 
 
-def test_version_exits_0(monkeypatch) -> None:
-    monkeypatch.setattr(sys, "argv", ["prov-compare", "--version"])
-    monkeypatch.setattr(sys, "stdout", io.StringIO())
-    with pytest.raises(SystemExit) as ctx:
-        compare_main()
-    assert ctx.value.code == 0
-
-
 def test_closes_both_files_on_error(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     captured_sources = []
     original_deserialize = ProvDocument.deserialize
 
-    def spy_deserialize(source=None, content=None, format="json", **kwargs):
+    def spy_deserialize(source=None, content=None, **kwargs):
         captured_sources.append(source)
         if len(captured_sources) == 2:
             raise RuntimeError("boom")
-        return original_deserialize(
-            source=source, content=content, format=format, **kwargs
-        )
+        kwargs.setdefault("format", "json")
+        return original_deserialize(source=source, content=content, **kwargs)
 
     monkeypatch.setattr(ProvDocument, "deserialize", staticmethod(spy_deserialize))
     monkeypatch.setattr(sys, "argv", ["prov-compare", str(json_file), str(xml_file)])
@@ -445,9 +629,7 @@ def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch) 
 def test_compare_reads_a_text_only_stdin_for_dash(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     monkeypatch.setattr(sys, "stdin", io.StringIO(json_file.read_text()))
-    monkeypatch.setattr(
-        sys, "argv", ["prov-compare", "-f", "json", "-F", "xml", "-", str(xml_file)]
-    )
+    monkeypatch.setattr(sys, "argv", ["prov-compare", "-F", "xml", "-", str(xml_file)])
     assert compare_main() == 0
 
 
@@ -457,3 +639,126 @@ def test_compare_two_dashes_exits_2(monkeypatch) -> None:
     with pytest.raises(SystemExit) as ctx:
         compare_main()
     assert ctx.value.code == 2
+
+
+@pytest.fixture
+def provn_and_xml(tmp_path):
+    pytest.importorskip("lxml")
+    provn_file = tmp_path / "a.provn"
+    xml_file = tmp_path / "b.xml"
+    _write(provn_file, "provn")
+    _write(xml_file, "xml")
+    return provn_file, xml_file
+
+
+@pytest.mark.parametrize("flags", [[], ["-f", "auto", "-F", "AUTO"]])
+def test_compare_detects_formats_from_extensions(provn_and_xml, flags) -> None:
+    provn_file, xml_file = provn_and_xml
+    assert compare_main([*flags, str(provn_file), str(xml_file)]) == 0
+
+
+def test_compare_detects_a_document_on_stdin(provn_and_xml, monkeypatch) -> None:
+    provn_file, xml_file = provn_and_xml
+    stdin = STDIN_STREAMS["pipe-bytes"](provn_file.read_bytes())
+    monkeypatch.setattr(sys, "stdin", stdin)
+    assert compare_main(["-", str(xml_file)]) == 0
+
+
+def test_compare_a_flag_replaces_the_extension(provn_and_xml, capsys) -> None:
+    provn_file, xml_file = provn_and_xml
+    assert compare_main(["-f", "json", str(provn_file), str(xml_file)]) == 2
+    assert capsys.readouterr().err.startswith("prov-compare: error: ")
+
+
+# Both tools.
+
+
+@pytest.mark.parametrize("flag", ["-V", "--version"])
+@pytest.mark.parametrize(
+    ("main", "prog"), [(convert_main, "prov-convert"), (compare_main, "prov-compare")]
+)
+def test_version_prints_the_package_version(main, prog, flag, monkeypatch) -> None:
+    # Files are opened after parsing, so a plain StringIO stdout (no .buffer)
+    # must do.
+    stdout = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", stdout)
+    with pytest.raises(SystemExit) as ctx:
+        main([flag])
+    assert ctx.value.code == 0
+    assert stdout.getvalue() == f"{prog} {prov.__version__}\n"
+
+
+@pytest.mark.parametrize("main", [convert_main, compare_main])
+def test_help_is_one_description_with_examples(main) -> None:
+    # --help formats usage to sys.stdout, which may have no .buffer attribute
+    # (e.g. under contextlib.redirect_stdout(io.StringIO())).
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), pytest.raises(SystemExit) as ctx:
+        main(["--help"])
+    assert ctx.value.code == 0
+    out = buf.getvalue()
+    assert out.startswith("usage:")
+    assert "Copyright" not in out
+    assert "USAGE" not in out
+    assert "examples:" in out
+    assert _format_names() in " ".join(out.split())
+    assert ("Graphviz" in out) == (main is convert_main)
+
+
+def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:
+    raise KeyboardInterrupt
+
+
+@pytest.mark.parametrize(
+    ("main", "patched", "args"),
+    [
+        (convert_main, "prov.scripts.convert.convert_file", ["-f", "xml"]),
+        (compare_main, "prov.scripts.compare._read", []),
+        (convert_main, "prov.scripts.convert._build_parser", []),
+        (compare_main, "prov.scripts.compare._build_parser", []),
+    ],
+    ids=["convert", "compare", "convert-start-up", "compare-start-up"],
+)
+def test_keyboard_interrupt_returns_130_silently(
+    main, patched, args, infile, tmp_path, monkeypatch, capsys
+) -> None:
+    # prov-compare opens both paths, so the second one must exist.
+    second = tmp_path / "second.json"
+    second.write_bytes(infile.read_bytes())
+    monkeypatch.setattr(patched, raise_keyboard_interrupt)
+    assert main([*args, str(infile), str(second)]) == 130
+    assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize(
+    ("exc", "message"),
+    [
+        pytest.param(Exception(), "Exception", id="empty"),
+        pytest.param(ValueError("a\n\n  b \n"), "a b", id="blank-line"),
+    ],
+)
+def test_run_prints_one_error_line(exc, message, capsys) -> None:
+    def action() -> NoReturn:
+        raise exc
+
+    assert _run("x", action) == 2
+    assert capsys.readouterr().err == f"x: error: {message}\n"
+
+
+def test_a_missing_extra_prints_the_install_hint(
+    infile, tmp_path, monkeypatch, capsys
+) -> None:
+    # A minimal install registers no "xml" serializer; the library's hint
+    # reaches stderr whole from both tools.
+    Registry.load_serializers()
+    assert Registry.serializers is not None
+    minimal = {k: v for k, v in Registry.serializers.items() if k != "xml"}
+    monkeypatch.setattr(Registry, "serializers", minimal)
+    hint = (
+        'Serializer for the "xml" format requires the "xml" extra; '
+        'install it with: pip install "prov[xml]"'
+    )
+    assert convert_main(["-f", "xml", str(infile), str(tmp_path / "out.dat")]) == 2
+    assert capsys.readouterr().err == f"prov-convert: error: {hint}\n"
+    assert compare_main(["-F", "xml", str(infile), str(infile)]) == 2
+    assert capsys.readouterr().err == f"prov-compare: error: {hint}\n"

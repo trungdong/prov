@@ -1,38 +1,24 @@
-#!/usr/bin/env python
-"""
-convert -- Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD and graphical formats
+"""Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD
+and Graphviz output formats."""
 
-@author:     Trung Dong Huynh
-
-@copyright:  2026 Trung Dong Huynh
-
-@license:    MIT License
-
-@contact:    trungdong@donggiang.com
-@deffield    updated: 2026-09-12
-"""
-
-import logging
+import contextlib
 import os
 import sys
-import traceback
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from typing import BinaryIO, cast
+from collections.abc import Mapping
+from typing import IO, Any, cast
 
+import prov
 from prov import serializers
-from prov.model import ProvDocument
-from prov.scripts import _open_binary
+from prov.scripts import (
+    _format_names,
+    _input_format,
+    _open_binary,
+    _read,
+    _run,
+)
 
-logger = logging.getLogger(__name__)
-
-__all__: list[str] = []
-__version__ = 0.1
-__date__ = "2014-03-14"
-__updated__ = "2026-09-12"
-
-DEBUG = 0
-TESTRUN = 0
-PROFILE = 0
+_PROG = "prov-convert"
 
 GRAPHVIZ_SUPPORTED_FORMATS = {
     "bmp",
@@ -74,31 +60,30 @@ to the formats registered in :class:`~prov.serializers.Registry`."""
 
 
 class CLIError(Exception):
-    """Generic exception to raise and log different fatal errors."""
+    """A fatal error that :func:`main` reports as one ``prov-convert: error:`` line."""
 
     def __init__(self, msg: str):
-        super().__init__(type(self))
-        self.msg = f"E: {msg}"
-
-    def __str__(self) -> str:
-        return self.msg
+        super().__init__(msg)
+        self.msg = msg
 
 
 def convert_file(
-    infile: BinaryIO,
-    outfile: BinaryIO,
+    infile: IO[Any],
+    outfile: IO[Any],
     output_format: str,
     input_format: str = "json",
+    *,
+    reader_options: Mapping[str, Any] | None = None,
+    writer_options: Mapping[str, Any] | None = None,
 ) -> None:
     """Read a PROV document from ``infile`` and write it to ``outfile`` in ``output_format``.
 
-    ``infile`` is read in ``input_format`` (default PROV-JSON) through
-    :meth:`~prov.model.ProvDocument.deserialize`. For ``output_format``,
-    ``"provn"`` is written directly via
-    :meth:`~prov.model.ProvDocument.get_provn`, a name in
+    ``infile`` is read in ``input_format`` (default PROV-JSON; ``"auto"``
+    detects the format from the content). A name in
     :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
-    :func:`~prov.dot.prov_to_dot` and Graphviz, and any other format is
-    delegated to :meth:`~prov.model.ProvDocument.serialize`.
+    :func:`~prov.dot.prov_to_dot` and Graphviz, and any other
+    ``output_format`` is written by
+    :meth:`~prov.model.ProvDocument.serialize`.
 
     Args:
         infile: File-like object (opened in binary mode) to read the source
@@ -108,22 +93,23 @@ def convert_file(
         output_format: Target format name (e.g. ``"json"``, ``"xml"``,
             ``"rdf"``, ``"jsonld"``, ``"provn"``, or a Graphviz output format such as
             ``"svg"``/``"pdf"``/``"png"``).
-        input_format: Source format name, any registered serializer format.
+        input_format: Source format name, any registered serializer format, or
+            ``"auto"`` to detect it from the content.
+        reader_options: Keyword options for the input format's reader.
+        writer_options: Keyword options for the output format's writer.
 
     Raises:
         CLIError: If ``input_format`` is not a registered serializer format,
-            or if ``output_format`` is not ``"provn"``, not a Graphviz
-            format, and not a registered serializer format.
+            or if ``output_format`` is not a Graphviz format and not a
+            registered serializer format. The message is the serializer
+            registry's, which names the extra a missing format needs.
     """
     try:
-        prov_doc = ProvDocument.deserialize(infile, format=input_format)
+        prov_doc = _read(infile, input_format, reader_options or {})
     except serializers.DoNotExist as e:
-        raise CLIError(f'Input format "{input_format}" is not supported.') from e
+        raise CLIError(str(e)) from e
 
-    # Formats not supported by prov.serializers
-    if output_format == "provn":
-        outfile.write(prov_doc.get_provn().encode())
-    elif output_format in GRAPHVIZ_SUPPORTED_FORMATS:
+    if output_format in GRAPHVIZ_SUPPORTED_FORMATS:
         from prov.dot import prov_to_dot
 
         dot = prov_to_dot(prov_doc)
@@ -132,15 +118,93 @@ def convert_file(
         # `bytes`; this is an inaccuracy in pydot's stub, not a bug here.
         content = cast(bytes, dot.create(format=output_format))
         outfile.write(content)
-    else:
-        # Try supported serializers:
-        try:
-            prov_doc.serialize(outfile, format=output_format)
-        except serializers.DoNotExist as e:
-            raise CLIError(f'Output format "{output_format}" is not supported.') from e
+        return
+    try:
+        prov_doc.serialize(outfile, format=output_format, **(writer_options or {}))
+    except serializers.DoNotExist as e:
+        raise CLIError(str(e)) from e
 
 
-def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
+def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
+    """Resolve the output format and writer options for ``path`` and the ``-f`` ``flag``.
+
+    An explicit flag is used as given, with no options. ``auto`` takes the
+    extension's row, else a Graphviz format named by the extension, else
+    PROV-JSON, which is also the format for standard output.
+    """
+    fmt, options = _input_format(path, flag)
+    if fmt != "auto":
+        return fmt, options
+    graphviz = os.path.splitext(path)[1][1:].lower()
+    return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
+
+
+def _build_parser() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog=_PROG,
+        description="Convert a PROV document between formats.",
+        epilog="""examples:
+  prov-convert doc.json doc.provn
+  prov-convert doc.provn doc.xml
+  prov-convert doc.json doc.svg
+  prov-convert -f jsonld < doc.json > doc.jsonld
+""",
+        formatter_class=RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "-i",
+        "--input-format",
+        default="auto",
+        help=(
+            f"input format: {_format_names()}, or auto to use the file "
+            "extension, else the content; default: %(default)s"
+        ),
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        default="auto",
+        help=(
+            f"output format: {_format_names()}, a Graphviz output format "
+            "(e.g. svg, pdf, png), or auto to use the file extension, else "
+            "json; default: %(default)s"
+        ),
+    )
+    parser.add_argument(
+        "infile", nargs="?", default="-", help="input file (default: stdin)"
+    )
+    parser.add_argument(
+        "outfile", nargs="?", default="-", help="output file (default: stdout)"
+    )
+    parser.add_argument(
+        "-V", "--version", action="version", version=f"%(prog)s {prov.__version__}"
+    )
+    return parser
+
+
+def _convert(argv: list[str] | None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    with contextlib.ExitStack() as streams:
+        infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))
+        outfile = streams.enter_context(
+            _open_binary(parser, args.outfile, "wb", "stdout")
+        )
+        input_format, reader_options = _input_format(args.infile, args.input_format)
+        output_format, writer_options = _output_format(args.outfile, args.format)
+        convert_file(
+            infile,
+            outfile,
+            output_format,
+            input_format,
+            reader_options=reader_options,
+            writer_options=writer_options,
+        )
+        outfile.flush()
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
     """Run the ``prov-convert`` command-line tool.
 
     Parses ``-f/--format``, ``-i/--input-format``, an optional input file
@@ -149,118 +213,17 @@ def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
     parsing; the standard streams are used for ``-`` and are not closed.
 
     Args:
-        argv: Extra command-line arguments. If not ``None``, they are
-            appended to ``sys.argv`` (which is *not* replaced) before
-            argument parsing, so ``sys.argv[0]`` is still used as the
-            program name.
+        argv: The command-line arguments, without the program name. ``None``
+            means ``sys.argv[1:]``. ``sys.argv`` is never modified.
 
     Returns:
-        ``0`` on success or on ``KeyboardInterrupt``; ``2`` if an exception
-        was raised while parsing arguments or converting the file (unless
-        ``DEBUG``/``TESTRUN`` is set, in which case the exception
-        propagates instead).
+        ``0`` on success, ``2`` after printing ``prov-convert: error: ...``
+        to stderr when reading or converting fails, or ``130`` on
+        ``KeyboardInterrupt``. A usage error exits through argparse with
+        status 2.
     """
-
-    if argv is None:
-        argv = sys.argv
-    else:
-        sys.argv.extend(argv)
-
-    program_name = os.path.basename(sys.argv[0])
-    program_version = f"v{__version__}"
-    program_build_date = str(__updated__)
-    program_version_message = f"%(prog)s {program_version} ({program_build_date})"
-    program_shortdesc = __doc__.split("\n")[1]
-    program_license = f"""{program_shortdesc}
-
-  Copyright 2026 Trung Dong Huynh.
-
-  Licensed under the MIT License
-  https://github.com/trungdong/prov/blob/main/LICENSE
-
-  Distributed on an "AS IS" basis without warranties
-  or conditions of any kind, either express or implied.
-
-USAGE
-"""
-
-    try:
-        # Setup argument parser
-        parser = ArgumentParser(
-            description=program_license, formatter_class=RawDescriptionHelpFormatter
-        )
-        parser.add_argument(
-            "-i",
-            "--input-format",
-            dest="input_format",
-            action="store",
-            default="json",
-            help="input format: json, xml, rdf, jsonld or provn",
-        )
-        parser.add_argument(
-            "-f",
-            "--format",
-            dest="format",
-            action="store",
-            default="json",
-            help="output format: json, xml, rdf, jsonld, provn, or a Graphviz output format (e.g. svg, pdf, png)",
-        )
-        parser.add_argument(
-            "infile", nargs="?", default="-", help="input file (default: stdin)"
-        )
-        parser.add_argument(
-            "outfile", nargs="?", default="-", help="output file (default: stdout)"
-        )
-        parser.add_argument(
-            "-V", "--version", action="version", version=program_version_message
-        )
-
-        args = parser.parse_args()
-        owned: list[BinaryIO] = []
-        try:
-            infile, owns_infile = _open_binary(parser, args.infile, "rb", "stdin")
-            if owns_infile:
-                owned.append(infile)
-            outfile, owns_outfile = _open_binary(parser, args.outfile, "wb", "stdout")
-            if owns_outfile:
-                owned.append(outfile)
-            convert_file(
-                infile, outfile, args.format.lower(), args.input_format.lower()
-            )
-            outfile.flush()
-        finally:
-            for stream in owned:
-                stream.close()
-
-        return 0
-    except KeyboardInterrupt:
-        # handle keyboard interrupt
-        return 0
-    except Exception as e:
-        if DEBUG or TESTRUN:
-            traceback.print_exc()
-            raise e
-        indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + str(e) + "\n")
-        sys.stderr.write(indent + "  for help use --help")
-        return 2
+    return _run(_PROG, lambda: _convert(argv))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=(logging.DEBUG if DEBUG else logging.INFO))
-    if TESTRUN:
-        import doctest
-
-        doctest.testmod()
-    if PROFILE:
-        import cProfile
-        import pstats
-
-        profile_filename = "converter_profile.txt"
-        cProfile.run("main()", profile_filename)
-        with open("profile_stats.txt", "wb") as statsfile:
-            p = pstats.Stats(profile_filename, stream=statsfile)
-            stats = p.strip_dirs().sort_stats("cumulative")
-            stats.print_stats()
-        sys.exit(0)
     sys.exit(main())
