@@ -61,8 +61,8 @@ PROV_MENTION = PROV["Mention"]
 PROV_MEMBERSHIP = PROV["Membership"]
 
 # Productions 24 to 26 of PROV-N give these relations neither an identifier
-# nor an attribute block. Underscore-named so the star import into prov.model
-# does not export it.
+# nor an attribute block. The set is underscore-named so the star import into
+# prov.model does not export it.
 _PROV_N_BARE_RELATIONS = frozenset(
     {PROV_ALTERNATE, PROV_SPECIALIZATION, PROV_MEMBERSHIP}
 )
@@ -106,9 +106,6 @@ ADDITIONAL_N_MAP = {
 """Maps PROV-N subtype QualifiedNames (top-level types in e.g. PROV-XML) to
 their PROV-N keyword; not included in :data:`PROV_N_MAP` itself."""
 
-# Maps qualified names from the PROV namespace to their base class. If it
-# has no baseclass it maps to itsself. This is needed for example for PROV
-# XML (de)serializer where extended types are used a lot.
 PROV_BASE_CLS = {
     PROV_ENTITY: PROV_ENTITY,
     PROV_ACTIVITY: PROV_ACTIVITY,
@@ -244,7 +241,6 @@ PROV_RECORD_IDS_MAP = {
 type QualifiedName."""
 PROV_ID_ATTRIBUTES_MAP = dict(PROV_RECORD_ATTRIBUTES)
 """Maps each formal attribute QualifiedName to its string form."""
-# inverse of PROV_ID_ATTRIBUTES_MAP: maps each attribute name back to its QName
 PROV_ATTRIBUTES_ID_MAP = {
     attribute: prov_id for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES
 }

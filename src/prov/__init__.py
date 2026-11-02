@@ -193,10 +193,9 @@ def _detect_and_parse(
             # A parse producing a completely empty document (e.g. rdflib
             # accepts empty input, or the xml deserializer walking a
             # childless foreign root) is treated as not detected. Registered
-            # namespaces are deliberately not consulted: the rdf deserializer
-            # always copies rdflib's own default-bound namespace prefixes onto
-            # the document on every successful parse, so that signal is always
-            # truthy and would defeat this check for the rdf format.
+            # namespaces are deliberately not consulted, because a source that
+            # only declares prefixes (such as a Turtle file holding one
+            # ``@prefix`` line) registers them and still holds no PROV.
     finally:
         rdflib_term_logger.setLevel(previous_level)
 
@@ -270,7 +269,7 @@ def read(
             error when the content names one of PROV-JSON, PROV-JSONLD or
             PROV-N.
     """
-    # Lazy imports to not globber the namespace.
+    # Lazy imports: prov.model and prov.serializers import this package.
     from prov.model import ProvDocument
     from prov.serializers import Registry
 

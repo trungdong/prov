@@ -104,12 +104,11 @@ __email__ = "trungdong@donggiang.com"
 
 logger = logging.getLogger(__name__)
 
-# The split into submodules is an implementation detail of the 2.4 refactor:
-# remove the submodule attributes that the import system bound on this package
-# so that the public namespace (dir(prov.model)) stays identical to the
-# pre-split prov/model.py module. `from prov.model.records import ...` (and
+# The submodules are an implementation detail. Remove the attributes the import
+# system bound on this package, so that dir(prov.model) holds only the public
+# names re-exported above. `from prov.model.records import ...` (and
 # `.namespaces`/`.bundle`) still works via sys.modules; only attribute access
-# like `prov.model.records` is hidden, which no historic code could have used.
+# such as `prov.model.records` is hidden.
 for _submodule_name in ("_values", "bundle", "namespaces", "records"):
     globals().pop(_submodule_name, None)
 del _submodule_name

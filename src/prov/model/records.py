@@ -340,7 +340,7 @@ class TypedValueSet(MutableSet[Any]):
         return self._index.keys()
 
     def __setstate__(self, state: Any) -> None:
-        # A 3.2.x pickle keyed the index by (type, value); rebuild by value key.
+        # A 3.2.x pickle keys the index by (type, value); rebuild by value key.
         self._index = {}
         for value in _slot_state(state)["_index"].values():
             self.add(value)
@@ -501,7 +501,7 @@ class Literal:
                 datatype = PROV_INTERNATIONALIZEDSTRING
         _set(self, "_value", text)
         _set(self, "_datatype", datatype)
-        # langtag is always a string
+        # a langtag that is given is stored as text
         _set(self, "_langtag", str(langtag) if langtag is not None else None)
 
     def __str__(self) -> str:
@@ -1077,8 +1077,8 @@ class ProvRecord:
                 value = self._literal_for_python_value(attr, value)
 
         if isinstance(value, datetime.datetime):
-            # In any position, because no writer could emit it as an
-            # xsd:dateTime; a typed Literal beyond the bound stayed a Literal.
+            # In any position, because no writer can emit such an offset as an
+            # xsd:dateTime. A typed Literal beyond the bound stays a Literal.
             detail = time_offset_detail(attr, value)
             if detail is not None:
                 raise ProvValueError(detail)
@@ -1216,7 +1216,7 @@ class ProvRecord:
             keyword = "prov:mentionOf"
         elif strict and self.get_type() in _PROV_N_BARE_RELATIONS:
             # A strict read rejects an identifier or attribute block here, so neither
-            # is written (#569).
+            # is written.
             written = f"{keyword}({', '.join(items)})"
             if identifier:
                 warn(

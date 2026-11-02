@@ -59,9 +59,9 @@ __author__ = "Satrajit S. Ghosh"
 __email__ = "satra@mit.edu"
 
 
-# Type aliases for convenience. Deliberately local to this module: records.py
-# carries no runtime dependency on rdflib, which is what makes the
-# minimal-install story work (see CLAUDE.md).
+# Type aliases for convenience. They live in this module because
+# ``prov.model`` imports nothing from rdflib (see
+# docs/explanation/architecture.md).
 RelationMapper: typing.TypeAlias = dict[URIRef, str]
 PredicateMapper: typing.TypeAlias = dict[URIRef, pm.QualifiedName]
 RecordTypeLabels: typing.TypeAlias = dict[pm.QualifiedName, str]
@@ -111,7 +111,7 @@ LITERAL_XSDTYPE_MAP = {
     # boolean, string values are supported natively by PROV-RDF: str falls
     # through to a plain (undecorated) rdflib.Literal -- RDF 1.1 treats a
     # plain literal and an explicit xsd:string one as the same value, and
-    # PROV-RDF now emits only the former as the canonical form (#89)
+    # PROV-RDF emits only the former as the canonical form (#89)
     # datetime values are converted separately
 }
 """Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
@@ -244,6 +244,14 @@ def _prov_uri(localpart: str) -> URIRef:
     return URIRef(PROV[localpart].uri)
 
 
+#: Rewrites shared by the timed relations in
+#: :data:`_RELATION_PREDICATE_REWRITES`.
+_TIMED_INFLUENCE_REWRITES = (
+    (PROV["time"].uri, _prov_uri("atTime")),
+    (PROV["ender"].uri, _prov_uri("hadActivity")),
+    (PROV["starter"].uri, _prov_uri("hadActivity")),
+    (PROV["location"].uri, _prov_uri("atLocation")),
+)
 #: Per-record-type predicate rewrites applied, in order, to the predicate
 #: chosen for a qualified relation's attribute. Each entry is a
 #: ``(needle, replacement)`` pair: when ``needle`` (a full ``prov:`` term URI)
@@ -251,19 +259,6 @@ def _prov_uri(localpart: str) -> URIRef:
 #: ``replacement``. Rewrites are sequential -- a later pair sees the result of
 #: an earlier one -- which is what lets e.g. ``prov:used`` become
 #: ``prov:entity`` on a usage before the shared time/location rewrites run.
-#:
-#: This table replaces the per-type ``if`` ladder that used to live inline in
-#: :meth:`ProvRDFSerializer.encode_container`; the ordering here reproduces
-#: that ladder exactly. The ladder's ``rec_type in [PROV_ACTIVITY]`` arm is
-#: deliberately absent: it was unreachable (this code only ever runs for
-#: records where ``is_relation()`` is true, so ``rec_type`` is never an
-#: element type) and would have raised ``TypeError`` had it been reached.
-_TIMED_INFLUENCE_REWRITES = (
-    (PROV["time"].uri, _prov_uri("atTime")),
-    (PROV["ender"].uri, _prov_uri("hadActivity")),
-    (PROV["starter"].uri, _prov_uri("hadActivity")),
-    (PROV["location"].uri, _prov_uri("atLocation")),
-)
 _RELATION_PREDICATE_REWRITES: dict[QualifiedName, tuple[tuple[str, URIRef], ...]] = {
     PROV_DELEGATION: ((PROV["activity"].uri, _prov_uri("hadActivity")),),
     PROV_END: ((PROV["trigger"].uri, _prov_uri("entity")), *_TIMED_INFLUENCE_REWRITES),
@@ -325,9 +320,8 @@ _QUALIFIED_RELATION_INFLUENCER: dict[str, URIRef] = {
 
 #: Per-record-type formal-attribute rewrites applied, in order, when decoding.
 #: Each ``(needle, replacement)`` pair replaces the predicate resolved so far
-#: with ``replacement`` when ``needle`` occurs in its string form -- the decode
-#: mirror of :data:`_RELATION_PREDICATE_REWRITES`, and likewise a faithful
-#: transcription of the ``if`` ladder it replaces.
+#: with ``replacement`` when ``needle`` occurs in its string form. This is the
+#: decode mirror of :data:`_RELATION_PREDICATE_REWRITES`.
 _DECODE_PREDICATE_REWRITES: dict[
     QualifiedName, tuple[tuple[str, QualifiedName], ...]
 ] = {
@@ -1026,20 +1020,16 @@ class ProvRDFSerializer(Serializer):
             )
             # #96: the context passed here must be a Dataset-owned graph
             # (via container.graph(), mirroring `default_graph` above), not
-            # the standalone `bundle` Graph object itself -- passing that
-            # object directly makes older rdflib Datasets keep it as a
-            # distinct context with its own private NamespaceManager
-            # (unlike a container.graph()-obtained one, which shares the
-            # Dataset's own). The bundle's own bindings still reach the
-            # output that way, but the `override=False` collision guarantee
-            # below silently does not: a bundle-local prefix colliding with
-            # a document-level one may clobber it instead of being renamed.
-            # That outcome is *order-dependent, not version-dependent* --
-            # with the standalone-Graph form it varies run to run on the
-            # same rdflib (observed flipping on 7.0.0 and 7.1.0 across
-            # fresh interpreters), so sampling one run per release invents
-            # a version boundary that does not exist. container.graph() is
-            # deterministic and correct on the 7.0.0 floor and upwards.
+            # the standalone `bundle` Graph object itself. A standalone Graph
+            # can become a distinct context with its own private
+            # NamespaceManager, unlike a container.graph() one, which shares
+            # the Dataset's own. The bundle's bindings still reach the output,
+            # but the `override=False` collision guarantee below can fail: a
+            # bundle-local prefix colliding with a document-level one may
+            # clobber it instead of being renamed. With a standalone Graph
+            # that outcome varies from run to run on the same rdflib, so it
+            # cannot be tied to a version. container.graph() is deterministic
+            # from the 7.0.0 floor upwards.
             named_graph = container.graph(bundle.identifier)
             container.addN((s, p, o, named_graph) for s, p, o in bundle)
             # #96: bundle-local namespace bindings (and the bundle's own
@@ -1109,14 +1099,12 @@ class ProvRDFSerializer(Serializer):
         for namespace in bundle.get_registered_namespaces():
             container.bind(namespace.prefix, namespace.uri)
         # #96: `get_registered_namespaces()` excludes the bundle's default
-        # namespace (a separate concept from the core prov/xsd
-        # namespaces that it also excludes -- `set_default_namespace` never
-        # writes to the registered-namespace dict), so it needs its own
-        # bind() call here, under the empty prefix, for its terms to render
-        # as `:local` rather than a full IRI. Note this widens the surface
-        # of #294: a default- or bundle-namespace term whose local part ends
-        # in a character rdflib cannot abbreviate is now bound but still
-        # emitted as a full IRI, and fails to decode.
+        # namespace, which `set_default_namespace` keeps apart from the
+        # registered ones, so it needs its own bind() call here, under the
+        # empty prefix, for its terms to render as `:local` rather than a
+        # full IRI. A term whose local part ends in a character rdflib cannot
+        # abbreviate is still written as a full IRI, which the reader
+        # resolves through `_resolve_iri` (#294).
         default_namespace = bundle.get_default_namespace()
         if default_namespace is not None:
             container.bind("", default_namespace.uri)
@@ -1168,7 +1156,7 @@ class ProvRDFSerializer(Serializer):
             if isinstance(value, pm.ProvRecord):
                 obj: RdfTerm = URIRef(str(real_or_anon_id(value)))
             else:
-                #  Assuming this is a datetime value
+                # any other value: a Literal, datetime or plain Python value
                 obj = self.encode_rdf_representation(value)
             pred: RdfTerm
             if attr == PROV_LOCATION:
@@ -1293,8 +1281,8 @@ class ProvRDFSerializer(Serializer):
                 has_qualifiers,
             )
         if rec_type in [PROV_ALTERNATE]:
-            # #258/#250 territory: alternateOf emits only its binary triple,
-            # so any extra attributes it carries are dropped. Preserved as-is.
+            # alternateOf emits only its binary triple, so any extra
+            # attributes it carries are dropped.
             return identifier, True
         if subj and (has_qualifiers or identifier):
             return (
@@ -1533,12 +1521,10 @@ class ProvRDFSerializer(Serializer):
                         predicate_mapper=predicate_mapper,
                     )
                 else:
-                    # Resolve the bundle IRI to a qualified name; if no
-                    # registered namespace matches (rdflib >= 7 no longer
-                    # carries bundle-graph prefix bindings into TriG output,
-                    # so re-parsed documents may lack them), fall back to
-                    # minting a namespace via compute_qname, as
-                    # decode_rdf_representation does for all other IRIs.
+                    # Resolve the bundle IRI to a qualified name. When no
+                    # registered namespace matches, a namespace is minted via
+                    # compute_qname, as decode_rdf_representation does for
+                    # every other IRI.
                     try:
                         bundle_id = self.decode_rdf_representation(
                             graph.identifier, graph
@@ -1800,13 +1786,11 @@ class ProvRDFSerializer(Serializer):
                 # qualification node of the same kind -- e.g. two
                 # delegations from the same delegate to the same activity,
                 # differing only in `responsible` -- which "last node seen"
-                # cannot tell apart. Since #250, a freshly-encoded node
-                # also carries its own influencer triple, so prefer
-                # whichever candidate's influencer matches this binary
-                # triple's object; only fall back to "last node seen" (the
-                # pre-#250 behaviour, which cannot do better) when no
-                # candidate carries that triple at all, i.e. legacy
-                # (pre-3.0) input.
+                # cannot tell apart. The encoder gives each node its own
+                # influencer triple, so prefer the candidate whose
+                # influencer matches this binary triple's object. Fall back
+                # to "last node seen" only when no candidate carries that
+                # triple, as in a graph written without influencer triples.
                 qualifier_bnode = candidate
                 if (candidate, influencer_pred, obj) in graph:
                     break
@@ -1907,15 +1891,14 @@ class ProvRDFSerializer(Serializer):
         # oversight: matching it here would route repeated instances of such
         # a predicate into `unique_sets`, and `walk()` in
         # `_emit_decoded_records` would then emit more than one record for
-        # the *same* identifier -- i.e. resurrect the rejected
-        # permutation-decode option (see docs/reference/conformance.md) for
-        # an identified qualified node. Do not "fix" this format mismatch.
-        # On a qualified Start/End node specifically, `startedAtTime`/
-        # `endedAtTime` have already been rewritten to `prov:time` by the
+        # the *same* identifier of an identified qualified node, which
+        # C1 in docs/reference/conformance.md rules out. Do not "fix" this
+        # format mismatch.
+        # On a qualified Start/End node, `startedAtTime`/`endedAtTime` have
+        # already been rewritten to `prov:time` by the
         # `_DECODE_PREDICATE_REWRITES` loop just above, so the name carried
         # into `other_attributes` for those two predicates is "prov:time",
-        # not "prov:startTime"/"prov:endTime" -- the fall-through-then-
-        # reconcile mechanism described here is otherwise unchanged.
+        # not "prov:startTime"/"prov:endTime".
         is_formal = str(pred_new) in [val.uri for val in state.formal_attributes[subj]]
         if not is_formal and (
             "qualified" in str(pred_new) or "asInBundle" in str(pred_new)

@@ -124,8 +124,7 @@ def _integer_value(datatype: QualifiedName, text: str) -> int | None:
 
 def _decimal_value(text: str) -> decimal.Decimal | None:
     # Construction from a text the grammar admits is exact in every context
-    # and signals nothing, so the caller's context cannot change the result
-    # (#593, #595).
+    # and signals nothing, so the caller's context cannot change the result.
     return decimal.Decimal(text) if _XSD_DECIMAL_RE.fullmatch(text) else None
 
 

@@ -38,23 +38,20 @@ __email__ = "krischer@geophysik.uni-muenchen.de"
 
 logger = logging.getLogger(__name__)
 
-# Create a dictionary containing all top-level PROV XML elements for an easy
-# mapping.
-FULL_NAMES_MAP = dict(PROV_N_MAP)
-FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
 # Maps every PROV record/subtype QualifiedName (including PROV-XML's
 # top-level subtypes from ADDITIONAL_N_MAP in prov.constants) to its
 # PROV-XML element name.
-# Inverse mapping.
+FULL_NAMES_MAP = dict(PROV_N_MAP)
+FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
+# Inverse of FULL_NAMES_MAP: maps each PROV-XML element name back to its
+# record/subtype QualifiedName.
 FULL_PROV_RECORD_IDS_MAP = {
     FULL_NAMES_MAP[rec_type_id]: rec_type_id for rec_type_id in FULL_NAMES_MAP
 }
-# Inverse of FULL_NAMES_MAP: maps each PROV-XML element name back to its
-# record/subtype QualifiedName.
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
-# Hardened against XXE / entity expansion (#273): PROV-XML documents have no
+# Hardened against XXE / entity expansion: PROV-XML documents have no
 # legitimate use for DTD entity resolution or network access, so both are
 # switched off explicitly rather than left to whatever lxml's own default
 # parser happens to do. This matters for three distinct reasons, not just
@@ -64,9 +61,9 @@ XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 # a safe lxml release, any other library sharing the process can repoint the
 # *global* default parser via `etree.set_default_parser(...)`, which is what
 # a bare `etree.parse(...)` call (no `parser=`) silently inherits; and prov
-# is embedded in other applications that may load such libraries. Passing this parser explicitly at both parse sites closes all
-# three regardless of the installed lxml version or what else is loaded in
-# the process. `huge_tree` is left at its lxml default of `False`: raising it
+# is embedded in other applications that may load such libraries. Passing
+# this parser explicitly at both parse sites closes all three regardless of
+# the installed lxml version or what else is loaded in the process. `huge_tree` is left at its lxml default of `False`: raising it
 # disables libxml2's own hard limits on tree depth/text length/entity
 # amplification, which is the opposite of what a hardened parser wants here.
 #
@@ -76,8 +73,8 @@ XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 # heavy concurrent load (access is internally serialized). PROV-XML
 # deserialization is not expected to be a high-frequency, highly concurrent
 # hot path even in a web service, so the simplicity of a single shared
-# parser wins over per-parse allocation; if profiling ever
-# shows lock contention here, switch to constructing a parser per call.
+# parser wins over per-parse allocation; if profiling ever shows lock
+# contention here, switch to constructing a parser per call.
 _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
@@ -354,8 +351,8 @@ class ProvXMLSerializer(Serializer):
         """
 
         # For a bundleContent, _read_bundle_content has already adopted the
-        # element's default inside the record wrap, so this wrap fires for the
-        # document element only.
+        # element's default, so this call changes something for the document
+        # element only.
         try:
             _adopt_own_default(xml_doc, bundle)
         except ProvException as exc:
@@ -732,10 +729,9 @@ def _infer_xsd_type(
     if isinstance(value, datetime.datetime) and (
         attr.namespace.prefix == "prov" and "time" in attr.localpart.lower()
     ):
-        # Exception of the exception, while technically still correct, do
-        # not write XSD dateTime type for attributes in the PROV namespaces
-        # as the type is already declared in the XSD and PROV XML also does
-        # not specify it in the docs.
+        # A time attribute in the PROV namespace (prov:startTime and the
+        # like) is written without an xsi:type, because the PROV-XML schema
+        # already declares it as xsd:dateTime.
         return None, v
     form = python_value_form(value)
     if form is None or (text := form[0]) is None:
@@ -1115,7 +1111,7 @@ def _ns_xml(tag: str) -> str:
 # NCName character classes (XML 1.0 5th-edition Name productions, minus ':')
 # live in prov.identifier, shared with the PROV-N lexer's PN_CHARS classes.
 # Used here to detect/escape attribute-name local parts that are not legal
-# NCNames when used as PROV-XML element tags (#289).
+# NCNames when used as PROV-XML element tags.
 _NCNAME_START_RE = re.compile(f"[{_NCNAME_START_CHARS}]")
 _NCNAME_CHAR_RE = re.compile(f"[{_NCNAME_CHARS}]")
 _NCNAME_RE = re.compile(f"[{_NCNAME_START_CHARS}][{_NCNAME_CHARS}]*")

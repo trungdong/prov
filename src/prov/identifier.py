@@ -8,7 +8,7 @@ __email__ = "trungdong@donggiang.com"
 
 # Character classes for the XML 1.0 5th-edition Name productions, minus ':'
 # (NCName). Shared by prov.serializers.provxml (PROV-XML element-tag
-# legality, #289). The PROV-N character classes and PN_PREFIX are built from
+# legality). The PROV-N character classes and PN_PREFIX are built from
 # these tables here, and prov.serializers.provn_lexer imports them.
 #
 # Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
@@ -42,7 +42,7 @@ _NCNAME_CHARS = _NCNAME_START_CHARS + (
 )
 
 # PROV-N metacharacters that must be backslash-escaped anywhere in the local
-# part of a qualified name (grammar production [55] PN_CHARS_ESC, #223).
+# part of a qualified name (grammar production [55] PN_CHARS_ESC).
 _PROVN_LOCAL_METACHARS = "='(),:;[]"
 # PN_CHARS_ESC also lists '-' and '.' as escapable, but PN_LOCAL ([53]) only
 # forbids a *bare* '-' or '.' as the first character, and a bare '.' as the
@@ -51,8 +51,8 @@ _PROVN_LOCAL_LEADING_ESCAPE = "-."
 # Every character a backslash may escape: [55] PN_CHARS_ESC. The writer's
 # escaping and the lexer's PN_CHARS_ESC class both read this one table.
 _PN_CHARS_ESC = _PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE
-# PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
-# (see the comment on _NCNAME_CHARS above).
+# PN_LOCAL's own character class ([53]), the shared NCName table minus '.',
+# which PN_LOCAL places by position.
 _PN_CHARS = _NCNAME_CHARS.replace(".", "")
 # SPARQL's PN_PREFIX, the prefix rule of PROV-N's QUALIFIED_NAME ([52]) and of
 # Turtle: PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?, so no leading digit or
@@ -61,8 +61,8 @@ _PN_CHARS_BASE = _NCNAME_START_CHARS.replace("_", "")
 _PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
 _PN_PREFIX_NAME = re.compile(_PN_PREFIX)
 # The characters in _PN_CHARS that are legal anywhere in PN_LOCAL but, being
-# combining marks rather than letters, cannot start it ([53]'s PN_CHARS_BASE
-# vs. PN_CHARS): the NameChar-only part of _NCNAME_CHARS, minus '-'/'.'
+# combining marks rather than letters, cannot start it (PN_CHARS_U against
+# PN_CHARS in [53]): the NameChar-only part of _NCNAME_CHARS, minus '-'/'.'
 # (handled positionally above) and the digits (PN_LOCAL allows a leading
 # digit). Spelled the same way as _NCNAME_CHARS so a look-alike codepoint
 # stays visible on inspection.
@@ -73,11 +73,11 @@ _PN_LOCAL_BAD_START = re.compile(
     "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
     "]"
 )
-# The remaining characters PN_LOCAL allows unescaped ([54]'s PLX minus '%').
+# The characters of [54] PN_CHARS_OTHERS that are neither PERCENT nor PN_CHARS_ESC.
 _PN_CHARS_OTHER = "/@~&+*?#$!"
 # Everything PN_LOCAL can spell as-is or via a backslash escape: PN_CHARS,
 # PN_CHARS_OTHER, the backslash-escaped metacharacters, and '-'/'.' (whose
-# escaping is positional, decided in the loop below).
+# escaping is positional, decided by _escape_local_char).
 _PROVN_LOCAL_ALLOWED_UNESCAPED = _PN_CHARS + re.escape(_PN_CHARS_OTHER + _PN_CHARS_ESC)
 
 # A local part PROV-N could write only by percent-encoding it, which changes
@@ -163,8 +163,9 @@ def _provn_string_literal(value: str) -> str:
     if "\n" in s:
         return f'"""{s}"""'
     else:
-        # STRING_LITERAL2 ([60]) forbids a bare CR in a short string; the
-        # lexer decodes the "\r" escape, so use it rather than emit one raw.
+        # STRING_LITERAL2, which STRING_LITERAL ([58]) takes from SPARQL,
+        # forbids a bare CR in a short string; the lexer decodes the "\r"
+        # escape, so use it rather than emit one raw.
         s = s.replace("\r", "\\r")
         return f'"{s}"'
 
@@ -217,7 +218,7 @@ class Identifier:
             uri: URI string for the identifier. Converted to ``str`` if not
                 already one.
         """
-        _set(self, "_uri", str(uri))  # Ensure this is a unicode string
+        _set(self, "_uri", str(uri))  # coerce a str subclass or other value to str
         _set(self, "_hash", self._compute_hash())
 
     def _compute_hash(self) -> int:

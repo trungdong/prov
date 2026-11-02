@@ -238,8 +238,7 @@ _IDENTIFIED_RELATIONS = frozenset(
 )
 # Constraint 53's nine pairwise-disjoint relations -- see the comment above.
 _PAIRWISE_DISJOINT_RELATIONS = _IDENTIFIED_RELATIONS - {PROV_DERIVATION, PROV_INFLUENCE}
-# Relations PROV-DM and PROV-Links give no identifier, and the model requires their
-# parties (#710); unified() never merges them.
+# Relations PROV-DM and PROV-Links give no identifier; unified() never merges them.
 _KEYLESS_RELATIONS = frozenset(
     {PROV_ALTERNATE, PROV_SPECIALIZATION, PROV_MENTION, PROV_MEMBERSHIP}
 )
@@ -841,7 +840,7 @@ class ProvBundle:
             if merged_records
             else self._records
         )
-        # dict.fromkeys keeps the first of equal records, by == and hash (#548).
+        # dict.fromkeys keeps the first of equal records, by == and hash.
         return list(dict.fromkeys(records))
 
     def unified(self) -> ProvBundle:

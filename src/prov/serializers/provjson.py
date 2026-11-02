@@ -116,9 +116,8 @@ class ProvJSONSerializer(Serializer):
         try:
             json.dump(self.document, buf, cls=ProvJSONEncoder, **args)
             buf.seek(0, 0)
-            # Right now this is a bytestream. If the object to stream to is
-            # a text object, it must be decoded. We assume utf-8 here, which
-            # should be fine for almost every case.
+            # A text stream takes the string as it is; a binary stream takes
+            # it encoded as UTF-8.
             if _is_text_stream(stream):
                 stream.write(buf.read())
             else:
@@ -718,8 +717,8 @@ def _decode_time(
     )
 
 
-# The JSON numbers prov 2.x and earlier wrote in "$", which 3.3.0 still reads;
-# prov 1.x on Python 2 wrote a long as xsd:long.
+# The datatypes under which the reader accepts a JSON number in "$": an int as
+# xsd:int or xsd:long, a float as xsd:double.
 _LEGACY_NUMBER_TYPES = {int: (XSD_INT, XSD_LONG), float: (XSD_DOUBLE,)}
 
 # The keys a PROV-JSON value object may have.
@@ -750,9 +749,8 @@ def encode_json_representation(
     if isinstance(value, Literal):
         return literal_json_representation(value, qname_text)
     if isinstance(value, QualifiedName):
-        # #168: the PROV-JSON submission (section 3.1.2) types QualifiedName
-        # values as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0
-        # choice) remains accepted on input for backward compatibility.
+        # The PROV-JSON submission (section 3.1.2) types QualifiedName
+        # values as xsd:QName.
         return {"$": qname_text(value), "type": str(XSD_QNAME)}
     if isinstance(value, (str, bool)):
         # JSON-native
@@ -762,8 +760,8 @@ def encode_json_representation(
         # no PROV form, or no lexical form: passed through as it is
         return value
     text, datatype = form
-    # int/float/datetime: the submission's typedLiteral schema requires a string "$"
-    # (#246); the datatype is magnitude-aware for ints (#244/#256)
+    # int/float/datetime: the submission's typedLiteral schema requires a string "$";
+    # the datatype is magnitude-aware for ints
     return {"$": text, "type": str(datatype)}
 
 
@@ -869,11 +867,10 @@ def decode_json_representation(
     value, datatype = _check_value_object(literal, bundle, attr_name, rec_id)
     langtag = literal.get("lang")
     if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME) and langtag is None:
-        # #168: xsd:QName is the submission's type for QualifiedName
-        # values; prov:QUALIFIED_NAME is accepted for documents produced
-        # by 2.x. The value is the QualifiedName itself; one that does not
-        # resolve is rejected here, with its position. The "$" is a string,
-        # checked above.
+        # xsd:QName is the submission's type for QualifiedName values;
+        # prov:QUALIFIED_NAME is accepted too. The value is the QualifiedName
+        # itself; one that does not resolve is rejected here, with its
+        # position. The "$" is a string, checked above.
         return _resolve_name(bundle, value, rec_id, attr_name)
     # The literal of standard Python types is not converted here. It is
     # converted when added to a record by _auto_literal_conversion().
