@@ -248,9 +248,9 @@ one of the statement's own arguments are errors.
   reads under rdflib's IRI for that prefix, because rdflib replaces the source's binding
   at parse. A prefix the source declares and no name uses is not written by `prov`'s
   Turtle, so it does not survive a round trip.
-- Only the quad-based syntaxes, `trig` and `nquads`, keep bundles as separate named graphs.
-  A triple-based syntax such as `turtle`, `xml` or `nt` flattens every bundle into one graph
-  and loses which bundle each statement came from.
+- A syntax with named graphs keeps bundles as separate graphs, for example `trig` and
+  `nquads`. A triple syntax such as `turtle`, `xml`, `nt` or `n3` flattens every bundle into
+  one graph and loses which bundle each statement came from.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options
@@ -292,8 +292,8 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
   form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
   reads as rdflib's decimal text and compares as the value `10`; a numeric spelling such as
   `05` or `1e0` reads as the canonical one, which compares equal; and an `xsd:duration` text
-  reads in rdflib's normalised form, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`, and the zero-duration row of the
-  converted-value round trip is skipped for RDF.
+  reads in rdflib's normalised form, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`, and
+  the zero-duration row of the converted-value round trip is skipped for RDF.
 - **C11. A `NaN` beside a decimal, or a decimal `NaN` beside a number.** rdflib's Turtle, long
   Turtle (`longturtle`), TriG and N3 writers order the values of one predicate by value. An
   `xsd:decimal` `NaN` or `sNaN` text, which rdflib parses to a `Decimal`, has no order against

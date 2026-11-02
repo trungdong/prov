@@ -692,8 +692,9 @@ class ProvValueError(ProvException, ValueError):
     """A value a :class:`Literal` or an attribute cannot hold, or a namespace
     prefix or IRI the model refuses.
 
-    Raised at assertion for a time whose offset is beyond ±14:00 and for a
-    language tag that is empty or not shaped like a BCP 47 tag.
+    Raised at assertion for a time whose offset is beyond ±14:00, and when a
+    :class:`Literal` is built with a language tag that is empty or not shaped
+    like a BCP 47 tag.
     A subclass of both :class:`ProvException` and :class:`ValueError`, so a
     caller can catch either.
     """

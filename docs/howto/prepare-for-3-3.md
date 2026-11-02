@@ -18,11 +18,11 @@ declaration. It carries that sentence, and its `__cause__` is the model's error.
 builds the value gets the model's error on its own. A message from `unified()` names the
 identifier of the records it cannot merge.
 
-With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
-reader rejects raises `ProvFormatNotDetected`, a `TypeError`, whose `__cause__` is the
+With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input (it starts
+with `{` or the word `document`) that the reader rejects raises `ProvFormatNotDetected`, a `TypeError`, whose `__cause__` is the
 reader's error with the rule and its position. That holds for a rejection by the model
 too, since the reader wraps it. A PROV-XML or PROV-O input chains nothing, because its
-first character does not name its reader. Pass `format=` to see the rule on its own.
+start (`<`) does not name its reader. Pass `format=` to see the rule on its own.
 
 Around a read, `except prov.serializers.ProvSerializationError` catches a reader's
 rejection, and `except prov.Error` catches that and the model's refusal both. A syntax

@@ -286,7 +286,7 @@ a type checker reports a call.
 
 ## Exceptions
 
-{doc}`serializers` shows how these classes and the serialization errors relate.
+{doc}`serializers` shows how these classes and the serialisation errors relate.
 
 ```{eval-rst}
 .. autoclass:: prov.Error

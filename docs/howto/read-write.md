@@ -60,11 +60,10 @@ A seekable stream, such as an open file or `io.StringIO`, is rewound between att
 non-seekable stream is consumed by the first attempt, so pass `format=` for those.
 
 Auto-detection treats each deserializer's error as "not this format" and raises
-{py:class}`~prov.serializers.ProvFormatNotDetected` when no format succeeds. When the
-content starts the way PROV-JSON, PROV-JSONLD or PROV-N starts and that reader rejected it,
-the reader's own error is the `__cause__`. Pass `format=` to get the error from one
-deserializer on its own. Keyword arguments such as `profile` reach each candidate that
-declares them.
+{py:class}`~prov.serializers.ProvFormatNotDetected` when no format succeeds.
+{doc}`../reference/serializers` says when its `__cause__` is a reader's own error. Pass
+`format=` to get the error from one deserializer on its own. Keyword arguments such as
+`profile` reach each candidate that declares them.
 
 ## Formats
 
@@ -91,8 +90,8 @@ Choose the `except` clause by what the code handles:
 | `except ProvException` | a refusal by the model when code builds or changes a record, and `ProvNSyntaxError` |
 | `except prov.Error` | both of the above, and `DoNotExist` |
 
-Input that is not well-formed in the underlying syntax raises the parsing library's own
-error, which none of these clauses catches:
+With an explicit `format`, input that is not well-formed in the underlying syntax raises
+the parsing library's own error, which none of these clauses catches:
 
 ```python
 try:

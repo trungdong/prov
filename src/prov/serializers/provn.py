@@ -64,8 +64,8 @@ class ProvNSerializer(Serializer):
             stream: Text or binary stream holding PROV-N; binary content is
                 decoded as UTF-8.
             profile: ``"strict"`` (the Recommendation grammar only),
-                ``"default"`` (plus the bare ``mentionOf`` keyword that
-                ``prov`` and ProvToolbox write) or ``"lenient"`` (as
+                ``"default"`` (plus the forms ``"strict"`` refuses, such as the
+                bare ``mentionOf`` keyword that ``prov`` and ProvToolbox write) or ``"lenient"`` (as
                 ``default``, skipping any statement that fails to parse with
                 a :class:`~prov.model.ProvWarning`). Every profile drops an
                 extensibility expression (``prefix:name(...)``) with one

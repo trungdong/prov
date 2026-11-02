@@ -123,10 +123,10 @@ def _detect_and_parse(
 
     Raises:
         ProvFormatNotDetected: If no registered serializer produced a
-            non-empty document from ``src``/``content``. When the content's
-            first character names PROV-JSON, PROV-JSONLD or PROV-N and that
-            reader rejected the input with its own error, that error is the
-            exception's ``__cause__``.
+            non-empty document from ``src``/``content``. When the content
+            starts with ``{`` (PROV-JSON or PROV-JSONLD) or the word
+            ``document`` (PROV-N) and that reader rejected the input with its
+            own error, that error is the exception's ``__cause__``.
     """
     # Lazy import: prov and prov.model are circularly dependent.
     from prov._warnings import collect_warnings, warn
@@ -228,11 +228,11 @@ def read(
     registered deserializer in turn and returning the first that both
     succeeds and produces a non-empty document. A source that parses to no
     records and no bundles is not that format. Auto-detection swallows each
-    candidate's error. When every candidate fails and the content's first
-    character names PROV-JSON, PROV-JSONLD or PROV-N, that reader's own error
-    is the :class:`~prov.serializers.ProvFormatNotDetected`'s ``__cause__``, so
-    the traceback shows the rule and its position; pass ``format`` explicitly
-    to get that error on its own.
+    candidate's error. When every candidate fails and the content starts with
+    ``{`` (PROV-JSON or PROV-JSONLD) or the word ``document`` (PROV-N), that
+    reader's own error is the :class:`~prov.serializers.ProvFormatNotDetected`'s
+    ``__cause__``, so the traceback shows the rule and its position; pass
+    ``format`` explicitly to get that error on its own.
 
     ``prov``'s own warnings from a candidate that fails or produces an empty
     document are dropped. Those of the chosen candidate are emitted at the

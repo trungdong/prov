@@ -100,7 +100,7 @@ The parser accepts three dialects, selected with `profile`:
 | Profile | Accepts | Use it |
 | --- | --- | --- |
 | `strict` | The Recommendation grammar only | to check that a document conforms |
-| `default` | The grammar plus the bare `mentionOf` keyword | for files other tools wrote |
+| `default` | The grammar, plus the forms listed below | for files other tools wrote |
 | `lenient` | As `default`, and skips what fails | to salvage what a damaged file holds |
 
 ```python

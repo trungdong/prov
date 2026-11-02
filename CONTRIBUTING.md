@@ -178,8 +178,8 @@ Every pull request that touches a page or a docstring follows these rules.
    conformance sentence.
 5. Link to a specification and do not cite its clause numbers. Only `conformance.md` and
    code comments cite a section number.
-6. Link an issue only for an open limitation or a decision a reader may want to follow. Never
-   link one to record the history of a fix.
+6. Outside the pages rule 3 names, link an issue only for an open limitation or a decision a
+   reader may want to follow. Never link one to record the history of a fix.
 7. Change no behaviour in a documentation change. Correct a sentence that is wrong against
    the code, never the code to match the sentence, and list the correction in the pull
    request body.

@@ -38,10 +38,9 @@ loaded = pm.ProvDocument.deserialize(content=turtle_str, format="rdf", rdf_forma
 ```
 
 ```{important}
-Only the quad-based syntaxes, `"trig"` and `"nquads"`, keep bundles as separate named
-graphs. A triple-based syntax such as `"turtle"` loses which bundle each statement came
-from, so keep the default TriG if your document has bundles. The PROV-O notes in
-{doc}`../reference/conformance` have the detail.
+A triple syntax such as `"turtle"` loses which bundle each statement came from, so keep
+the default TriG if your document has bundles. The PROV-O notes in
+{doc}`../reference/conformance` list the syntaxes that keep them.
 ```
 
 ## Limitations
