@@ -20,6 +20,7 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import warnings
+from pathlib import Path
 from typing import NoReturn, cast
 
 import pytest
@@ -28,11 +29,15 @@ from pygments.util import ClassNotFound
 import prov
 from prov.model import ProvDocument
 from prov.scripts import _format_names, _pair, _run, _typed
-from prov.scripts.compare import main as compare_main
+from prov.scripts.compare import (
+    _build_parser as compare_build_parser,
+    main as compare_main,
+)
 from prov.scripts.convert import (
     _GRAPHVIZ_OPTIONS,
     GRAPHVIZ_SUPPORTED_FORMATS,
     CLIError,
+    _build_parser as convert_build_parser,
     _output_format,
     convert_file,
     main as convert_main,
@@ -1288,6 +1293,27 @@ def test_help_is_one_description_with_examples(main, entries) -> None:
     assert ("Graphviz" in out) == (main is convert_main)
     for entry in entries:
         assert f"{entry} -" in flat
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.parametrize(
+    ("tool", "build_parser"),
+    [("convert", convert_build_parser), ("compare", compare_build_parser)],
+)
+def test_reference_page_names_every_flag_and_positional(tool, build_parser) -> None:
+    page = REPO_ROOT / "docs" / "reference" / f"prov-{tool}.md"
+    if not page.is_file():
+        pytest.skip(f"{page.name} only exists in a source checkout")
+    text = page.read_text()
+    names = [
+        name
+        for action in build_parser()._actions
+        for name in (action.option_strings or [action.dest])
+    ]
+    missing = [name for name in names if f"`{name}`" not in text]
+    assert not missing, f"{page.name} does not show {missing} as inline code"
 
 
 def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:
