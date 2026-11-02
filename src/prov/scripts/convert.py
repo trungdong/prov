@@ -2,6 +2,8 @@
 and Graphviz output formats."""
 
 import contextlib
+import importlib
+import io
 import os
 import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -10,6 +12,7 @@ from typing import IO, Any, cast
 
 import prov
 from prov import serializers
+from prov.model import ProvDocument
 from prov.scripts import (
     _format_names,
     _input_format,
@@ -75,6 +78,18 @@ _GRAPHVIZ_OPTIONS = frozenset(
 )
 """The keywords of :func:`~prov.dot.prov_to_dot` that a Graphviz output format takes."""
 
+_LEXERS = {
+    "provn": "provn",
+    "json": "json",
+    "jsonld": "jsonld",
+    "xml": "xml",
+    "dot": "graphviz",
+}
+"""The Pygments lexer name for each output format that has one, except ``rdf``."""
+
+_RDF_LEXERS = {"turtle": "turtle", "xml": "xml", "json-ld": "jsonld"}
+"""The Pygments lexer name for each ``rdf_format`` that has one."""
+
 
 class CLIError(Exception):
     """A fatal error that :func:`main` reports as one ``prov-convert: error:`` line."""
@@ -92,6 +107,7 @@ def convert_file(
     *,
     reader_options: Mapping[str, Any] | None = None,
     writer_options: Mapping[str, Any] | None = None,
+    color: bool = False,
 ) -> None:
     """Read a PROV document from ``infile`` and write it to ``outfile`` in ``output_format``.
 
@@ -100,7 +116,8 @@ def convert_file(
     :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
     :func:`~prov.dot.prov_to_dot` (with ``writer_options``) and Graphviz, and any other
     ``output_format`` is written by
-    :meth:`~prov.model.ProvDocument.serialize`.
+    :meth:`~prov.model.ProvDocument.serialize`. With ``color`` the output is
+    highlighted with ANSI escape sequences.
 
     Args:
         infile: File-like object (opened in binary mode) to read the source
@@ -115,6 +132,8 @@ def convert_file(
         reader_options: Keyword options for the input format's reader.
         writer_options: Keyword options for the output format's writer, or for
             :func:`~prov.dot.prov_to_dot` with a Graphviz format.
+        color: Colour the output with Pygments when the format has a lexer
+            (see ``--color``). A format without one is written plain.
 
     Raises:
         CLIError: If ``input_format`` is not a registered serializer format,
@@ -127,20 +146,96 @@ def convert_file(
     except serializers.DoNotExist as e:
         raise CLIError(str(e)) from e
 
+    options = writer_options or {}
+    lexer = _lexer_name(output_format, options) if color else None
+    if lexer is None:
+        _write_document(prov_doc, outfile, output_format, options)
+        return
+    buffer = io.BytesIO()
+    _write_document(prov_doc, buffer, output_format, options)
+    text = _highlight(buffer.getvalue().decode("utf-8"), lexer)
+    outfile.write(text.encode("utf-8"))
+
+
+def _write_document(
+    prov_doc: ProvDocument,
+    stream: IO[Any],
+    output_format: str,
+    options: Mapping[str, Any],
+) -> None:
+    """Write ``prov_doc`` to ``stream`` in ``output_format`` with the writer ``options``."""
     if output_format in GRAPHVIZ_SUPPORTED_FORMATS:
         from prov.dot import prov_to_dot
 
-        dot = prov_to_dot(prov_doc, **(writer_options or {}))
+        dot = prov_to_dot(prov_doc, **options)
         # pydot's stub says create() returns `str`, but its own docstring
         # says (and it actually does, for binary Graphviz formats) return
         # `bytes`; this is an inaccuracy in pydot's stub, not a bug here.
-        content = cast(bytes, dot.create(format=output_format))
-        outfile.write(content)
+        stream.write(cast(bytes, dot.create(format=output_format)))
         return
     try:
-        prov_doc.serialize(outfile, format=output_format, **(writer_options or {}))
+        prov_doc.serialize(stream, format=output_format, **options)
     except serializers.DoNotExist as e:
         raise CLIError(str(e)) from e
+
+
+def _lexer_name(fmt: str, writer_options: Mapping[str, Any]) -> str | None:
+    """Return the Pygments lexer name for the ``fmt`` output, or ``None`` if it has none.
+
+    ``rdf`` keys on the ``rdf_format`` writer option, which defaults to ``trig``.
+    The other Graphviz formats are binary and have no lexer.
+    """
+    if fmt == "rdf":
+        return _RDF_LEXERS.get(writer_options.get("rdf_format", "trig"))
+    return _LEXERS.get(fmt)
+
+
+def _highlight(text: str, lexer_name: str) -> str:
+    """Colour ``text`` with the ``lexer_name`` lexer and Pygments' 16-colour formatter.
+
+    The lexer keeps the text's line endings, so removing the escape sequences
+    gives ``text`` back.
+    """
+    from pygments import highlight
+    from pygments.formatters import TerminalFormatter
+    from pygments.lexers import get_lexer_by_name
+
+    lexer = get_lexer_by_name(lexer_name, stripnl=False, ensurenl=False)
+    return highlight(text, lexer, TerminalFormatter())
+
+
+def _use_color(choice: str, outfile: str) -> bool:
+    """Decide whether the output is coloured, from ``--color``, ``outfile`` and the environment.
+
+    ``auto`` colours standard output on a terminal that supports it, when
+    Pygments imports. ``always`` without Pygments is a :class:`CLIError`.
+    """
+    if choice == "never":
+        return False
+    if choice == "auto" and not _on_color_terminal(outfile):
+        return False
+    try:
+        importlib.import_module("pygments")
+    except ImportError:
+        if choice == "always":
+            raise CLIError(
+                '--color=always needs the optional "pygments" extra; '
+                'install "prov[pygments]"'
+            ) from None
+        return False
+    return True
+
+
+def _on_color_terminal(outfile: str) -> bool:
+    """Return whether ``auto`` may colour: standard output, a terminal, no ``NO_COLOR``, ``TERM`` not dumb."""
+    isatty = getattr(sys.stdout, "isatty", None)
+    return (
+        outfile == "-"
+        and callable(isatty)
+        and bool(isatty())
+        and not os.environ.get("NO_COLOR")
+        and os.environ.get("TERM") != "dumb"
+    )
 
 
 def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
@@ -176,6 +271,7 @@ def _build_parser() -> ArgumentParser:
   prov-convert -f jsonld < doc.json > doc.jsonld
   prov-convert -f provn -w width=none doc.json doc.provn
   prov-convert -i provn -r profile=lenient doc.provn doc.json
+  prov-convert --color always -f provn doc.json | less -R
 """,
         formatter_class=RawDescriptionHelpFormatter,
     )
@@ -223,6 +319,16 @@ def _build_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--color",
+        choices=["auto", "always", "never"],
+        default="auto",
+        help=(
+            "colour the output with Pygments; auto does so for standard output on "
+            "a terminal, unless NO_COLOR is set to a value or TERM is dumb, and "
+            "always colours a file or pipe too; default: %(default)s"
+        ),
+    )
+    parser.add_argument(
         "infile", nargs="?", default="-", help="input file (default: stdin)"
     )
     parser.add_argument(
@@ -257,6 +363,7 @@ def _convert(argv: list[str] | None) -> int:
             _writer_names(output_format),
         ),
     }
+    color = _use_color(args.color, args.outfile)
     with contextlib.ExitStack() as streams:
         infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))
         outfile = streams.enter_context(
@@ -269,6 +376,7 @@ def _convert(argv: list[str] | None) -> int:
             input_format,
             reader_options=reader_options,
             writer_options=writer_options,
+            color=color,
         )
         outfile.flush()
     return 0
@@ -278,7 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     """Run the ``prov-convert`` command-line tool.
 
     Parses ``-f/--format``, ``-i/--input-format``, the repeatable
-    ``-w/--writer-option`` and ``-r/--reader-option`` (``NAME=VALUE``), an
+    ``-w/--writer-option`` and ``-r/--reader-option`` (``NAME=VALUE``), ``--color``, an
     optional input file (default stdin), and an optional output file (default
     stdout), then
     converts between them via :func:`convert_file`. Files are opened after

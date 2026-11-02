@@ -14,7 +14,10 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 
 import contextlib
 import io
+import json
+import re
 import shutil
+import subprocess  # nosec B404
 import sys
 import warnings
 from typing import NoReturn, cast
@@ -801,6 +804,149 @@ def test_a_reader_rejects_a_value_it_cannot_use(infile, tmp_path, capsys) -> Non
     assert convert_main([*flags, str(infile), str(tmp_path / "out.json")]) == 2
     err = capsys.readouterr().err
     assert err == "prov-convert: error: 'str' object is not callable\n"
+
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _converted(infile, monkeypatch, flags, *, outfile=None, tty=False, env=None) -> str:
+    """Run ``prov-convert`` and return what it wrote to ``outfile`` or standard output.
+
+    Standard output reports ``tty`` from ``isatty``, and ``NO_COLOR`` and
+    ``TERM`` are ``env``'s, else unset.
+    """
+    for name in ("NO_COLOR", "TERM"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in (env or {}).items():
+        monkeypatch.setenv(name, value)
+    stdout = io.TextIOWrapper(io.BytesIO())
+    monkeypatch.setattr(stdout, "isatty", lambda: tty)
+    monkeypatch.setattr(sys, "stdout", stdout)
+    paths = [str(infile)] if outfile is None else [str(infile), str(outfile)]
+    assert convert_main([*flags, *paths]) == 0
+    if outfile is not None:
+        return outfile.read_bytes().decode("utf-8")
+    return cast(io.BytesIO, stdout.buffer).getvalue().decode("utf-8")
+
+
+@pytest.mark.parametrize(
+    ("flags", "name", "coloured"),
+    [
+        pytest.param(["-f", "provn"], "out.dat", True, id="provn"),
+        pytest.param(["-f", "json"], "out.dat", True, id="json"),
+        pytest.param(["-f", "jsonld"], "out.dat", True, id="jsonld"),
+        pytest.param(["-f", "xml"], "out.dat", True, id="xml"),
+        pytest.param(
+            ["-f", "dot"],
+            "out.dat",
+            True,
+            id="dot",
+            marks=pytest.mark.skipif(not HAS_DOT, reason="graphviz not installed"),
+        ),
+        pytest.param(["-f", "rdf"], "out.dat", False, id="rdf-trig"),
+        pytest.param(
+            ["-f", "rdf", "-w", "rdf_format=turtle"], "out.dat", True, id="rdf-turtle"
+        ),
+        pytest.param([], "out.ttl", True, id="ttl-extension"),
+        pytest.param([], "out.trig", False, id="trig-extension"),
+        pytest.param(
+            ["-f", "svg", "-w", "use_labels=true"],
+            "out.dat",
+            False,
+            id="svg",
+            marks=pytest.mark.skipif(not HAS_DOT, reason="graphviz not installed"),
+        ),
+    ],
+)
+def test_color_always_colours_a_format_that_has_a_lexer(
+    infile, tmp_path, monkeypatch, flags, name, coloured
+) -> None:
+    always = _converted(
+        infile, monkeypatch, ["--color", "always", *flags], outfile=tmp_path / name
+    )
+    assert ("\x1b[" in always) is coloured
+    if "rdf" not in flags and name.endswith(".dat"):
+        # Highlighting only adds escape sequences. RDF is left out because
+        # its blank nodes differ between two runs.
+        never = _converted(
+            infile,
+            monkeypatch,
+            ["--color", "never", *flags],
+            outfile=tmp_path / "never.dat",
+        )
+        assert ANSI.sub("", always) == never
+
+
+@pytest.mark.parametrize(
+    ("choice", "tty", "env", "to_file", "coloured"),
+    [
+        pytest.param("auto", True, {}, False, True, id="terminal"),
+        pytest.param("auto", True, {"NO_COLOR": ""}, False, True, id="empty-no-color"),
+        pytest.param("auto", True, {"NO_COLOR": "1"}, False, False, id="no-color"),
+        pytest.param("auto", True, {"TERM": "dumb"}, False, False, id="dumb"),
+        pytest.param("auto", True, {}, True, False, id="output-file"),
+        pytest.param("auto", False, {}, False, False, id="pipe"),
+        pytest.param("never", True, {}, False, False, id="never"),
+        pytest.param("always", False, {"NO_COLOR": "1"}, False, True, id="always"),
+    ],
+)
+def test_color_follows_the_flag_the_output_and_the_environment(
+    infile, tmp_path, monkeypatch, choice, tty, env, to_file, coloured
+) -> None:
+    text = _converted(
+        infile,
+        monkeypatch,
+        ["--color", choice, "-f", "provn"],
+        outfile=tmp_path / "out.dat" if to_file else None,
+        tty=tty,
+        env=env,
+    )
+    assert text.startswith(("document", "\x1b["))
+    assert ("\x1b[" in text) is coloured
+
+
+def run_isolated(code: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # nosec B603 - nosemgrep
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=False
+    )
+
+
+@pytest.mark.parametrize(
+    ("choice", "code", "stdout", "stderr"),
+    [
+        pytest.param(
+            "always",
+            2,
+            "",
+            'prov-convert: error: --color=always needs the optional "pygments" extra; '
+            'install "prov[pygments]"\n',
+            id="always",
+        ),
+        pytest.param("auto", 0, "document", "", id="auto"),
+    ],
+)
+def test_color_without_pygments(infile, choice, code, stdout, stderr) -> None:
+    # The child is on a terminal with Pygments unimportable. Standard output
+    # stays empty under "always" and plain under "auto".
+    result = run_isolated(
+        "import io, json, os, sys\n"
+        "sys.modules['pygments'] = None\n"
+        "os.environ.pop('NO_COLOR', None)\n"
+        "os.environ['TERM'] = 'xterm'\n"
+        "from prov.scripts.convert import main\n"
+        "out = io.TextIOWrapper(io.BytesIO())\n"
+        "out.isatty = lambda: True\n"
+        "sys.stdout = out\n"
+        f"rc = main(['--color', {choice!r}, '-f', 'provn', {str(infile)!r}])\n"
+        "text = out.buffer.getvalue().decode()\n"
+        "sys.__stdout__.write(json.dumps([rc, text]))\n"
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == stderr
+    status, text = json.loads(result.stdout)
+    assert status == code
+    assert text.startswith(stdout)
+    assert "\x1b" not in text
 
 
 # prov-compare.

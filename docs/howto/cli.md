@@ -14,8 +14,8 @@ or render it as any image format Graphviz supports.
 ### Synopsis
 
 ```bash
-prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE] [-V]
-             [infile] [outfile]
+prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE]
+             [--color {auto,always,never}] [-V] [infile] [outfile]
 ```
 
 ### Options
@@ -26,12 +26,19 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE] 
 | `-f`, `--format` | `FORMAT` | `auto` | Output format: `auto`, `json`, `xml`, `rdf`, `jsonld`, `provn`, or any Graphviz output format such as `svg`, `pdf` or `png` |
 | `-w`, `--writer-option` | `NAME=VALUE` | | Pass an option to the writer. Repeatable; the last of a repeated name wins. |
 | `-r`, `--reader-option` | `NAME=VALUE` | | Pass an option to the reader. Repeatable; the last of a repeated name wins. |
+| `--color` | `auto`, `always` or `never` | `auto` | Colour the output with Pygments. `auto` colours standard output on a terminal; `always` colours a file or pipe too; `never` writes plain text |
 | `-V`, `--version` | | | Print the program name and version, such as `prov-convert 3.3.0`, and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `infile` | | stdin | Input file, read in `--input-format` |
 | `outfile` | | stdout | Output file, written in `--format` |
 
 Image formats need the `dot` extra and a local Graphviz install. See {doc}`graphics`.
+
+Colour needs the `pygments` extra. Under `auto`, `prov-convert` colours the output when no
+output file is named, standard output is a terminal, `NO_COLOR` is unset or empty, `TERM` is
+not `dumb` and Pygments imports. `--color always` without Pygments is an error. The formats
+with a lexer are `provn`, `json`, `jsonld`, `xml`, `dot` and `rdf` written as `turtle`,
+`xml` or `json-ld`; every other format, including the default TriG, is written plain.
 
 A value is typed by one rule. `none` (any case) is `None`, `true` and `false` (any case) are
 booleans, an optionally signed run of digits is an integer, and anything else is a string.
@@ -87,6 +94,13 @@ Read PROV-N leniently, and draw an SVG diagram with labels:
 ```bash
 prov-convert -i provn -r profile=lenient document.provn document.json
 prov-convert -f svg -w use_labels=true document.json document.svg
+```
+
+Page coloured PROV-N, or write Turtle with colour to a terminal:
+
+```bash
+prov-convert --color always -f provn document.json | less -R
+prov-convert -f rdf -w rdf_format=turtle document.json
 ```
 
 Read from stdin and write PROV-JSON to stdout. The default, `auto`, takes a file's format

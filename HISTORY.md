@@ -489,8 +489,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   installs Pygments for an environment that has none ([#628](https://github.com/trungdong/prov/issues/628))
 - `prov-convert` and `prov-compare` detect formats from the extension, else the content,
   and `prov-convert` writes the format its output extension names, else PROV-JSON. `-w`
-  and `-r` pass `NAME=VALUE` options to the writer and reader
-  ([#667](https://github.com/trungdong/prov/issues/667))
+  and `-r` pass `NAME=VALUE` options to the writer and reader, and `--color` highlights
+  the output on a terminal ([#667](https://github.com/trungdong/prov/issues/667),
+  [#684](https://github.com/trungdong/prov/issues/684))
 
 ### Fixes
 
