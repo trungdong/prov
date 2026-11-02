@@ -484,15 +484,31 @@ NOT_DETECTED = (
             NOT_DETECTED,
             id="empty-document",
         ),
+        pytest.param(
+            "-",
+            lambda path: path.write_text("document\n  entity(ex:a)\nendDocument\n"),
+            [],
+            NOT_DETECTED
+            + " line 2, column 10: the qualified name 'ex:a' does not resolve, "
+            "because its prefix 'ex' is not declared",
+            id="broken-provn-on-stdin",
+        ),
     ],
 )
 def test_convert_detection_errors_exit_2_with_one_line(
-    tmp_path, capsys, name, write, flags, message
+    tmp_path, capsys, monkeypatch, name, write, flags, message
 ) -> None:
     source = tmp_path / name
     write(source)
     target = tmp_path / "out.json"
-    assert convert_main([*flags, str(source), str(target)]) == 2
+    argument = str(source)
+    if name == "-":
+        # The row's file holds what arrives on standard input, through a pipe.
+        monkeypatch.setattr(
+            sys, "stdin", STDIN_STREAMS["pipe-bytes"](source.read_bytes())
+        )
+        argument = "-"
+    assert convert_main([*flags, argument, str(target)]) == 2
     err = capsys.readouterr().err
     assert err.startswith("prov-convert: error: ")
     assert err.count("\n") == 1 and err.endswith("\n")

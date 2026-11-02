@@ -9,15 +9,17 @@ from typing import IO, Any, cast
 
 import prov
 from prov.model import ProvDocument
-from prov.serializers import Registry, Serializer
+from prov.serializers import ProvFormatNotDetected, Registry, Serializer
 
 
 def _run(prog: str, action: Callable[[], int]) -> int:
     """Return ``action()``, 130 on Ctrl-C, or 2 after one ``prog: error: ...`` line.
 
     ``action`` builds the parser too, so an interrupt or an import failure while
-    the registry loads is handled here. A message that spans several lines is
-    joined into one, and an empty message becomes the exception's class name.
+    the registry loads is handled here. A failed detection also appends its
+    ``__cause__``, the reader's own error, after one space when it has one. A
+    message that spans several lines is joined into one, and an empty message
+    becomes the exception's class name.
 
     ``SystemExit`` from argparse or :func:`_open_binary` passes through.
     """
@@ -26,7 +28,10 @@ def _run(prog: str, action: Callable[[], int]) -> int:
     except KeyboardInterrupt:
         return 130
     except Exception as exc:
-        lines = (line.strip() for line in str(exc).splitlines())
+        text = str(exc)
+        if isinstance(exc, ProvFormatNotDetected) and exc.__cause__ is not None:
+            text += " " + str(exc.__cause__)
+        lines = (line.strip() for line in text.splitlines())
         message = " ".join(line for line in lines if line) or type(exc).__name__
         sys.stderr.write(f"{prog}: error: {message}\n")
         return 2
