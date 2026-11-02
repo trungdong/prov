@@ -15,6 +15,7 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 import contextlib
 import inspect
 import io
+import itertools
 import re
 import shutil
 import subprocess  # nosec B404
@@ -1306,14 +1307,23 @@ def test_reference_page_names_every_flag_and_positional(tool, build_parser) -> N
     page = REPO_ROOT / "docs" / "reference" / f"prov-{tool}.md"
     if not page.is_file():
         pytest.skip(f"{page.name} only exists in a source checkout")
-    text = page.read_text()
+    # The first table under "## Options" is the flag table, one flag or positional per row.
+    options = page.read_text().split("\n## Options\n")[1].split("\n## ")[0]
+    lines = iter(options.splitlines())
+    rows = list(
+        itertools.takewhile(
+            lambda line: line.startswith("|"),
+            itertools.dropwhile(lambda line: not line.startswith("|"), lines),
+        )
+    )
+    shown = {n for row in rows for n in re.findall(r"`([^`]+)`", row.split("|")[1])}
     names = [
         name
         for action in build_parser()._actions
         for name in (action.option_strings or [action.dest])
     ]
-    missing = [name for name in names if f"`{name}`" not in text]
-    assert not missing, f"{page.name} does not show {missing} as inline code"
+    missing = [name for name in names if name not in shown]
+    assert not missing, f"{page.name} flag table does not show {missing} as inline code"
 
 
 def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:

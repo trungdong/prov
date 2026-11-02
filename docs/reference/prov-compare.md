@@ -39,7 +39,7 @@ the options each format accepts are on the {doc}`prov-convert` page.
 | --- | --- |
 | `0` | The documents are equal. |
 | `1` | The documents differ. |
-| `2` | Error, such as a file that could not be parsed. One line, `prov-compare: error: <message>`, goes to stderr. |
+| `2` | Error, such as a file that could not be parsed or opened. A runtime error prints one line, `prov-compare: error: <message>`, to stderr. A usage error or a missing file prints argparse's usage line first. |
 | `130` | Interrupted with Ctrl-C. Nothing is printed. |
 
 ## Examples

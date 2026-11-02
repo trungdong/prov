@@ -102,7 +102,7 @@ imports.
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. The converted document is in `outfile`. |
-| `2` | Error, such as an unsupported format, unreadable input or a missing file. One line, `prov-convert: error: <message>`, goes to stderr. |
+| `2` | Error, such as an unsupported format, unreadable input or a missing file. A runtime error prints one line, `prov-convert: error: <message>`, to stderr. A usage error or a missing file prints argparse's usage line first. |
 | `130` | Interrupted with Ctrl-C. Nothing is printed. |
 
 ## Examples
