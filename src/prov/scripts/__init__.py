@@ -54,12 +54,6 @@ _EXTENSIONS: dict[str, tuple[str, dict[str, str]]] = {
 """Format and reader or writer options by lower-cased file extension, dot included."""
 
 
-def _extension_row(path: str) -> tuple[str, dict[str, str]] | None:
-    """Return the format and a copy of the options for ``path``'s extension, else ``None``."""
-    row = _EXTENSIONS.get(os.path.splitext(path)[1].lower())
-    return None if row is None else (row[0], dict(row[1]))
-
-
 def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     """Resolve the input format and reader options for ``path`` and the ``-i`` ``flag``.
 
@@ -69,7 +63,8 @@ def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     flag = flag.lower()
     if flag != "auto":
         return flag, {}
-    return _extension_row(path) or ("auto", {})
+    row = _EXTENSIONS.get(os.path.splitext(path)[1].lower())
+    return ("auto", {}) if row is None else (row[0], dict(row[1]))
 
 
 def _read(stream: IO[Any], format: str, options: Mapping[str, Any]) -> ProvDocument:
