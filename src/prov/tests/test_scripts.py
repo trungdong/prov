@@ -693,9 +693,13 @@ def test_rdf_format_names_the_turtle_writer_and_reader(tmp_path) -> None:
     flags = ["-f", "rdf", "-w", "rdf_format=turtle"]
     assert convert_main([*flags, str(source), str(turtle)]) == 0
     assert _read_back(turtle, "rdf", **TURTLE) == primer_example()
-    # The extension is unknown, so -i names the format and -r its syntax.
-    flags = ["-i", "rdf", "-r", "rdf_format=turtle"]
-    assert convert_main([*flags, str(turtle), str(back)]) == 0
+    # The extension is unknown, so -i names the format and -r its syntax. The
+    # default RDF reader refuses RDF/XML, so only the option makes it read.
+    xml = tmp_path / "doc.dat"
+    _write(xml, "rdf", rdf_format="xml")
+    flags = ["-i", "rdf", str(xml), str(back)]
+    assert convert_main(flags) == 2
+    assert convert_main(["-r", "rdf_format=xml", *flags]) == 0
     assert _read_back(back, "json") == primer_example()
 
 
@@ -1139,12 +1143,24 @@ def test_compare_a_flag_replaces_the_extension(provn_and_xml, capsys) -> None:
 def test_compare_passes_each_file_its_own_reader_options(tmp_path, capsys) -> None:
     pytest.importorskip("rdflib")
     provn_file = tmp_path / "a.provn"
-    turtle_file = tmp_path / "b.dat"
-    _write(provn_file, "provn")
-    _write(turtle_file, "rdf", **TURTLE)
-    files = [str(provn_file), str(turtle_file)]
-    flags = ["-r", "profile=lenient", "-F", "rdf", "-R", "rdf_format=turtle"]
-    assert compare_main([*flags, *files]) == 0
+    xml_file = tmp_path / "b.dat"
+    provn_file.write_text(UNKNOWN_STATEMENT)
+    files = [str(provn_file), str(xml_file)]
+    flags = ["-r", "profile=lenient", "-F", "rdf", "-R", "rdf_format=xml"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # The same document as the lenient PROV-N reading, as RDF/XML.
+        lenient = ProvDocument.deserialize(
+            content=UNKNOWN_STATEMENT, format="provn", profile="lenient"
+        )
+        lenient.serialize(str(xml_file), format="rdf", rdf_format="xml")
+        assert compare_main([*flags, *files]) == 0
+        # Dropping either option, or giving it to the other file, fails.
+        assert compare_main([*flags[2:], *files]) == 2
+        assert compare_main([*flags[:2], "-F", "rdf", *files]) == 2
+        swapped = ["-R", "profile=lenient", "-F", "rdf", "-r", "rdf_format=xml"]
+        assert compare_main([*swapped, *files]) == 2
+    capsys.readouterr()
     # Each name is checked against its own file's format.
     assert compare_main(["-F", "rdf", "-R", "porfile=x", *files]) == 2
     sentence = _reader_sentence("rdf", "porfile", RDF_READER_NAMES)

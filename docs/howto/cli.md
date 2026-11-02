@@ -24,8 +24,8 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE]
 | --- | --- | --- | --- |
 | `-i`, `--input-format` | `INPUT_FORMAT` | `auto` | Input format: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-f`, `--format` | `FORMAT` | `auto` | Output format: `auto`, `json`, `xml`, `rdf`, `jsonld`, `provn`, or any Graphviz output format such as `svg`, `pdf` or `png` |
-| `-w`, `--writer-option` | `NAME=VALUE` | | Pass an option to the writer. Repeatable; the last of a repeated name wins. |
-| `-r`, `--reader-option` | `NAME=VALUE` | | Pass an option to the reader. Repeatable; the last of a repeated name wins. |
+| `-w`, `--writer-option` | `NAME=VALUE` | | Pass an option to the writer. Repeatable; the last of a repeated name wins |
+| `-r`, `--reader-option` | `NAME=VALUE` | | Pass an option to the reader. Repeatable; the last of a repeated name wins |
 | `--color` | `auto`, `always` or `never` | `auto` | Colour the output with Pygments. `auto` colours standard output on a terminal; `always` colours a file or pipe too; `never` writes plain text |
 | `-V`, `--version` | | | Print the program name and version, such as `prov-convert 3.3.0`, and exit |
 | `-h`, `--help` | | | Print usage and exit |
@@ -40,10 +40,10 @@ not `dumb` and Pygments imports. `--color always` without Pygments is an error. 
 with a lexer are `provn`, `json`, `jsonld`, `xml`, `dot` and `rdf` written as `turtle`,
 `xml` or `json-ld`; every other format, including the default TriG, is written plain.
 
-A value is typed by one rule. `none` (any case) is `None`, `true` and `false` (any case) are
-booleans, an optionally signed run of digits is an integer, and anything else is a string.
-The value is everything after the first `=`. Each format accepts only the names below, and
-any other name is an error that lists the accepted ones.
+Each `-w` or `-r` value is typed by one rule. `none` (any case) is `None`, `true` and
+`false` (any case) are booleans, an optionally signed run of digits is an integer, and
+anything else is a string. The value is everything after the first `=`. Each format accepts
+only the names below, and any other name is an error that lists the accepted ones.
 
 | Format | `-w` writer options | `-r` reader options |
 | --- | --- | --- |
@@ -54,7 +54,8 @@ any other name is an error that lists the accepted ones.
 | `xml` | `force_types` | none |
 | Graphviz formats | `show_nary`, `use_labels`, `direction`, `show_element_attributes`, `show_relation_attributes` | |
 
-The JSON readers' names take Python callables, which the command line cannot supply.
+The JSON readers' names take Python callables and the RDF reader's two mappers take
+dictionaries, so the command line cannot supply them.
 
 ### Examples
 
@@ -143,8 +144,8 @@ prov-compare [-h] [-f FORMAT1] [-r NAME=VALUE] [-F FORMAT2] [-R NAME=VALUE] [-V]
 | --- | --- | --- | --- |
 | `-f`, `--format1` | `FORMAT1` | `auto` | Format of `file1`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-F`, `--format2` | `FORMAT2` | `auto` | Format of `file2`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
-| `-r`, `--reader-option1` | `NAME=VALUE` | | Pass an option to the reader of `file1`. Repeatable, typed as for `prov-convert -r`. |
-| `-R`, `--reader-option2` | `NAME=VALUE` | | Pass an option to the reader of `file2`. Repeatable, typed as for `prov-convert -r`. |
+| `-r`, `--reader-option1` | `NAME=VALUE` | | Pass an option to the reader of `file1`. Repeatable, typed as for `prov-convert -r` |
+| `-R`, `--reader-option2` | `NAME=VALUE` | | Pass an option to the reader of `file2`. Repeatable, typed as for `prov-convert -r` |
 | `-V`, `--version` | | | Print the program name and version, such as `prov-compare 3.3.0`, and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `file1`, `file2` | | | The two files to compare; `-` reads one of them from standard input |

@@ -141,6 +141,12 @@ def convert_file(
             or if ``output_format`` is not a Graphviz format and not a
             registered serializer format. The message is the serializer
             registry's, which names the extra a missing format needs.
+        ImportError: If ``color`` is true and Pygments is not installed.
+        TypeError: If ``writer_options`` names a keyword that
+            :func:`~prov.dot.prov_to_dot` does not accept.
+
+    A writer's own error for a value it rejects (such as the ``ValueError``
+    for an unknown ``context``) and a reader's error propagate unchanged.
     """
     try:
         prov_doc = _read(infile, input_format, reader_options or {})
@@ -186,7 +192,7 @@ def _lexer_name(fmt: str, writer_options: Mapping[str, Any]) -> str | None:
     """Return the Pygments lexer name for the ``fmt`` output, or ``None`` if it has none.
 
     ``rdf`` keys on the ``rdf_format`` writer option, which defaults to ``trig``.
-    The other Graphviz formats are binary and have no lexer.
+    The other Graphviz formats have no lexer in the map.
     """
     if fmt == "rdf":
         return _RDF_LEXERS.get(writer_options.get("rdf_format", "trig"))
@@ -230,7 +236,11 @@ def _use_color(choice: str, outfile: str) -> bool:
 
 
 def _on_color_terminal(outfile: str) -> bool:
-    """Return whether ``auto`` may colour: standard output, a terminal, no ``NO_COLOR``, ``TERM`` not dumb."""
+    """Return whether ``auto`` may colour.
+
+    It may when the output is standard output on a terminal, ``NO_COLOR`` is
+    unset or empty and ``TERM`` is not ``dumb``.
+    """
     isatty = getattr(sys.stdout, "isatty", None)
     return (
         outfile == "-"
@@ -348,24 +358,20 @@ def _convert(argv: list[str] | None) -> int:
     args = parser.parse_args(argv)
     input_format, reader_table = _input_format(args.infile, args.input_format)
     output_format, writer_table = _output_format(args.outfile, args.format)
-    reader_options = {
-        **reader_table,
-        **_options(
-            args.reader_option or [],
-            "reader",
-            input_format,
-            _reader_names(input_format),
-        ),
-    }
-    writer_options = {
-        **writer_table,
-        **_options(
-            args.writer_option or [],
-            "writer",
-            output_format,
-            _writer_names(output_format),
-        ),
-    }
+    reader_options = _options(
+        args.reader_option or [],
+        "reader",
+        input_format,
+        _reader_names(input_format),
+        reader_table,
+    )
+    writer_options = _options(
+        args.writer_option or [],
+        "writer",
+        output_format,
+        _writer_names(output_format),
+        writer_table,
+    )
     color = _use_color(args.color, args.outfile)
     with contextlib.ExitStack() as streams:
         infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))

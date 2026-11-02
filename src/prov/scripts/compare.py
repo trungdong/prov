@@ -73,13 +73,8 @@ def _source(args: Namespace, number: int) -> tuple[str, str, dict[str, Any]]:
     """Resolve the path, input format and reader options of file ``number``."""
     path = getattr(args, f"file{number}")
     fmt, table = _input_format(path, getattr(args, f"format{number}"))
-    given = _options(
-        getattr(args, f"reader_option{number}") or [],
-        "reader",
-        fmt,
-        _reader_names(fmt),
-    )
-    return path, fmt, {**table, **given}
+    pairs = getattr(args, f"reader_option{number}") or []
+    return path, fmt, _options(pairs, "reader", fmt, _reader_names(fmt), table)
 
 
 def _compare(argv: list[str] | None) -> int:

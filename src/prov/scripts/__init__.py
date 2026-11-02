@@ -112,12 +112,14 @@ def _options(
     role: str,
     fmt: str,
     declared: frozenset[str] | None,
+    defaults: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Type ``pairs`` into keyword options for the ``fmt`` ``role`` (``writer`` or ``reader``).
 
-    A later pair replaces an earlier one of the same name. A name outside
-    ``declared`` is a ``ValueError`` in ``prov.read()``'s sentence. ``None``
-    for ``declared`` skips the check, which leaves an unavailable format to the
+    A later pair replaces an earlier one of the same name, and a pair replaces
+    a ``defaults`` entry. A name outside ``declared`` is a ``ValueError`` in
+    ``prov.read()``'s sentence, and ``defaults`` are not checked. ``None`` for
+    ``declared`` skips the check, which leaves an unavailable format to the
     library's own error.
     """
     if declared is not None:
@@ -128,7 +130,7 @@ def _options(
                 f"the {fmt!r} {role} accepts no option {unknown[0]!r}; "
                 f"it accepts: {accepted}"
             )
-    return {name: _typed(value) for name, value in pairs}
+    return {**(defaults or {}), **{name: _typed(value) for name, value in pairs}}
 
 
 def _reader_names(fmt: str) -> frozenset[str] | None:
