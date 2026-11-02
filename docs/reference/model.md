@@ -133,9 +133,9 @@ only a record without one. Two attribute values are the same value when they hav
 datatype and the same value in that datatype's value space. `xsd:boolean`, `xsd:decimal`,
 `xsd:double`, `xsd:float` and `xsd:integer` with its subtypes have a value space here,
 every other datatype compares by text, and a text outside its datatype's lexical space
-or a subtype's range compares as text. An `xsd:float` is keyed as a Python `float`, so two texts that differ
-only beyond single precision are two values. Language tags compare case-insensitively, so
-`Literal("a", None, "EN")` equals `Literal("a", None, "en")`.
+or a subtype's range compares as text. An `xsd:float` is keyed as a Python `float`, so two
+texts that differ only beyond single precision are two values. Language tags compare
+case-insensitively, so `Literal("a", None, "EN")` equals `Literal("a", None, "en")`.
 
 A plain Python value takes the datatype the writers give it (see {ref}`python-values`), so
 `5` and `Literal("05", XSD_INT)` are one value and `5` and `Literal("5", XSD_LONG)` are
