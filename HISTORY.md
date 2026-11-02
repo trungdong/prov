@@ -14,7 +14,7 @@ lists each message, the input that causes it and what to write instead.
 - The five format errors derive from `ProvSerializationError`, and a reader raises its
   format's error for a model rejection too, with the model's error as `__cause__`. Write
   `except ProvSerializationError` around a read, or `except prov.Error` for both kinds,
-  where 3.2.3 raised the model's error or a bare `ValueError`
+  where 3.2.3 raised the model's error, or a bare `ValueError` or `AttributeError`
   ([#653](https://github.com/trungdong/prov/issues/653))
 - A `Literal` of `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` or an integer
   type compares by its value, so `Literal("05", XSD_INT) == Literal("5", XSD_INT)`, and
@@ -91,9 +91,9 @@ lists each message, the input that causes it and what to write instead.
 - `prov_to_dot()` and `plot()` with `use_labels=True` draw an element that has no
   `prov:label` with its identifier once, where 3.2.3 drew it twice
   ([#695](https://github.com/trungdong/prov/issues/695))
-- A refused `ProvDocument.add_bundle()` leaves the bundle's document link, identifier and
-  namespaces as they were, where 3.2.3 could leave the bundle linked and its namespace
-  registered ([#726](https://github.com/trungdong/prov/issues/726))
+- A refused `ProvDocument.add_bundle()` leaves the bundle's identifier and namespaces as
+  they were, where 3.2.3 could set the identifier and leave the bundle's namespaces linked
+  to the document ([#726](https://github.com/trungdong/prov/issues/726))
 - Writing N-Triples prints no rdflib encoding warning, where 3.2.3 printed
   `UserWarning: NTSerializer always uses UTF-8 encoding`
   ([#742](https://github.com/trungdong/prov/pull/742))
@@ -108,7 +108,7 @@ lists each message, the input that causes it and what to write instead.
   new form ([#564](https://github.com/trungdong/prov/issues/564))
 - PROV-N writes an `xsd:QName` literal value as `'ex:x'` and PROV-O writes the IRI, where
   3.2.3 wrote `"ex:x" %% xsd:QName` and `"ex:x"^^xsd:QName`
-  ([#526](https://github.com/trungdong/prov/issues/526))
+  ([#238](https://github.com/trungdong/prov/issues/238))
 - Reading a record's `label`, `args` or `get_attribute()`, or calling `unified()`, leaves
   its attributes unchanged, where 3.2.3 added an empty entry that moved a later attribute
   earlier in PROV-JSON, PROV-JSONLD and PROV-N output
@@ -150,9 +150,9 @@ fixed issue.
   bundle that made the record beside it. 4.0 removes it
   ([#734](https://github.com/trungdong/prov/issues/734))
 - `Identifier`, `QualifiedName`, `Namespace` and `Literal` raise `AttributeError` when code
-  assigns or deletes a field after construction, so a subclass that set a base field in its
-  own `__init__` now calls the base class's `__init__`, where 3.2.3 let the change through
-  ([#444](https://github.com/trungdong/prov/issues/444))
+  assigns or deletes a stored field such as `_value` after construction, so a subclass that
+  set one in its own `__init__` now calls the base class's `__init__`, where 3.2.3 let the
+  change through ([#444](https://github.com/trungdong/prov/issues/444))
 - `sorted_attributes` is no longer public API and stays importable
   ([#742](https://github.com/trungdong/prov/pull/742))
 
