@@ -1,7 +1,5 @@
 # prov-convert
 
-Convert a PROV document between formats.
-
 ## Synopsis
 
 ```bash
@@ -44,7 +42,9 @@ Image formats need the `dot` extra and a local Graphviz install. See {doc}`../ho
 Colour needs the `pygments` extra. `--color always` without Pygments is an error. The formats
 with a lexer are `provn`, `json`, `jsonld`, `xml`, `dot` and `rdf` written as `turtle`,
 `xml` or `json-ld`; every other format, including the default TriG, is written plain.
-`NO_COLOR` and `TERM` decide `auto`, as the Environment section describes.
+Under `auto`, `prov-convert` colours the output when no output file is named, standard
+output is a terminal, `NO_COLOR` is unset or empty, `TERM` is not `dumb`, Pygments imports
+and the format has a lexer. The Environment section lists the two variables.
 
 Each `-w` or `-r` value is typed by one rule. `none` (any case) is `None`, `true` and
 `false` (any case) are booleans, an optionally signed run of digits is an integer, and
@@ -80,24 +80,21 @@ the one the extension implies.
 | `.nq` | `rdf` | `nquads` |
 | `.rdf` | `rdf` | `xml` |
 
-For output, `auto` also accepts the name of a Graphviz output format as the extension, such
-as `.svg`, `.png`, `.pdf` or `.dot`. Only the names in
-`prov.scripts.convert.GRAPHVIZ_SUPPORTED_FORMATS` are accepted, and any other name, such as
-`webp`, exits 2.
+For output, `auto` also selects a Graphviz output format when the extension names one, such
+as `.svg`, `.png`, `.pdf` or `.dot`. Any other extension, such as `.webp`, falls back to
+PROV-JSON, and `-f webp` exits 2.
 
 A `.json` file is always read as PROV-JSON. To read a PROV-JSONLD file named `.json`, pass
 `-i jsonld`.
 
 ## Environment
 
+Two variables turn `--color auto` off.
+
 | Variable | Effect |
 | --- | --- |
 | `NO_COLOR` | When set and non-empty, turns `--color auto` off. |
 | `TERM` | When `dumb`, turns `--color auto` off. |
-
-Under `auto`, `prov-convert` colours the output when no output file is named, standard
-output is a terminal, `NO_COLOR` is unset or empty, `TERM` is not `dumb` and Pygments
-imports.
 
 ## Exit status
 
@@ -156,4 +153,4 @@ prov-convert --color always -f provn document.json | less -R
 ## See also
 
 {doc}`prov-compare(1) <prov-compare>`, the how-to {doc}`../howto/cli`, and
-{py:func}`prov.read`.
+{py:func}`prov.read`. The full documentation is at <https://prov.readthedocs.io/>.

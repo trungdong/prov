@@ -62,9 +62,7 @@ jobs:
           path: dist/
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # release/v1
 
-  # contents: write lets gh release upload attach files to the release. The
-  # workflow default stays read so no other job can modify the repository. The
-  # checkout keeps no git credentials because the build runs third-party code.
+  # The checkout keeps no git credentials because the build runs third-party code.
   man-pages:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest

@@ -15,7 +15,6 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 import contextlib
 import inspect
 import io
-import itertools
 import re
 import shutil
 import subprocess  # nosec B404
@@ -1300,26 +1299,25 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @pytest.mark.parametrize(
-    ("tool", "build_parser"),
-    [("convert", convert_build_parser), ("compare", compare_build_parser)],
+    "build_parser",
+    [convert_build_parser, compare_build_parser],
+    ids=["prov-convert", "prov-compare"],
 )
-def test_reference_page_names_every_flag_and_positional(tool, build_parser) -> None:
-    page = REPO_ROOT / "docs" / "reference" / f"prov-{tool}.md"
+def test_reference_page_names_every_flag_and_positional(build_parser) -> None:
+    parser = build_parser()
+    page = REPO_ROOT / "docs" / "reference" / f"{parser.prog}.md"
     if not page.is_file():
         pytest.skip(f"{page.name} only exists in a source checkout")
-    # The first table under "## Options" is the flag table, one flag or positional per row.
-    options = page.read_text().split("\n## Options\n")[1].split("\n## ")[0]
-    lines = iter(options.splitlines())
-    rows = list(
-        itertools.takewhile(
-            lambda line: line.startswith("|"),
-            itertools.dropwhile(lambda line: not line.startswith("|"), lines),
-        )
-    )
+    text = page.read_text()
+    assert "\n## Options\n" in text, f"{page.name} has no Options section"
+    # The flag table is one flag or positional per row; other tables in the section
+    # have format names or extensions in the first cell.
+    options = text.split("\n## Options\n")[1].split("\n## ")[0]
+    rows = [line for line in options.splitlines() if line.startswith("| `")]
     shown = {n for row in rows for n in re.findall(r"`([^`]+)`", row.split("|")[1])}
     names = [
         name
-        for action in build_parser()._actions
+        for action in parser._actions
         for name in (action.option_strings or [action.dest])
     ]
     missing = [name for name in names if name not in shown]

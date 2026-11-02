@@ -475,7 +475,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A flagless `prov-convert` output file whose extension names a format, such as `out.xml`,
   is written in that format, where 3.2.3 wrote PROV-JSON. The input extension now decides
   the input format, and `-V`, the one-line error, exit 130 and `main(argv)` changed
-  ([how-to](https://prov.readthedocs.io/en/latest/howto/cli.html),
+  ([reference](https://prov.readthedocs.io/en/latest/reference/prov-convert.html),
   [#737](https://github.com/trungdong/prov/issues/737))
 - `prov.scripts.convert.CLIError` lacks the `E:` prefix in its `str()` or `.msg` and holds the
   library's message. `prov.scripts.compare.CLIError` and the `__version__` of both modules
