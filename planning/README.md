@@ -38,6 +38,7 @@ which is gitignored and never committed.
 | `specs/2026-10-26-pygments-provn-lexer.md` | 2026-10-26 | 3.3.0 | In progress |
 | `specs/2026-10-27-release-3.3.0-spec4-performance.md` | 2026-10-27 | 3.3.0 | Complete; PRs 24a and 24b merged |
 | `specs/2026-10-28-release-3.3.0-spec5-defects.md` | 2026-10-28 | 3.3.0 | Complete; PRs 26 to 38 merged, the release step moves to spec 7 |
-| `specs/2026-11-01-release-3.3.0-spec6-cli-tools.md` | 2026-11-01 | 3.3.0 | Approved; PRs 39 to 41 to build |
+| `specs/2026-11-01-release-3.3.0-spec6-cli-tools.md` | 2026-11-01 | 3.3.0 | Complete; PRs 39 to 41 merged |
+| `specs/2026-11-02-release-3.3.0-spec7-loose-ends-freeze.md` | 2026-11-02 | 3.3.0 | Approved; PRs 42 and 43 to build, then the freeze |
 | `triage/2026-07-behaviour-bugs.md` | 2026-07-03 | 3.0.0 | Complete; #34, #77 and #89 fixed |
 | `test-gap-checklist.md` | 2026-07-04 | 2.3.0 | Complete |
