@@ -429,7 +429,7 @@ class Literal:
     A literal pairs a string value with an optional datatype and an optional
     language tag. Supplying a language tag forces the datatype to
     ``prov:InternationalizedString``: if no datatype was given one is assumed,
-    and any other datatype is overridden, which logs a warning, to comply with
+    and any other datatype is overridden and logs a warning, to comply with
     the PROV-JSON/PROV-XML rules for language-tagged strings.
 
     Its fields are read-only after construction. Assigning or deleting one

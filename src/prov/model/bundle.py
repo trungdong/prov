@@ -1965,13 +1965,15 @@ class ProvDocument(ProvBundle):
 
         Records that share an identifier merge into one record. An agent that
         is also an entity or an activity stays as separate records, one per
-        type. An entity and an activity, or two different relation kinds,
-        cannot share an identifier and raise. A formal attribute that one
+        type. An entity and an activity, an element and a relation, and two
+        relation kinds such as a generation and a usage cannot share an
+        identifier and raise. A derivation or an influence may share an
+        identifier with another relation kind. A formal attribute that one
         record leaves out takes the value another record gives it, and equal
         values unify. The plan of an association, the activity of a derivation,
         and the generation and usage of a derivation with no activity are
-        the exception, because an absent value there means "none" and cannot
-        take a concrete one. Other attributes are combined. Records with a unique
+        exceptions to that rule, because an absent value there means "none"
+        and cannot take a concrete one. Other attributes are combined. Records with a unique
         identifier, or none, are not merged, and neither are ``alternateOf``,
         ``specializationOf``, ``mentionOf`` and ``hadMember`` records, which
         have no identifier to merge on. After the merge each record appears
