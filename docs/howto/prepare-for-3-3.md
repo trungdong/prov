@@ -165,6 +165,7 @@ of an empty prefix and of a blank IRI are a `ProvValueError` now, from code, whi
 |---|---|---|---|
 | `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
 | `the value Decimal('NaN') of ex:ratio has no xsd:decimal form` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Decimal("NaN")}` | A finite `Decimal`, or the `float` `nan`, which `xsd:double` holds. |
+| `the datatype 'ex:type' of 'x' is not a QualifiedName` | [#705](https://github.com/trungdong/prov/issues/705) | `Literal("x", "ex:type")` | The resolved name, such as `doc.valid_qualified_name("ex:type")` or `EX["type"]`. |
 
 The error is a `ProvValueError` where the value is asserted. An attribute value has a
 PROV form when it is a `str`, `int`, `float`, `bool`, `datetime.datetime`, `Identifier`,

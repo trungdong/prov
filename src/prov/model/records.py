@@ -411,6 +411,17 @@ def _check_langtag(value: Any, langtag: Any) -> None:
         )
 
 
+def _check_datatype(value: Any, datatype: Any) -> None:
+    """Raise for a datatype that is neither a QualifiedName nor None (#705).
+
+    ``Literal.__init__`` and ``Literal.__setstate__`` both check.
+    """
+    if datatype is not None and not isinstance(datatype, QualifiedName):
+        raise ProvValueError(
+            f"the datatype {datatype!r} of {value!r} is not a QualifiedName"
+        )
+
+
 class Literal:
     """A typed (and optionally language-tagged) PROV literal value.
 
@@ -468,12 +479,15 @@ class Literal:
                 that datatype; only a plain Python value given to a record must
                 have a PROV form (#482).
             datatype: The qualified name of the value's datatype (default:
-                ``None``).
+                ``None``). Any other object, a plain
+                :class:`~prov.model.Identifier` or a ``str`` included, raises
+                :class:`~prov.model.ProvValueError`.
             langtag: An optional language tag. When given, ``datatype`` is
                 coerced to ``prov:InternationalizedString`` (default: ``None``).
                 An empty tag, or a tag such as ``"en_US"`` that is not shaped
                 like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
+        _check_datatype(value, datatype)
         text = _literal_text(value, datatype)
         _check_langtag(text, langtag)
         if langtag:
@@ -517,6 +531,7 @@ class Literal:
         _set(self, "_value", state["_value"])
         _set(self, "_datatype", state["_datatype"])
         _set(self, "_langtag", state["_langtag"])
+        _check_datatype(self._value, self._datatype)
         _check_langtag(self._value, self._langtag)
 
     def __eq__(self, other: Any) -> bool:

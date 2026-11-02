@@ -7,6 +7,7 @@ import decimal
 import enum
 import io
 import math
+import pickle
 import re
 import uuid
 import warnings
@@ -179,6 +180,43 @@ def test_unpickled_literal_is_checked_too(tag: str) -> None:
     }
     with pytest.raises(ProvValueError, match="'hi'"):
         literal.__setstate__(state)
+
+
+@pytest.mark.parametrize("tag", [None, "en"])
+@pytest.mark.parametrize(
+    "datatype",
+    ["ex:type", object(), Identifier("http://example.org/t")],
+    ids=["str", "object", "identifier"],
+)
+def test_datatype_that_is_not_a_qualified_name_raises(
+    datatype: Any, tag: str | None
+) -> None:
+    # #705: every writer needs the qualified form, so the refusal comes where
+    # the literal is built, language tag or not.
+    message = f"the datatype {datatype!r} of 'x' is not a QualifiedName"
+    with pytest.raises(ProvValueError, match=re.escape(message)):
+        Literal("x", datatype, tag)
+
+
+def test_datatype_that_is_a_qualified_name_or_none_is_kept_and_pickles() -> None:
+    assert Literal("x", XSD_STRING).datatype == XSD_STRING
+    assert Literal("x", None).datatype is None
+    for tag in (None, "en"):
+        assert Literal("x", None, tag).langtag == tag
+    # A valid datatype with a tag is overridden, as before.
+    tagged = Literal("x", XSD_STRING, "en")
+    assert tagged.datatype == PROV_INTERNATIONALIZEDSTRING
+    assert tagged.langtag == "en"
+    for literal in (Literal("x", XSD_STRING), tagged):
+        assert pickle.loads(pickle.dumps(literal)) == literal
+
+
+def test_unpickled_literal_with_a_bad_datatype_raises() -> None:
+    # A 3.2.3 pickle may hold a datatype that is not a QualifiedName.
+    state = {"_value": "x", "_datatype": "ex:type", "_langtag": None}
+    message = "the datatype 'ex:type' of 'x' is not a QualifiedName"
+    with pytest.raises(ProvValueError, match=re.escape(message)):
+        Literal.__new__(Literal).__setstate__(state)
 
 
 @pytest.mark.parametrize(

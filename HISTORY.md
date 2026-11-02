@@ -480,6 +480,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `prov.scripts.convert.CLIError` lacks the `E:` prefix in its `str()` or `.msg` and holds the
   library's message. `prov.scripts.compare.CLIError` and the `__version__` of both modules
   are gone ([#737](https://github.com/trungdong/prov/issues/737))
+- A `Literal` whose datatype is not a `QualifiedName` (or `None`) raises `ProvValueError`
+  where it is built or unpickled, so pass the resolved name, where 3.2.3 accepted any
+  object and wrote it as given ([#705](https://github.com/trungdong/prov/issues/705))
 
 ### Additions
 
