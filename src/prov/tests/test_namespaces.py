@@ -264,17 +264,25 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
 
 
 @pytest.mark.parametrize(
-    ("own", "failing", "error", "match"),
+    ("held_id", "own", "failing", "error", "match"),
     [
-        (False, "zz:x", ProvExceptionInvalidQualifiedName, None),
-        (False, "ex:a", ProvException, "already exists"),
-        (True, "ex:a", ProvException, "already exists"),
-        (False, Namespace("alt", EX_URI)["a"], ProvException, "already exists"),
+        ("ex:a", False, "zz:x", ProvExceptionInvalidQualifiedName, None),
+        ("ex:a", False, "ex:a", ProvException, "already exists"),
+        ("ex:a", True, "ex:a", ProvException, "already exists"),
+        ("ex:a", False, Namespace("alt", EX_URI)["a"], ProvException, "already exists"),
         (
+            "ex:a",
             False,
             Identifier("http://zz.example/x"),
             ProvExceptionInvalidQualifiedName,
             None,
+        ),
+        (
+            Namespace("zz", "http://zz.example/")["b"],
+            False,
+            default_namespace("http://zz.example/")["b"],
+            ProvException,
+            "already exists",
         ),
     ],
     ids=[
@@ -283,9 +291,11 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
         "own document",
         "collision by IRI",
         "identifier no namespace compacts",
+        "held IRI in an undeclared default namespace",
     ],
 )
 def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
+    held_id: str | QualifiedName,
     own: bool,
     failing: str | Identifier,
     error: type[ProvException],
@@ -293,7 +303,13 @@ def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
 ) -> None:
     d1 = ex_document()
     d2 = ex_document()
-    held = d1.bundle("ex:a")
+    if isinstance(held_id, str):
+        held = d1.bundle(held_id)
+    else:
+        # zz is declared on the held bundle only, never on the document.
+        held = ProvBundle()
+        d1.add_bundle(held, held_id)
+    held_identifier = held.identifier
     bundle = held if own else ProvBundle()
     bundles = list(d1.bundles)
     bundle_namespaces = list(bundle.get_registered_namespaces())
@@ -303,7 +319,7 @@ def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
         d1.add_bundle(bundle, failing)
 
     assert bundle._namespaces.parent is (d1._namespaces if own else None)
-    assert bundle.identifier == (d1.valid_qualified_name("ex:a") if own else None)
+    assert bundle.identifier == (held_identifier if own else None)
     assert list(d1.bundles) == bundles
     assert list(bundle.get_registered_namespaces()) == bundle_namespaces
     assert list(d1.get_registered_namespaces()) == document_namespaces
