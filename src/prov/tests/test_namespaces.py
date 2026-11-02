@@ -303,12 +303,8 @@ def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
 ) -> None:
     d1 = ex_document()
     d2 = ex_document()
-    if isinstance(held_id, str):
-        held = d1.bundle(held_id)
-    else:
-        # zz is declared on the held bundle only, never on the document.
-        held = ProvBundle()
-        d1.add_bundle(held, held_id)
+    held = ProvBundle()
+    d1.add_bundle(held, held_id)
     held_identifier = held.identifier
     bundle = held if own else ProvBundle()
     bundles = list(d1.bundles)
@@ -330,18 +326,16 @@ def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
 
 
 @pytest.mark.parametrize(
-    ("declared", "identifier", "name", "on_bundle"),
+    ("declared", "identifier"),
     [
-        ("", Namespace("zz", "http://zz.example/")["b"], "zz:b", ["zz"]),
-        ("bb", "bb:x", "bb:x", ["bb"]),
+        (None, Namespace("zz", "http://zz.example/")["b"]),
+        ("bb", "bb:x"),
     ],
     ids=["foreign QualifiedName", "prefix only the bundle declares"],
 )
 def test_an_added_bundle_registers_its_identifier_namespace_on_the_bundle_only(
-    declared: str,
+    declared: str | None,
     identifier: str | QualifiedName,
-    name: str,
-    on_bundle: list[str],
 ) -> None:
     document = ex_document()
     bundle = ProvBundle()
@@ -351,8 +345,10 @@ def test_an_added_bundle_registers_its_identifier_namespace_on_the_bundle_only(
 
     document.add_bundle(bundle, identifier)
 
-    assert str(bundle.identifier) == name
-    assert [n.prefix for n in bundle.get_registered_namespaces()] == on_bundle
+    assert str(bundle.identifier) == str(identifier)
+    assert [n.prefix for n in bundle.get_registered_namespaces()] == [
+        str(identifier).split(":")[0]
+    ]
     assert list(document.get_registered_namespaces()) == document_namespaces
 
 

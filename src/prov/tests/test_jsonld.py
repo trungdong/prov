@@ -25,6 +25,7 @@ from prov.serializers.provjsonld import (
 
 from .conftest import (
     BLANK_PREFIX,
+    EX_URI,
     HTTP_PREFIX,
     NO_PREFIX,
     UNDECLARED_PREFIX,
@@ -33,7 +34,6 @@ from .conftest import (
 )
 from .jsonld_statements import statement_dict, statement_of, usage_with
 
-EX_URI = "http://example.org/"
 FIXTURE_DIR = Path(__file__).parent / "jsonld"
 
 

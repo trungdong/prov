@@ -425,6 +425,7 @@ JSONLD_IN_JSON = (
     "'@context' is not a recognised PROV-N record-type keyword "
     "(e.g. 'entity', 'activity', 'wasGeneratedBy')"
 )
+UNDECLARED_PREFIX_PROVN = b"document\n  entity(ex:a)\nendDocument\n"
 NOT_DETECTED = (
     "Could not read from the source. To get a proper error message, "
     "specify the format with the 'format' parameter."
@@ -476,6 +477,22 @@ NOT_DETECTED = (
             NOT_DETECTED,
             id="empty-document",
         ),
+        pytest.param(
+            "bad.provn",
+            lambda path: path.write_bytes(UNDECLARED_PREFIX_PROVN),
+            [],
+            None,
+            id="undeclared-prefix",
+        ),
+        pytest.param(
+            "bad.provn",
+            lambda path: path.write_bytes(
+                b"document\n  prefix ex <http://example.org/>\n  entity("
+            ),
+            [],
+            None,
+            id="unclosed",
+        ),
     ],
 )
 def test_convert_detection_errors_exit_2_with_one_line(
@@ -484,54 +501,32 @@ def test_convert_detection_errors_exit_2_with_one_line(
     source = tmp_path / name
     write(source)
     target = tmp_path / "out.json"
+    target.write_bytes(b"KEEP ME")
     assert convert_main([*flags, str(source), str(target)]) == 2
     err = capsys.readouterr().err
     assert err.startswith("prov-convert: error: ")
     assert err.count("\n") == 1 and err.endswith("\n")
     if message is not None:
         assert err == f"prov-convert: error: {message}\n"
+    assert target.read_bytes() == b"KEEP ME"
 
 
 def test_convert_a_broken_document_on_stdin_exits_2_with_one_line(
     tmp_path, capsys, monkeypatch
 ) -> None:
-    data = b"document\n  entity(ex:a)\nendDocument\n"
-    monkeypatch.setattr(sys, "stdin", STDIN_STREAMS["pipe-bytes"](data))
+    stdin = STDIN_STREAMS["pipe-bytes"](UNDECLARED_PREFIX_PROVN)
+    monkeypatch.setattr(sys, "stdin", stdin)
     assert convert_main(["-", str(tmp_path / "out.json")]) == 2
     reason = unresolved_sentence("ex:a", "its prefix 'ex' is not declared")
     expected = f"{NOT_DETECTED} line 2, column 10: {reason}"
     assert capsys.readouterr().err == f"prov-convert: error: {expected}\n"
 
 
-@pytest.mark.parametrize(
-    "data",
-    [
-        pytest.param(
-            b"document\n  entity(ex:a)\nendDocument\n", id="undeclared-prefix"
-        ),
-        pytest.param(
-            b"document\n  prefix ex <http://example.org/>\n  entity(", id="unclosed"
-        ),
-    ],
-)
-def test_convert_a_failing_input_leaves_an_existing_output_file(
-    tmp_path, capsys, data
-) -> None:
-    source = tmp_path / "bad.provn"
-    source.write_bytes(data)
-    target = tmp_path / "out.json"
-    target.write_bytes(b"KEEP ME")
-    assert convert_main([str(source), str(target)]) == 2
-    err = capsys.readouterr().err
-    assert err.startswith("prov-convert: error: ") and err.count("\n") == 1
-    assert target.read_bytes() == b"KEEP ME"
-
-
 def test_convert_a_failing_input_writes_nothing_to_stdout(
     tmp_path, capsys, monkeypatch
 ) -> None:
     source = tmp_path / "bad.provn"
-    source.write_bytes(b"document\n  entity(ex:a)\nendDocument\n")
+    source.write_bytes(UNDECLARED_PREFIX_PROVN)
     stdout = io.TextIOWrapper(io.BytesIO())
     monkeypatch.setattr(sys, "stdout", stdout)
     assert convert_main([str(source)]) == 2
@@ -541,17 +536,17 @@ def test_convert_a_failing_input_writes_nothing_to_stdout(
 
 
 @pytest.mark.parametrize(
-    ("target_name", "flags", "fmt"),
+    ("same_path", "flags", "fmt"),
     [
-        pytest.param("out.provn", [], "provn", id="replaces-an-existing-file"),
-        pytest.param("doc.json", ["-f", "json"], "json", id="same-path-as-the-input"),
+        pytest.param(False, [], "provn", id="replaces-an-existing-file"),
+        pytest.param(True, ["-f", "json"], "json", id="same-path-as-the-input"),
     ],
 )
 def test_convert_writes_over_an_existing_output_file(
-    infile, tmp_path, target_name, flags, fmt
+    infile, tmp_path, same_path, flags, fmt
 ) -> None:
-    target = tmp_path / target_name
-    if not target.exists():
+    target = infile if same_path else tmp_path / "out.provn"
+    if not same_path:
         target.write_bytes(b"KEEP ME")
     assert convert_main([*flags, str(infile), str(target)]) == 0
     assert _read_back(target, fmt) == primer_example()

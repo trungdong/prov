@@ -72,26 +72,27 @@ def _statements_equal(first, second):
 def _pair_equal_lines(g1, g2):
     """Pair each line of ``g1`` with the first unused line of ``g2`` it equals.
 
-    Returns the indices paired in ``g1`` and in ``g2``.
+    Returns the paired lines of ``g1``, the unpaired lines of ``g1`` and the
+    unpaired lines of ``g2``.
     """
-    paired1, paired2 = set(), set()
-    for idx, g1_line in enumerate(g1):
-        g1_stmt = _statement_of(g1_line)
-        for idx2, g2_line in enumerate(g2):
-            if idx2 not in paired2 and _statements_equal(
-                g1_stmt, _statement_of(g2_line)
-            ):
-                paired1.add(idx)
-                paired2.add(idx2)
+    stmts2 = [_statement_of(line) for line in g2]
+    unused2 = list(range(len(g2)))
+    matched, rest1 = [], []
+    for line in g1:
+        stmt = _statement_of(line)
+        for pos, idx2 in enumerate(unused2):
+            if _statements_equal(stmt, stmts2[idx2]):
+                del unused2[pos]
+                matched.append(line)
                 break
-    return paired1, paired2
+        else:
+            rest1.append(line)
+    return matched, rest1, [g2[idx2] for idx2 in unused2]
 
 
-def _parse_lines(graph, lines, indices, *, keep):
-    """Parse into ``graph`` the ``lines`` whose index is (not) in ``indices``."""
-    for idx, line in enumerate(lines):
-        if (idx in indices) == keep:
-            graph.parse(BytesIO(line), format="nt")
+def _parse_lines(graph, lines):
+    for line in lines:
+        graph.parse(BytesIO(line), format="nt")
     return graph
 
 
@@ -99,14 +100,14 @@ def find_diff(g_rdf, g0_rdf):
     in_both, in_first, in_second = graph_diff(
         _as_triple_graph(g_rdf), _as_triple_graph(g0_rdf)
     )
-    g1 = _sorted_nt_lines(in_first)
-    g2 = _sorted_nt_lines(in_second)
     # Compare literals
-    paired1, paired2 = _pair_equal_lines(g1, g2)
-    graphs_equal = len(g1) == len(g2) and len(paired1) == len(g1)
-    _parse_lines(in_both, g1, paired1, keep=True)
-    in_first2 = _parse_lines(rl.Dataset(default_union=True), g1, paired1, keep=False)
-    in_second2 = _parse_lines(rl.Dataset(default_union=True), g2, paired2, keep=False)
+    matched, rest1, rest2 = _pair_equal_lines(
+        _sorted_nt_lines(in_first), _sorted_nt_lines(in_second)
+    )
+    graphs_equal = not rest1 and not rest2
+    _parse_lines(in_both, matched)
+    in_first2 = _parse_lines(rl.Dataset(default_union=True), rest1)
+    in_second2 = _parse_lines(rl.Dataset(default_union=True), rest2)
     return graphs_equal, in_both, in_first2, in_second2
 
 
