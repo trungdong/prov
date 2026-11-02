@@ -106,6 +106,7 @@ jobs:
       - run: |
           uv sync --locked --group docs --extra rdf --extra xml --extra dot --extra graph
           uv run --no-sync sphinx-build -W -n -b html docs docs/_build/html
+          uv run --no-sync sphinx-build -W -n -b man docs docs/_build/man
 
   minimal-install:
     # Proves the registry degrades cleanly without the optional rdf/xml/dot/

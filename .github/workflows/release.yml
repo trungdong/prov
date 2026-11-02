@@ -13,7 +13,8 @@ on:
   workflow_dispatch:   # dry-run to TestPyPI
 
 # Least privilege for the build job (which runs third-party build backends);
-# the publish jobs override this with their own id-token: write blocks.
+# the publish jobs override this with their own id-token: write blocks, and the
+# man-pages job overrides it with contents: write, which gh release upload needs.
 permissions:
   contents: read
 
@@ -60,3 +61,26 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # release/v1
+
+  # The checkout keeps no git credentials because the build runs third-party code.
+  man-pages:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
+        with:
+          python-version: "3.13"
+      - run: |
+          uv sync --locked --no-dev --group docs --extra rdf --extra xml --extra dot --extra graph
+          uv run --no-sync sphinx-build -W -n -b man docs docs/_build/man
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$TAG" docs/_build/man/prov-convert.1 docs/_build/man/prov-compare.1 \
+            --clobber --repo "$GITHUB_REPOSITORY"

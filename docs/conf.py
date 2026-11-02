@@ -115,7 +115,20 @@ latex_documents = [
     ),
 ]
 man_pages = [
-    ("index", "prov", "PROV Python Package Documentation", ["Trung Dong Huynh"], 1)
+    (
+        "reference/prov-convert",
+        "prov-convert",
+        "convert a PROV document between formats",
+        [author],
+        1,
+    ),
+    (
+        "reference/prov-compare",
+        "prov-compare",
+        "compare two PROV documents for equality",
+        [author],
+        1,
+    ),
 ]
 texinfo_documents = [
     (

@@ -15,7 +15,7 @@ Substitute the version being released for `X.Y.Z` throughout.
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
 4. Publish: `gh workflow run release.yml` as the TestPyPI dry run, then
    `gh release create X.Y.Z` with notes from `HISTORY.md`, each followed by
-   `gh run watch`, then the Zenodo lookup (§4).
+   `gh run watch`, then the two man-page assets and the Zenodo lookup (§4).
 5. Verify: the PyPI metadata `curl`, a clean `uv venv` install, and the headline feature
    from the installed package (§5).
 6. conda-forge: `gh pr list -R conda-forge/prov-feedstock --state open`, review and merge
@@ -140,6 +140,13 @@ section you just dated, so the release page and the changelog cannot drift:
 gh release create X.Y.Z --repo trungdong/prov --target main \
     --title X.Y.Z --notes-file <notes.md>
 gh run watch <run-id> --repo trungdong/prov --exit-status
+```
+
+The same run's `man-pages` job builds `prov-convert.1` and `prov-compare.1` and attaches
+both to the release. Check that they arrived:
+
+```bash
+gh release view X.Y.Z --repo trungdong/prov --json assets --jq '.assets[].name'
 ```
 
 The tag also mints a Zenodo DOI through the repository's Zenodo webhook, within about a

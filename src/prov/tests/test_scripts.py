@@ -20,6 +20,7 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import warnings
+from pathlib import Path
 from typing import NoReturn, cast
 
 import pytest
@@ -28,11 +29,15 @@ from pygments.util import ClassNotFound
 import prov
 from prov.model import ProvDocument
 from prov.scripts import _format_names, _pair, _run, _typed
-from prov.scripts.compare import main as compare_main
+from prov.scripts.compare import (
+    _build_parser as compare_build_parser,
+    main as compare_main,
+)
 from prov.scripts.convert import (
     _GRAPHVIZ_OPTIONS,
     GRAPHVIZ_SUPPORTED_FORMATS,
     CLIError,
+    _build_parser as convert_build_parser,
     _output_format,
     convert_file,
     main as convert_main,
@@ -1288,6 +1293,35 @@ def test_help_is_one_description_with_examples(main, entries) -> None:
     assert ("Graphviz" in out) == (main is convert_main)
     for entry in entries:
         assert f"{entry} -" in flat
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.parametrize(
+    "build_parser",
+    [convert_build_parser, compare_build_parser],
+    ids=["prov-convert", "prov-compare"],
+)
+def test_reference_page_names_every_flag_and_positional(build_parser) -> None:
+    parser = build_parser()
+    page = REPO_ROOT / "docs" / "reference" / f"{parser.prog}.md"
+    if not page.is_file():
+        pytest.skip(f"{page.name} only exists in a source checkout")
+    text = page.read_text()
+    assert "\n## Options\n" in text, f"{page.name} has no Options section"
+    # The flag table is one flag or positional per row; other tables in the section
+    # have format names or extensions in the first cell.
+    options = text.split("\n## Options\n")[1].split("\n## ")[0]
+    rows = [line for line in options.splitlines() if line.startswith("| `")]
+    shown = {n for row in rows for n in re.findall(r"`([^`]+)`", row.split("|")[1])}
+    names = [
+        name
+        for action in parser._actions
+        for name in (action.option_strings or [action.dest])
+    ]
+    missing = [name for name in names if name not in shown]
+    assert not missing, f"{page.name} flag table does not show {missing} as inline code"
 
 
 def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:
