@@ -130,8 +130,9 @@ Two constructs cannot round-trip, and no change is planned.
   two relations of one type that differ in the first formal attribute or in an extra
   attribute, and for most pairs of relations of different types. It raises
   `prov.serializers.provrdf.ProvRDFException` for two relations of one type that differ in
-  most other formal attributes, such as `prov:time`, for two activities that give different
-  start or end times, and for most pairs of an element and a relation. A few differences,
+  most other formal attributes, such as `prov:time`, and for two activities that give
+  different start or end times. It also raises for most pairs of an element and a
+  relation, with a different exception class depending on the element. A few differences,
   such as the agents of two associations, read back as two records. Third-party RDF shaped
   this way reads the same way. Minting a synthetic IRI and guessing values on decode were
   both rejected ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` merges
