@@ -127,14 +127,9 @@ class Registry:
         unavailable format then raises an informative :class:`DoNotExist`
         (see :func:`get`) rather than a bare ``ModuleNotFoundError``.
 
-        The insertion order is kept as ``json, rdf, provn, xml, jsonld`` (the
-        historic order when all extras are present, with ``jsonld``
-        appended last) because :func:`prov.read`'s format auto-detection
-        iterates ``Registry.serializers`` in order and
-        ``test_read_auto_detect_with_broken_tell_degrades_to_no_rewind``
-        pins JSON as the first candidate tried — a non-seekable stream can
-        only attempt the first format, so JSON must remain first for JSON
-        content to be auto-detected on broken streams.
+        The registry order is ``json, rdf, provn, xml, jsonld``, and
+        :func:`prov.read` tries the formats in that order when it detects one.
+        A non-seekable stream gets only the first attempt, which is JSON.
         """
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provjsonld import ProvJSONLDSerializer

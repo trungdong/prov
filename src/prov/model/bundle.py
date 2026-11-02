@@ -432,7 +432,12 @@ _R = TypeVar("_R", bound=ProvRecord)
 
 
 class ProvBundle:
-    """PROV Bundle"""
+    """A named or anonymous set of PROV records with its own namespaces.
+
+    A bundle holds records, has an optional identifier and registers the
+    namespaces its records use. :class:`ProvDocument` is the subclass that
+    also holds bundles.
+    """
 
     def __init__(
         self,
@@ -631,7 +636,7 @@ class ProvBundle:
 
         Raises:
             ProvExceptionInvalidQualifiedName: If the local part is one PROV-N
-                cannot write (#524).
+                cannot write.
         """
         return self._namespaces.valid_qualified_name(identifier)
 
@@ -1840,7 +1845,11 @@ class ProvBundle:
 
 
 class ProvDocument(ProvBundle):
-    """Provenance Document."""
+    """The top-level container of a PROV document.
+
+    A document holds records and named bundles. ``serialize()`` writes one,
+    and :func:`prov.read` returns one.
+    """
 
     def __init__(
         self,
@@ -1950,37 +1959,30 @@ class ProvDocument(ProvBundle):
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
 
-        Term unification is applied to the document's top-level records and,
-        independently, to each contained bundle, preserving the bundle
-        structure — as PROV-CONSTRAINTS §7.2 requires, nothing is merged
-        across a bundle boundary. The original document is left untouched.
+        The document's top-level records and each contained bundle are merged
+        independently, so nothing is merged across a bundle boundary and the
+        bundle structure is kept. The original document is left untouched.
 
-        For each identifier carried by more than one record, the records are
-        first checked for type compatibility (W3C PROV-CONSTRAINTS'
-        impossibility constraints 53, 54 and 55): an entity and an activity (or
-        two distinct relation kinds, e.g. a generation and a usage) cannot
-        share an identifier and raise; a spec-permitted overlap (an agent that
-        is also an entity and/or an activity) is kept as separate records, one
-        per type. Within each type, a single merged record is produced by the
-        term unification of key constraints 22 and 23: the records' formal
-        attributes are unified position by position — an absent formal
-        attribute is an existential that unifies with any concrete value,
-        equal concrete values unify, and two different concrete values do not
-        — while their remaining attributes are unioned. In the non-expandable
-        positions of PROV-CONSTRAINTS Table 3 (the plan of an association,
-        the activity of a derivation, and the generation and usage of a
-        derivation with no activity) an absent value means "none" and does
-        not unify with a concrete value. Records with a unique identifier, or
-        none, are not merged, and neither are ``alternateOf``,
-        ``specializationOf``, ``mentionOf`` and ``hadMember`` records that
-        share an identifier, since PROV-DM and PROV-Links give these relations
-        no identifier to merge on. After the merge each record is kept once: a
-        record equal to an earlier one is dropped and the earlier one keeps its
-        position (#548).
+        Records that share an identifier merge into one record. An agent that
+        is also an entity or an activity stays as separate records, one per
+        type. An entity and an activity, or two different relation kinds,
+        cannot share an identifier and raise. A formal attribute that one
+        record leaves out takes the value another record gives it, and equal
+        values unify. The plan of an association, the activity of a derivation,
+        and the generation and usage of a derivation with no activity are
+        the exception, because an absent value there means "none" and cannot
+        take a concrete one. Other attributes are combined. Records with a unique
+        identifier, or none, are not merged, and neither are ``alternateOf``,
+        ``specializationOf``, ``mentionOf`` and ``hadMember`` records, which
+        have no identifier to merge on. After the merge each record appears
+        once, so a record equal to an earlier one is dropped and the earlier one
+        keeps its position.
 
-        This is not the specification's full normalization: the uniqueness
-        constraints keyed on something other than the record identifier
-        (Constraints 24-29) are not checked and no inference is performed.
+        The result is not the specification's full normalisation. The
+        uniqueness constraints that key on something other than the record
+        identifier are not checked, and no inference is performed.
+        :doc:`/explanation/unification-flattening` gives the rules and
+        examples.
 
         Returns:
             The new, unified :class:`ProvDocument`.
@@ -1988,9 +1990,9 @@ class ProvDocument(ProvBundle):
         Raises:
             ProvUnificationError: If two records sharing an identifier within
                 the same scope hold different concrete values for the same
-                formal attribute, or an absent value in a non-expandable
-                position where another holds a concrete one, or have
-                incompatible types.
+                formal attribute, or one leaves out a value in one of the
+                positions above where another holds a concrete one, or the
+                records have incompatible types.
         """
         document = ProvDocument()
         document._copy_declarations_from(self)

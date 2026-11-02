@@ -265,10 +265,6 @@ class QualifiedName(Identifier):
     which combines a namespace and a local part for use in identifying entities in a
     namespace-aware context.
 
-    This class facilitates handling and manipulation of qualified names, which
-    combine a namespace and a local identifier. It supports string representation,
-    hashing, and retrieval of individual components (namespace or local part).
-
     Its fields are read-only after construction. Assigning or deleting one
     raises :class:`AttributeError`, while a subclass may still set attributes
     of its own.
@@ -350,10 +346,9 @@ class QualifiedName(Identifier):
         """Return the ``prefix:local`` PROV-N form used at IDENTIFIER positions.
 
         The local part's PROV-N metacharacters (``= ' ( ) , : ; [ ]``) are
-        backslash-escaped per grammar production [55] ``PN_CHARS_ESC`` (#223),
-        as are a leading ``-``/``.`` and a trailing ``.`` (forbidden bare by
-        [53]/[54]). The prefix is never escaped, as it cannot contain these
-        characters.
+        backslash-escaped, as are a leading ``-`` or ``.`` and a trailing
+        ``.``, which PROV-N does not allow bare. The prefix is never escaped,
+        as it cannot contain these characters.
 
         Raises:
             ProvException: If the local part is empty and the namespace has no

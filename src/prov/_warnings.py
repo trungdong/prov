@@ -24,11 +24,9 @@ class ProvWarning(Warning):
 
 
 class ProvFutureRejectionWarning(ProvWarning):
-    """The warning ``prov`` 3.2.3 raised for input that 3.3.0 rejects or reads differently.
+    """A warning that ``prov`` never raises.
 
-    3.3.0 never raises it, because each such input is now an error where it is
-    read, or is read as the warning said. The class stays so that a filter
-    written for 3.2.3, such as
+    The class stays importable so that a filter written for 3.2.3, such as
     ``warnings.simplefilter("error", ProvFutureRejectionWarning)``, keeps
     working. 4.0 removes it.
     """

@@ -181,13 +181,14 @@ def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
 def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
 
-    Accepts the ``xsd:dateTime`` lexical space (XSD 1.1 section 3.3.7) and
-    nothing else: a date, ``T``, a time with up to six fractional digits,
-    and ``Z`` or an ``hh:mm`` offset. The hour-24 end-of-day form maps to
+    Accepts the ``xsd:dateTime`` lexical space, as `XSD 1.1 defines it
+    <https://www.w3.org/TR/xmlschema11-2/#dateTime>`_, and nothing else. That
+    is a date, ``T``, a time with up to six fractional digits, and ``Z`` or an
+    ``hh:mm`` offset. The hour-24 end-of-day form maps to
     00:00:00 of the following day, per the XSD value space. Text in another
     ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, a bare
     ``xsd:date``, and a fraction of more than six digits, which a
-    :class:`datetime.datetime` cannot hold, are not accepted (#514).
+    :class:`datetime.datetime` cannot hold, are not accepted.
 
     Args:
         value: The date/time string to parse.
@@ -428,8 +429,8 @@ class Literal:
     A literal pairs a string value with an optional datatype and an optional
     language tag. Supplying a language tag forces the datatype to
     ``prov:InternationalizedString``: if no datatype was given one is assumed,
-    and any other datatype is overridden (with a warning) to comply with the
-    PROV-JSON/PROV-XML rules for language-tagged strings.
+    and any other datatype is overridden, which logs a warning, to comply with
+    the PROV-JSON/PROV-XML rules for language-tagged strings.
 
     Its fields are read-only after construction. Assigning or deleting one
     raises :class:`AttributeError`, while a subclass may still set attributes
@@ -578,8 +579,7 @@ class Literal:
 
     def provn_representation(self) -> str:
         """Return the PROV-N representation of the literal, the datatype spelled
-        as at an identifier position, so a ``:`` in its local part is escaped
-        (#571)."""
+        as at an identifier position, so a ``:`` in its local part is escaped."""
         quoted_value = _provn_string_literal(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString.
@@ -699,8 +699,8 @@ class ProvValueError(ProvException, ValueError):
     """A value a :class:`Literal` or an attribute cannot hold, or a namespace
     prefix or IRI the model refuses.
 
-    Raised at assertion for a time whose offset is beyond ±14:00 (#513) and
-    for a language tag that is empty or not shaped like a BCP 47 tag (#472).
+    Raised at assertion for a time whose offset is beyond ±14:00 and for a
+    language tag that is empty or not shaped like a BCP 47 tag.
     A subclass of both :class:`ProvException` and :class:`ValueError`, so a
     caller can catch either.
     """
@@ -838,11 +838,11 @@ class ProvRecord:
     def get_asserted_types(self) -> set[QualifiedName]:
         """Return the set of all asserted PROV types of this record.
 
-        Returns a fresh, plain ``set`` copy (2.x-compatible: mutating it does
-        not affect the record). Since ``prov:type`` values are always
-        :class:`~prov.identifier.QualifiedName`\\ s -- which never collapse
-        under Python equality -- this copy never loses information: unlike
-        :meth:`get_attribute`/:attr:`value`, there is no lossy case here.
+        Returns a fresh, plain ``set`` copy, so mutating it does not affect the
+        record. The values of ``prov:type`` are always
+        :class:`~prov.identifier.QualifiedName`\\ s, which never collapse under
+        Python equality, so this copy never loses information. Unlike
+        :meth:`get_attribute` and :attr:`value`, it has no lossy case.
         """
         return set(self._attributes.get(PROV_TYPE, ()))
 
@@ -862,13 +862,12 @@ class ProvRecord:
 
         Returns:
             A fresh, plain ``set`` copy of the values held for the attribute
-            (empty if none); mutating it does not affect the record. This
-            keeps the 2.x return type: a Python-equal-but-differently-typed
-            pair retained on the record (e.g. ``2`` and ``2.0``, #34) still
-            collapses to whichever was asserted first in *this copy*, even
-            though the record's own storage, :attr:`attributes`/
-            :attr:`extra_attributes`, equality/hashing and serialization all
-            retain both -- see ``docs/upgrading-3.0.md``.
+            (empty if none); mutating it does not affect the record. Values
+            that Python holds equal but that differ in type, such as ``2`` and
+            ``2.0``, collapse in this copy to whichever was asserted first.
+            The record keeps both, and :attr:`attributes`,
+            :attr:`extra_attributes`, equality, hashing and serialisation all
+            see both.
 
         Raises:
             ProvExceptionInvalidQualifiedName: If ``attr_name`` cannot be
@@ -958,9 +957,9 @@ class ProvRecord:
     def value(self) -> set[Any]:
         """The set of the record's ``prov:value`` attribute values.
 
-        Returns a fresh, plain ``set`` copy (2.x-compatible); see
-        :meth:`get_attribute` for what that means for a Python-equal-but-
-        differently-typed pair of ``prov:value`` values (#34).
+        Returns a fresh, plain ``set`` copy. :meth:`get_attribute` describes
+        how it treats ``prov:value`` values that Python holds equal but that
+        differ in type.
         """
         return set(self._attributes.get(PROV_VALUE, ()))
 
@@ -1152,7 +1151,7 @@ class ProvRecord:
         Raises:
             ProvExceptionInvalidQualifiedName: If an attribute name cannot be
                 resolved to a valid qualified name, or a value typed as a
-                qualified name does not resolve by its prefix (#516).
+                qualified name does not resolve by its prefix.
             ProvException: If a value is invalid for its attribute, or a
                 second, different value is supplied for a single-valued
                 attribute.

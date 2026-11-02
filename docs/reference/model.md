@@ -214,8 +214,7 @@ a type checker reports a call.
    The attributes of a record: a mapping from attribute name to value, or pairs of name
    and value in a sequence, a set or an iterator.
 
-.. autodata:: prov.model.OptionalID
-   :no-value:
+.. py:data:: OptionalID
 
    An identifier as a qualified name, a string or an ``Identifier``, or ``None``.
 
@@ -254,18 +253,15 @@ a type checker reports a call.
 
    An open stream, or a path as a string, bytes or ``os.PathLike``.
 
-.. autodata:: prov.model.QualifiedNameCandidate
-   :no-value:
+.. py:data:: QualifiedNameCandidate
 
    A qualified name, or a string or ``Identifier`` the bundle resolves to one.
 
-.. autodata:: prov.model.DatetimeOrStr
-   :no-value:
+.. py:data:: DatetimeOrStr
 
    A ``datetime``, or an ``xsd:dateTime`` string parsed with :func:`~prov.model.parse_xsd_datetime`.
 
-.. autodata:: prov.model.NSCollection
-   :no-value:
+.. py:data:: NSCollection
 
    Namespaces to register: a mapping from prefix to URI, or ``Namespace`` objects.
 ```

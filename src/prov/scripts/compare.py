@@ -1,4 +1,4 @@
-"""Compare two PROV documents in any registered format for equivalence."""
+"""Compare two PROV documents in any registered format for equality."""
 
 import contextlib
 import sys
@@ -21,7 +21,7 @@ _PROG = "prov-compare"
 def _build_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog=_PROG,
-        description="Compare two PROV documents for equivalence.",
+        description="Compare two PROV documents for equality.",
         epilog="""exit status is 0 if the documents are equal, 1 if they differ and 2 on an error.
 
 examples:

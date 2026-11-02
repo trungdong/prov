@@ -227,12 +227,9 @@ def read(
 
     If ``format`` is not given, the format is detected by trying each
     registered deserializer in turn and returning the first that both
-    succeeds and produces a non-empty document (a parse yielding no records
-    or bundles -- e.g. rdflib parsing empty/foreign input to an empty graph
-    -- is treated as "not this format"; registered namespaces are not used
-    as a signal here since the rdf deserializer always registers rdflib's
-    own default-bound namespace prefixes on every successful parse, empty
-    or not). Auto-detection swallows each candidate's error. When every
+    succeeds and produces a non-empty document. A source that parses to no
+    records and no bundles is not that format. Auto-detection swallows each
+    candidate's error. When every
     candidate fails and the content's first character names PROV-JSON,
     PROV-JSONLD or PROV-N, that reader's own error is the
     :class:`~prov.serializers.ProvFormatNotDetected`'s ``__cause__``, so the
@@ -260,9 +257,7 @@ def read(
             the options it accepts (``deserialize_options``); with
             ``format`` given, an undeclared option raises ``TypeError``;
             with auto-detection, every candidate receives only the options
-            it declares, because an undeclared option would raise ``TypeError``
-            from a reader that does not know it, which auto-detection could
-            not tell from "not this format".
+            it declares.
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.
