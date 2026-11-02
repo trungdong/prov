@@ -497,7 +497,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   and `--color always` also colours a file or pipe. It needs the `pygments` extra
   ([#684](https://github.com/trungdong/prov/issues/684))
 - `prov-convert` and `prov-compare` have reference pages, and each GitHub release attaches
-  their man pages, `prov-convert.1` and `prov-compare.1` ([#83](https://github.com/trungdong/prov/issues/83))
+  their man pages, `prov-convert.1` and `prov-compare.1`
+  ([#83](https://github.com/trungdong/prov/issues/83))
 
 ### Fixes
 

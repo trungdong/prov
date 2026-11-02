@@ -64,4 +64,4 @@ prov-compare -r profile=lenient -R rdf_format=turtle document.provn document.ttl
 
 ## See also
 
-`prov-convert(1)` ({doc}`prov-convert`) and the how-to {doc}`../howto/cli`.
+{doc}`prov-convert(1) <prov-convert>` and the how-to {doc}`../howto/cli`.

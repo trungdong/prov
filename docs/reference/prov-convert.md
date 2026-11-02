@@ -81,7 +81,9 @@ the one the extension implies.
 | `.rdf` | `rdf` | `xml` |
 
 For output, `auto` also accepts the name of a Graphviz output format as the extension, such
-as `.svg`, `.png`, `.pdf` or `.dot`. Any name in the set Graphviz supports works.
+as `.svg`, `.png`, `.pdf` or `.dot`. Only the names in
+`prov.scripts.convert.GRAPHVIZ_SUPPORTED_FORMATS` are accepted, and any other name, such as
+`webp`, exits 2.
 
 A `.json` file is always read as PROV-JSON. To read a PROV-JSONLD file named `.json`, pass
 `-i jsonld`.
@@ -153,5 +155,5 @@ prov-convert --color always -f provn document.json | less -R
 
 ## See also
 
-`prov-compare(1)` ({doc}`prov-compare`), the how-to {doc}`../howto/cli`, and
+{doc}`prov-compare(1) <prov-compare>`, the how-to {doc}`../howto/cli`, and
 {py:func}`prov.read`.

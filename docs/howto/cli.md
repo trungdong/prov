@@ -56,7 +56,8 @@ prov-convert -i provn -r profile=lenient document.provn document.json
 prov-convert -f svg -w use_labels=true document.json document.svg
 ```
 
-Colour needs the `pygments` extra. Page coloured PROV-N, or write Turtle with colour to a terminal:
+Colour needs the `pygments` extra. Page coloured PROV-N, or write Turtle with colour to a
+terminal:
 
 ```bash
 prov-convert --color always -f provn document.json | less -R
