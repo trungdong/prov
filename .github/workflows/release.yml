@@ -76,7 +76,7 @@ jobs:
         with:
           python-version: "3.13"
       - run: |
-          uv sync --locked --group docs --extra rdf --extra xml --extra dot --extra graph
+          uv sync --locked --no-dev --group docs --extra rdf --extra xml --extra dot --extra graph
           uv run --no-sync sphinx-build -W -n -b man docs docs/_build/man
       - env:
           GH_TOKEN: ${{ github.token }}

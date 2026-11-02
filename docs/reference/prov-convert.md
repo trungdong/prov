@@ -14,11 +14,7 @@ PROV-JSONLD, or renders it as any image format Graphviz supports. It reads `infi
 writes `outfile`, and standard input and standard output stand in for a missing or `-`
 argument.
 
-Both formats default to `auto`. For input, a file with a known extension in the table below
-is read in that format, and a path with any other extension, or standard input, goes to
-content detection through {py:func}`prov.read`. For output, a named file takes the format of
-its extension, and standard output or an unknown extension writes PROV-JSON. An explicit
-`-i` or `-f` always wins over the extension.
+Both formats default to `auto`, which follows the extension table under Options.
 
 Content detection cannot find RDF/XML. To read RDF/XML from standard input, pass
 `-i rdf -r rdf_format=xml`.
@@ -43,8 +39,8 @@ Colour needs the `pygments` extra. `--color always` without Pygments is an error
 with a lexer are `provn`, `json`, `jsonld`, `xml`, `dot` and `rdf` written as `turtle`,
 `xml` or `json-ld`; every other format, including the default TriG, is written plain.
 Under `auto`, `prov-convert` colours the output when no output file is named, standard
-output is a terminal, `NO_COLOR` is unset or empty, `TERM` is not `dumb`, Pygments imports
-and the format has a lexer. The Environment section lists the two variables.
+output is a terminal, Pygments imports and the format has a lexer. The two variables under
+Environment also turn `auto` off.
 
 Each `-w` or `-r` value is typed by one rule. `none` (any case) is `None`, `true` and
 `false` (any case) are booleans, an optionally signed run of digits is an integer, and
@@ -65,7 +61,9 @@ take Python callables and the RDF reader's two mappers take dictionaries, which 
 string cannot supply, so the command line does not accept those names.
 
 Under `auto`, the extension of the path (lower-cased) selects the format and, for RDF, the
-`rdf_format` the reader or writer needs. An `rdf_format` given with `-r` or `-w` overrides
+`rdf_format` the reader or writer needs. For input, a path with any other extension, or
+standard input, goes to content detection through {py:func}`prov.read`. An explicit `-i` or
+`-f` always wins over the extension, and an `rdf_format` given with `-r` or `-w` overrides
 the one the extension implies.
 
 | Extension | Format | `rdf_format` |
@@ -81,15 +79,13 @@ the one the extension implies.
 | `.rdf` | `rdf` | `xml` |
 
 For output, `auto` also selects a Graphviz output format when the extension names one, such
-as `.svg`, `.png`, `.pdf` or `.dot`. Any other extension, such as `.webp`, falls back to
-PROV-JSON, and `-f webp` exits 2.
+as `.svg`, `.png`, `.pdf` or `.dot`. Standard output, or any other extension such as
+`.webp`, writes PROV-JSON, and `-f webp` exits 2.
 
 A `.json` file is always read as PROV-JSON. To read a PROV-JSONLD file named `.json`, pass
 `-i jsonld`.
 
 ## Environment
-
-Two variables turn `--color auto` off.
 
 | Variable | Effect |
 | --- | --- |
@@ -101,7 +97,7 @@ Two variables turn `--color auto` off.
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. The converted document is in `outfile`. |
-| `2` | Error, such as an unsupported format, unreadable input or a missing file. A runtime error prints one line, `prov-convert: error: <message>`, to stderr. A usage error or a missing file prints argparse's usage line first. |
+| `2` | Error, such as an unsupported format or unreadable input. A runtime error prints one line, `prov-convert: error: <message>`, to stderr; a usage error or a missing file prints argparse's usage line first. |
 | `130` | Interrupted with Ctrl-C. Nothing is printed. |
 
 ## Examples
