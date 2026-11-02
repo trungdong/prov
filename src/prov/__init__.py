@@ -269,7 +269,8 @@ def read(
             error when the content names one of PROV-JSON, PROV-JSONLD or
             PROV-N.
     """
-    # Lazy imports: prov.model and prov.serializers import this package.
+    # The imports are lazy because prov.model and prov.serializers import this
+    # package.
     from prov.model import ProvDocument
     from prov.serializers import Registry
 

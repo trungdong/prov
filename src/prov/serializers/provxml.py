@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # PROV-XML element name.
 FULL_NAMES_MAP = dict(PROV_N_MAP)
 FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
-# Inverse of FULL_NAMES_MAP: maps each PROV-XML element name back to its
+# Inverse of FULL_NAMES_MAP, mapping each PROV-XML element name back to its
 # record/subtype QualifiedName.
 FULL_PROV_RECORD_IDS_MAP = {
     FULL_NAMES_MAP[rec_type_id]: rec_type_id for rec_type_id in FULL_NAMES_MAP
@@ -51,24 +51,26 @@ FULL_PROV_RECORD_IDS_MAP = {
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
-# Hardened against XXE / entity expansion: PROV-XML documents have no
-# legitimate use for DTD entity resolution or network access, so both are
-# switched off explicitly rather than left to whatever lxml's own default
-# parser happens to do. This matters for three distinct reasons, not just
-# one: lxml's own default for `resolve_entities` only became safe ('internal')
-# in lxml 5.0 -- this package's floor (`lxml>=3.3.5`) still admits older
-# releases that default to `True` (full external entity resolution); even on
-# a safe lxml release, any other library sharing the process can repoint the
-# *global* default parser via `etree.set_default_parser(...)`, which is what
-# a bare `etree.parse(...)` call (no `parser=`) silently inherits; and prov
-# is embedded in other applications that may load such libraries. Passing
-# this parser explicitly at both parse sites closes all three regardless of
-# the installed lxml version or what else is loaded in the process. `huge_tree` is left at its lxml default of `False`: raising it
-# disables libxml2's own hard limits on tree depth/text length/entity
-# amplification, which is the opposite of what a hardened parser wants here.
+# The parser is hardened against XXE and entity expansion. PROV-XML documents
+# have no legitimate use for DTD entity resolution or network access, so both
+# are switched off explicitly rather than left to lxml's own default. Three
+# things make the explicit setting necessary. The lxml default for
+# `resolve_entities` only became safe ('internal') in lxml 5.0, and this
+# package's floor (`lxml>=3.3.5`) still admits older releases that default to
+# `True` (full external entity resolution). Even on a safe lxml release, any
+# other library sharing the process can repoint the *global* default parser
+# via `etree.set_default_parser(...)`, which a bare `etree.parse(...)` call
+# (no `parser=`) silently inherits. And prov is embedded in other applications
+# that may load such libraries. Passing this parser explicitly at both parse
+# sites closes all three, whatever the installed lxml version or the other
+# libraries loaded in the process.
 #
-# Shared module-level instance, not one constructed per parse: lxml's own
-# documentation for `XMLParser` states that sharing a parser across threads
+# `huge_tree` stays at lxml's default of `False`, because raising it disables
+# libxml2's own hard limits on tree depth, text length and entity
+# amplification, which a hardened parser keeps.
+#
+# The parser is a shared module-level instance, not one constructed per parse.
+# lxml's own documentation for `XMLParser` states that sharing a parser across threads
 # "is not harmful", only less efficient than per-thread instances under
 # heavy concurrent load (access is internally serialized). PROV-XML
 # deserialization is not expected to be a high-frequency, highly concurrent
@@ -210,7 +212,6 @@ class ProvXMLSerializer(Serializer):
             for ns in self.document._namespaces.get_registered_namespaces()  # type: ignore[union-attr]
         }
         if self.document._namespaces._default:  # type: ignore[union-attr]
-            # TODO: Check if the below works as expected.
             nsmap[None] = self.document._namespaces._default.uri  # type: ignore[union-attr, index]
         own_default = bundle.get_default_namespace()
         if own_default is not None:

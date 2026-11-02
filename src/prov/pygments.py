@@ -135,8 +135,8 @@ class ProvNLexer(RegexLexer):
     url = "https://www.w3.org/TR/prov-n/"
 
     tokens = {
-        # Outside brackets: bundle, document, endDocument and endBundle, and the prefix and
-        # default declarations.
+        # Outside brackets: bundle, document, endDocument and endBundle, and the
+        # prefix and default declarations.
         "root": [
             (rf"bundle{_WORD_END}", Keyword, "bundle_name"),
             (words(_STRUCTURAL, suffix=_WORD_END), Keyword),

@@ -268,7 +268,6 @@ def encode_json_container(
                     continue
                 attr_name = qname_text(attr)
                 if attr in PROV_ATTRIBUTE_QNAMES:
-                    # TODO: QName export
                     record_json[attr_name] = qname_text(first(values))
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     record_json[attr_name] = _xsd_datetime_text(
@@ -717,8 +716,8 @@ def _decode_time(
     )
 
 
-# The datatypes under which the reader accepts a JSON number in "$": an int as
-# xsd:int or xsd:long, a float as xsd:double.
+# The datatypes under which the reader accepts a JSON number in "$". An int
+# takes xsd:int or xsd:long, and a float takes xsd:double.
 _LEGACY_NUMBER_TYPES = {int: (XSD_INT, XSD_LONG), float: (XSD_DOUBLE,)}
 
 # The keys a PROV-JSON value object may have.
@@ -890,7 +889,6 @@ def literal_json_representation(
         ``{"$": value, "lang": langtag}`` if the literal has a language tag,
         otherwise ``{"$": value, "type": str(datatype)}``.
     """
-    # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:
         return {"$": value, "lang": langtag}

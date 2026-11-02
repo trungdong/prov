@@ -1,4 +1,11 @@
-"""The PROV vocabulary as module-level data: namespaces, qualified names and tables."""
+"""The PROV vocabulary as module-level data.
+
+The module holds the ``prov``, ``xsd`` and ``xsi`` namespaces, and one
+:class:`~prov.identifier.QualifiedName` per record type, per formal attribute,
+per extra attribute and per XSD datatype. It also holds the tables that map
+record types to their PROV-N keywords and base types, and formal attributes to
+their names.
+"""
 
 from prov.identifier import Namespace
 

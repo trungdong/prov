@@ -120,7 +120,7 @@ _DUPLICATE_BUNDLE = "A bundle with that identifier already exists"
 
 
 def _check_provn_iri(namespace: Namespace) -> None:
-    """A namespace URI must be a PROV-N IRI_REF ([56]) to be declared."""
+    """A namespace URI must be a PROV-N IRI_REF to be declared."""
     if _PROVN_IRI_FORBIDDEN.search(namespace.uri):
         where = (
             f"prefix '{namespace.prefix}'"
@@ -433,9 +433,11 @@ _R = TypeVar("_R", bound=ProvRecord)
 class ProvBundle:
     """A named or anonymous set of PROV records with its own namespaces.
 
-    A bundle holds records, has an optional identifier and registers the
-    namespaces its records use. :class:`ProvDocument` is the subclass that
-    also holds bundles.
+    A bundle holds records, has an optional identifier and registers only the
+    namespaces it binds itself, together with any namespace that its records
+    use and no enclosing scope declares. A name in a namespace that the
+    document declares resolves through the document. :class:`ProvDocument` is
+    the subclass that also holds bundles.
     """
 
     def __init__(
@@ -1972,12 +1974,12 @@ class ProvDocument(ProvBundle):
         values unify. The plan of an association, the activity of a derivation,
         and the generation and usage of a derivation with no activity are
         exceptions to that rule, because an absent value there means "none"
-        and cannot take a concrete one. Other attributes are combined. Records with a unique
-        identifier, or none, are not merged, and neither are ``alternateOf``,
-        ``specializationOf``, ``mentionOf`` and ``hadMember`` records, which
-        have no identifier to merge on. After the merge each record appears
-        once, so a record equal to an earlier one is dropped and the earlier one
-        keeps its position.
+        and cannot take a concrete one. Other attributes are combined. Records
+        with a unique identifier, or none, are not merged, and neither are
+        ``alternateOf``, ``specializationOf``, ``mentionOf`` and ``hadMember``
+        records, which have no identifier to merge on. After the merge each
+        record appears once, so a record equal to an earlier one is dropped and
+        the earlier one keeps its position.
 
         The result is not the specification's full normalisation. The
         uniqueness constraints that key on something other than the record

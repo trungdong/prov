@@ -428,9 +428,10 @@ class Literal:
 
     A literal pairs a string value with an optional datatype and an optional
     language tag. Supplying a language tag forces the datatype to
-    ``prov:InternationalizedString``: if no datatype was given one is assumed,
-    and any other datatype is overridden and logs a warning, to comply with
-    the PROV-JSON/PROV-XML rules for language-tagged strings.
+    ``prov:InternationalizedString``, to comply with the PROV-JSON/PROV-XML
+    rules for language-tagged strings. If no datatype was given, that one is
+    assumed. Any other datatype is overridden, and the constructor logs a
+    warning.
 
     Its fields are read-only after construction. Assigning or deleting one
     raises :class:`AttributeError`, while a subclass may still set attributes
@@ -831,10 +832,11 @@ class ProvRecord:
         """Return the set of all asserted PROV types of this record.
 
         Returns a fresh, plain ``set`` copy, so mutating it does not affect the
-        record. The values of ``prov:type`` are always
-        :class:`~prov.identifier.QualifiedName`\\ s, which never collapse under
-        Python equality, so this copy never loses information. Unlike
-        :meth:`get_attribute` and :attr:`value`, it has no lossy case.
+        record. The set holds the ``prov:type`` values as asserted, whether
+        :class:`~prov.identifier.QualifiedName`\\ s, strings, numbers or other
+        attribute values. Values that Python holds equal but that differ in
+        type, such as ``5`` and ``5.0``, collapse in it, as they do in
+        :meth:`get_attribute`.
         """
         return set(self._attributes.get(PROV_TYPE, ()))
 

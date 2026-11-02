@@ -1018,13 +1018,13 @@ class ProvRDFSerializer(Serializer):
                 PROV_N_MAP=PROV_N_MAP,
                 container=new_graph(item.identifier.uri),  # type: ignore[union-attr]
             )
-            # #96: the context passed here must be a Dataset-owned graph
-            # (via container.graph(), mirroring `default_graph` above), not
-            # the standalone `bundle` Graph object itself. A standalone Graph
+            # The context passed here must be a Dataset-owned graph (via
+            # container.graph(), mirroring `default_graph` above), not the
+            # standalone `bundle` Graph object itself (#96). A standalone Graph
             # can become a distinct context with its own private
             # NamespaceManager, unlike a container.graph() one, which shares
             # the Dataset's own. The bundle's bindings still reach the output,
-            # but the `override=False` collision guarantee below can fail: a
+            # but the `override=False` collision guarantee below can fail. A
             # bundle-local prefix colliding with a document-level one may
             # clobber it instead of being renamed. With a standalone Graph
             # that outcome varies from run to run on the same rdflib, so it
@@ -1032,20 +1032,19 @@ class ProvRDFSerializer(Serializer):
             # from the 7.0.0 floor upwards.
             named_graph = container.graph(bundle.identifier)
             container.addN((s, p, o, named_graph) for s, p, o in bundle)
-            # #96: bundle-local namespace bindings (and the bundle's own
-            # default namespace, bound by encode_container() below) are
-            # otherwise never copied into the Dataset, so TriG output falls
-            # back to an rdflib-minted `ns1:`-style prefix for them.
-            # override=False: rdflib's own collision handling already renames
-            # the *incoming* namespace (e.g. to `prefix1:`) whenever the
-            # prefix string is already bound to a different URI, regardless
-            # of `override` -- that flag only controls whether a namespace
-            # already bound under a different prefix gets *rebound* to this
-            # new preferred prefix. Passing False keeps every earlier
-            # binding (the document-level ones bound just above, and the
-            # core prov/xsd/rdf/rdfs ones bound by new_graph() and rdflib) as
-            # the preferred spelling, so document-level prefixes always win
-            # on collision.
+            # Bundle-local namespace bindings (and the bundle's own default
+            # namespace, bound by encode_container() below) are otherwise
+            # never copied into the Dataset (#96), so TriG output falls back
+            # to an rdflib-minted `ns1:`-style prefix for them.
+            # override=False keeps the document-level prefixes on collision.
+            # rdflib's own collision handling already renames the *incoming*
+            # namespace (e.g. to `prefix1:`) whenever the prefix string is
+            # already bound to a different URI, regardless of `override`. That
+            # flag only controls whether a namespace already bound under a
+            # different prefix gets *rebound* to this new preferred prefix.
+            # Passing False keeps every earlier binding (the document-level
+            # ones bound just above, and the core prov/xsd/rdf/rdfs ones bound
+            # by new_graph() and rdflib) as the preferred spelling.
             for prefix, uri in bundle.namespaces():
                 container.bind(prefix, uri, override=False)
         return container
@@ -1156,7 +1155,8 @@ class ProvRDFSerializer(Serializer):
             if isinstance(value, pm.ProvRecord):
                 obj: RdfTerm = URIRef(str(real_or_anon_id(value)))
             else:
-                # any other value: a Literal, datetime or plain Python value
+                # any other value (a Literal, QualifiedName, datetime or plain
+                # Python value) becomes an RDF term
                 obj = self.encode_rdf_representation(value)
             pred: RdfTerm
             if attr == PROV_LOCATION:
@@ -1980,12 +1980,12 @@ class ProvRDFSerializer(Serializer):
             except pm.ProvMissingFormalAttribute as exc:
                 warn(f"subject {subj!r}: {exc}")
             except pm.ProvException as exc:
-                # Only relabel the specific #217 shape: a formal-attribute
+                # Only relabel the specific C1 shape, a formal-attribute
                 # predicate repeated in `attrs` (see the duplicate-detection
                 # docstring below for why such repeats land there instead of
-                # being walked). Anything else -- e.g. an unresolvable
-                # qualified name -- is a genuinely different failure and
-                # keeps its own message, behind the subject.
+                # being walked). Anything else, such as an unresolvable
+                # qualified name, is a genuinely different failure and keeps
+                # its own message, behind the subject.
                 duplicate_attr = _repeated_formal_attribute(
                     state.record_types[subj], attrs
                 )
@@ -2015,22 +2015,24 @@ def _repeated_formal_attribute(
 ) -> str | None:
     """Return the formal-attribute name repeated in ``attrs``, if any.
 
+    This is the shape behind C1 on the conformance page. PROV-O names a
+    relation by its identifier, so two same-identifier relations that disagree
+    on a formal attribute cannot both be represented.
+
     A predicate that :data:`PREDICATE_MAP` maps to a formal-attribute
     ``QualifiedName`` (e.g. ``prov:atTime``) never matches the URI-keyed
-    lookup in :meth:`ProvRDFSerializer._decode_attribute_triple`
-    (``str(pred_new)`` is the short prefixed form, e.g. ``"prov:time"``,
-    compared against the full-URI ``val.uri`` of each formal-attribute
-    ``QualifiedName`` -- deliberately left as-is, since "fixing" it would
-    route such predicates into ``unique_sets`` and make ``walk()`` emit
-    more than one record for the *same* identifier, i.e. the rejected
-    permutation-decode option). A second instance of such a predicate on
-    the same identified qualified node therefore lands in ``attrs`` as two
-    same-key entries instead of being tracked there, and reaches
-    :meth:`~prov.model.records.ProvRecord.add_attributes` as a duplicate
-    plain attribute, which raises ``ProvException``. This function
-    recognizes that specific shape so callers can relabel only it; every
-    other ``ProvException`` (e.g. an unresolvable qualified name) is
-    wrapped in a :class:`ProvRDFException` that names the subject.
+    lookup in :meth:`ProvRDFSerializer._decode_attribute_triple`, because
+    ``str(pred_new)`` is the short prefixed form, e.g. ``"prov:time"``, and the
+    lookup compares it with the full-URI ``val.uri`` of each formal-attribute
+    ``QualifiedName``. The lookup stays as it is, since matching these
+    predicates would make ``walk()`` emit more than one record for the *same*
+    identifier. A second instance of such a predicate on the same identified
+    qualified node therefore lands in ``attrs`` as two same-key entries, and
+    reaches :meth:`~prov.model.records.ProvRecord.add_attributes` as a
+    duplicate plain attribute, which raises ``ProvException``. This function
+    recognises that shape so that callers relabel only it; every other
+    ``ProvException`` (e.g. an unresolvable qualified name) is wrapped in a
+    :class:`ProvRDFException` that names the subject.
 
     Note: on a qualified node, ``Start``/``End`` carry their time as
     ``prov:atTime`` too, matching every other timed relation's generic
