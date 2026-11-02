@@ -133,7 +133,8 @@ def convert_file(
         writer_options: Keyword options for the output format's writer, or for
             :func:`~prov.dot.prov_to_dot` with a Graphviz format.
         color: Colour the output with Pygments when the format has a lexer
-            (see ``--color``). A format without one is written plain.
+            (see ``--color``). A format without a lexer, and output that holds a
+            carriage return, is written plain.
 
     Raises:
         CLIError: If ``input_format`` is not a registered serializer format,
@@ -153,8 +154,10 @@ def convert_file(
         return
     buffer = io.BytesIO()
     _write_document(prov_doc, buffer, output_format, options)
-    text = _highlight(buffer.getvalue().decode("utf-8"), lexer)
-    outfile.write(text.encode("utf-8"))
+    data = buffer.getvalue()
+    if b"\r" not in data:
+        data = _highlight(data.decode("utf-8"), lexer).encode("utf-8")
+    outfile.write(data)
 
 
 def _write_document(
@@ -193,8 +196,8 @@ def _lexer_name(fmt: str, writer_options: Mapping[str, Any]) -> str | None:
 def _highlight(text: str, lexer_name: str) -> str:
     """Colour ``text`` with the ``lexer_name`` lexer and Pygments' 16-colour formatter.
 
-    The lexer keeps the text's line endings, so removing the escape sequences
-    gives ``text`` back.
+    Removing the escape sequences gives ``text`` back, provided it holds no
+    carriage return, which Pygments turns into a line feed.
     """
     from pygments import highlight
     from pygments.formatters import TerminalFormatter

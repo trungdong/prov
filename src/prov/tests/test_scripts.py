@@ -830,28 +830,35 @@ def _converted(infile, monkeypatch, flags, *, outfile=None, tty=False, env=None)
 
 
 @pytest.mark.parametrize(
-    ("flags", "name", "coloured"),
+    ("flags", "name", "coloured", "carriage"),
     [
-        pytest.param(["-f", "provn"], "out.dat", True, id="provn"),
-        pytest.param(["-f", "json"], "out.dat", True, id="json"),
-        pytest.param(["-f", "jsonld"], "out.dat", True, id="jsonld"),
-        pytest.param(["-f", "xml"], "out.dat", True, id="xml"),
+        pytest.param(["-f", "provn"], "out.dat", True, False, id="provn"),
+        pytest.param(["-f", "provn"], "out.dat", False, True, id="carriage-return"),
+        pytest.param(["-f", "json"], "out.dat", True, False, id="json"),
+        pytest.param(["-f", "jsonld"], "out.dat", True, False, id="jsonld"),
+        pytest.param(["-f", "xml"], "out.dat", True, False, id="xml"),
         pytest.param(
             ["-f", "dot"],
             "out.dat",
             True,
+            False,
             id="dot",
             marks=pytest.mark.skipif(not HAS_DOT, reason="graphviz not installed"),
         ),
-        pytest.param(["-f", "rdf"], "out.dat", False, id="rdf-trig"),
+        pytest.param(["-f", "rdf"], "out.dat", False, False, id="rdf-trig"),
         pytest.param(
-            ["-f", "rdf", "-w", "rdf_format=turtle"], "out.dat", True, id="rdf-turtle"
+            ["-f", "rdf", "-w", "rdf_format=turtle"],
+            "out.dat",
+            True,
+            False,
+            id="rdf-turtle",
         ),
-        pytest.param([], "out.ttl", True, id="ttl-extension"),
-        pytest.param([], "out.trig", False, id="trig-extension"),
+        pytest.param([], "out.ttl", True, False, id="ttl-extension"),
+        pytest.param([], "out.trig", False, False, id="trig-extension"),
         pytest.param(
             ["-f", "svg", "-w", "use_labels=true"],
             "out.dat",
+            False,
             False,
             id="svg",
             marks=pytest.mark.skipif(not HAS_DOT, reason="graphviz not installed"),
@@ -859,8 +866,14 @@ def _converted(infile, monkeypatch, flags, *, outfile=None, tty=False, env=None)
     ],
 )
 def test_color_always_colours_a_format_that_has_a_lexer(
-    infile, tmp_path, monkeypatch, flags, name, coloured
+    infile, tmp_path, monkeypatch, flags, name, coloured, carriage
 ) -> None:
+    if carriage:
+        # Pygments turns a carriage return into a line feed, so the output stays plain.
+        doc = ProvDocument()
+        doc.add_namespace("ex", "http://example.org/")
+        doc.entity("ex:e1", {"prov:label": "line1\r\nline2\rx"})
+        doc.serialize(str(infile), format="json")
     always = _converted(
         infile, monkeypatch, ["--color", "always", *flags], outfile=tmp_path / name
     )
@@ -912,7 +925,7 @@ def run_isolated(code: str) -> subprocess.CompletedProcess[str]:
 
 
 @pytest.mark.parametrize(
-    ("choice", "code", "stdout", "stderr"),
+    ("choice", "code", "prefix", "stderr"),
     [
         pytest.param(
             "always",
@@ -925,7 +938,7 @@ def run_isolated(code: str) -> subprocess.CompletedProcess[str]:
         pytest.param("auto", 0, "document", "", id="auto"),
     ],
 )
-def test_color_without_pygments(infile, choice, code, stdout, stderr) -> None:
+def test_color_without_pygments(infile, choice, code, prefix, stderr) -> None:
     # The child is on a terminal with Pygments unimportable. Standard output
     # stays empty under "always" and plain under "auto".
     result = run_isolated(
@@ -945,7 +958,8 @@ def test_color_without_pygments(infile, choice, code, stdout, stderr) -> None:
     assert result.stderr == stderr
     status, text = json.loads(result.stdout)
     assert status == code
-    assert text.startswith(stdout)
+    assert bool(text) == bool(prefix)
+    assert text.startswith(prefix)
     assert "\x1b" not in text
 
 
