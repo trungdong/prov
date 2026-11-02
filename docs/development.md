@@ -18,7 +18,9 @@ The PROV-N reader and writer set the pattern for any new serializer.
 
 - One place handles error position. A format's exception type carries the line and column
   (or the equivalent locator), formats its own message and pickles; only the scanner and the
-  parser construct it, and every message names what was expected and what was found.
+  parser construct it, and every message names what was expected and what was found. The
+  type derives from {py:class}`~prov.serializers.ProvSerializationError`, as
+  `ProvNSyntaxError` does.
 - Grammar clauses are cited on the code that implements them. Each regex or table names the
   production it encodes and says where it departs from a library default such as `\s` or `\d`
   and why.

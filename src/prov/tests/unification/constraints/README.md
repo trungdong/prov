@@ -3,8 +3,7 @@
 153 PROV-XML documents exercising the W3C PROV-CONSTRAINTS unification and
 key-constraint rules, consumed by
 `src/prov/tests/test_unification_constraints.py`, which characterizes
-`unified()` against the PROV-CONSTRAINTS rework landed in 3.0 (umbrella issue
-[#253](https://github.com/trungdong/prov/issues/253)).
+`unified()` against PROV-CONSTRAINTS.
 
 ## Origin
 
@@ -17,10 +16,8 @@ modules-validation/prov-validation/src/test/resources/validate/unification/*.xml
 ```
 
 The source directory also carries a paired `.provn` file per case (consumed by
-ProvToolbox's `ValidateTest.java`); only the `.xml` files are vendored here. At the time
-the corpus was vendored, in July 2026, `prov` had no PROV-N parser, so there was no reader
-to check the `.provn` files against. These cases derive from the test cases
-assembled by the W3C Provenance Working Group for the PROV-CONSTRAINTS
+ProvToolbox's `ValidateTest.java`); only the `.xml` files are vendored here. These cases derive from the test
+cases assembled by the W3C Provenance Working Group for the PROV-CONSTRAINTS
 implementation report (PROV-CONSTRAINTS is a W3C Recommendation, 2013-04-30,
 <https://www.w3.org/TR/prov-constraints/>), as implemented and maintained in
 ProvToolbox's validation module.
@@ -63,8 +60,7 @@ Files are named `<category>-successN.xml` / `<category>-failN.xml`:
 docstring of `test_unification_constraints.py` says which, and why. Six of them
 (`association-fail4`, `-fail5` and `derivation-fail1` to `-fail4`) pair an
 absent non-expandable formal with a present one, and `unified()` rejects them
-with a `ProvUnificationError`
-([#547](https://github.com/trungdong/prov/issues/547)).
+with a `ProvUnificationError`.
 
 ## Local quirks
 
@@ -73,8 +69,7 @@ with a `ProvUnificationError`
 - The three `bundle-*.xml` files wrap bundle contents in `<prov:bundle>`
   (ProvToolbox's dialect) where the W3C PROV-XML XSD (vendored under
   `src/prov/tests/schemas/`) defines `<prov:bundleContent>`; `prov` cannot
-  parse them (issue [#254](https://github.com/trungdong/prov/issues/254)) and
-  the test module skips them as parse failures.
+  parse them, and the test module skips them as parse failures.
 
 Do not edit the `.xml` files; they are a vendored upstream corpus.
 
@@ -82,7 +77,7 @@ Do not edit the `.xml` files; they are a vendored upstream corpus.
 
 Seven additional PROV-XML documents (`type-*.provx`), exercising the
 same-identifier type-compatibility rules (Constraints 50, 53–56 — `prov`
-implements 53/54/55 only; see "Naming convention" below) that the
+implements 53/54/55 only; see "Naming convention of the `.provx` files" below) that the
 ProvToolbox corpus above does not cover at all, consumed by
 `test_unification_constraints.py`'s W3C-corpus characterization
 (`test_w3c_type_compatibility_characterization`).
@@ -127,7 +122,7 @@ URL and copyright notice are retained:
 Both licences permit verbatim vendoring for a non-branded, internal test
 corpus such as this one.
 
-### Naming convention
+### Naming convention of the `.provx` files
 
 These files use the W3C corpus's own convention, distinct from ProvToolbox's
 `-successN`/`-failN`: `type-<case>-PASS-c<NN[,-c<MM>...]>.provx` /

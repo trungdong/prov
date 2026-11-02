@@ -13,10 +13,9 @@ fixes only; 2.5.3 was the last release to carry bug fixes back-ported from 3.x. 
 features and behaviour-breaking corrections were never back-ported and stay on 3.x.
 Releases before 2.0 receive no fixes.
 
-Both supported lines require Python 3.10 or later. 3.x has required it from the outset
-and 2.x from 2.3.0 onwards. Earlier 2.x releases support Python 3.9 and later. The
-`classifiers` in a release's `pyproject.toml` or `setup.py` list its exact supported
-Python versions.
+The Python floor of a release is its `requires-python`, and the floor can differ between
+releases of the same line. The `classifiers` in a release's `pyproject.toml` or `setup.py`
+list its exact supported Python versions.
 
 ## Reporting a vulnerability
 

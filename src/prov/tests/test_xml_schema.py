@@ -1,12 +1,9 @@
-"""Validate PROV-XML output against the W3C PROV-XML schema (roadmap step 30).
+"""Validate PROV-XML output against the W3C PROV-XML schema.
 
 Serializes each of the 8 canonical `examples.tests` documents and one document
 per entry of the `ATTRIBUTE_VALUES` datatype corpus, then validates the
 resulting XML against the vendored `prov.xsd` schema closure
 (`src/prov/tests/schemas/`, see that directory's README.md for provenance).
-
-Audit authority: planning/specs/2026-07-10-conformance-audit-findings.md
-section 3.1.
 """
 
 from collections.abc import Callable

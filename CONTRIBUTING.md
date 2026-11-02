@@ -1,6 +1,7 @@
 # Contributing
 
-Contributions are welcome. Every little bit helps, and credit is always given.
+Contributions are welcome. Every little bit helps, and credit is always given. Everyone who
+takes part follows the [Code of Conduct](https://github.com/trungdong/prov/blob/main/CODE_OF_CONDUCT.md).
 
 ## Ways to contribute
 
@@ -13,7 +14,7 @@ reproduce the bug.
 ### Fix bugs or implement features
 
 Look through the [issues](https://github.com/trungdong/prov/issues). Anything tagged
-"bug" or "feature" is open to whoever wants to work on it.
+"bug" or "enhancement" is open to whoever wants to work on it.
 
 ### Write documentation
 
@@ -147,18 +148,49 @@ names public annotations expose.
 - State the new behaviour. When a reader must change code, say what to write instead, and
   only then give the old behaviour, as one clause ("where 3.2.3 read it as ...").
 - Keep an entry to one or two sentences, under about 40 words. Anything longer belongs on
-  the page that owns the topic (the upgrade how-to, the reference or the conformance
+  the page that owns the topic (the upgrade guide, the reference or the conformance
   page), and the entry links that page.
 - End the entry with one issue or pull request link.
 - Write no entry for a refactor, a test, CI, tooling or a docs-only change. A Project entry
   is one line and only for something a user meets, such as the Python floor or a
   deprecation.
 - Write an entry once. A later pull request adds its own entry and never grows an earlier
-  one.
+  one. The pre-release documentation audit may rewrite the unreleased section as a whole.
 - At release time, the release pull request adds an opening summary of two to four
   sentences (what kind of release it is and who has to act) and a short list of the
   changes that require action, one line each, linking the how-to. Nothing else is added
   at release time.
+
+## Documentation rules
+
+Every pull request that touches a page or a docstring follows these rules.
+
+1. Open each page and each section with what most readers need. Put a rare case in the
+   docstring, on the conformance page or in an "Edge cases" section at the bottom of the page.
+2. Give each fact one home, and link to it from every other page. The table below lists the
+   homes.
+3. Keep release history in `HISTORY.md`, `docs/whats-new-3.md`, `docs/upgrading-3.0.md` and the
+   3.3.0 upgrade guide (`docs/howto/prepare-for-3-3.md`). Elsewhere write no "since X.Y", no
+   "3.2.0 added" and no benchmark percentage.
+4. Write nothing that dates. State no measured figure tied to a machine or an interpreter and
+   no date that will pass, apart from the dates in the support policy and the per-release
+   conformance sentence.
+5. Link to a specification and do not cite its clause numbers. Only `conformance.md` and
+   code comments cite a section number.
+6. Link an issue only for an open limitation or a decision a reader may want to follow. Never
+   link one to record the history of a fix.
+7. Change no behaviour in a documentation change. Correct a sentence that is wrong against
+   the code, and list the correction in the pull request body.
+
+| Fact | Home |
+|---|---|
+| Extras | `docs/installation.md` |
+| Auto-detection | `docs/howto/read-write.md` |
+| Format limitations | `docs/reference/conformance.md` |
+| Support policy | `SECURITY.md` and `ROADMAP.md` |
+| Gate commands | `CONTRIBUTING.md` |
+| Equality rules and Python values | `docs/reference/model.md` |
+| Exceptions | `docs/reference/serializers.md` |
 
 ## Licensing
 

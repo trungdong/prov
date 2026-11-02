@@ -1,11 +1,8 @@
-"""Validate PROV-JSON output against the member submission's JSON schema (roadmap step 30).
+"""Validate PROV-JSON output against the member submission's JSON schema.
 
 Serializes each of the 8 canonical `examples.tests` documents and validates the
 resulting JSON against the vendored `prov-json.schema.json` (Draft-04) schema
 (`src/prov/tests/schemas/`, see that directory's README.md for provenance).
-
-Audit authority: planning/specs/2026-07-10-conformance-audit-findings.md
-section 3.2.
 """
 
 import json

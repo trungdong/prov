@@ -6,11 +6,11 @@ Substitute the version being released for `X.Y.Z` throughout.
 
 ## Checklist
 
-1. Pre-flight on the release commit: the gate block of §1, then the own-warnings run,
+1. Pre-flight on the release commit: the gates in `CONTRIBUTING.md`, then the own-warnings run,
    `uv run python benchmarks/ab.py <previous tag> --python 3.12` run twice, the second time
    with `--gc`, the suite-count comparison, and `uv build` with the wheel listing.
 2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`,
-   `docs/reference/conformance.md`, `CITATION.cff`; the status lines and index rows of the
+   `docs/reference/conformance.md`, `docs/whats-new-3.md`, `SECURITY.md`, `CITATION.cff`; the status lines and index rows of the
    specs the release ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
 4. Publish: `gh workflow run release.yml` as the TestPyPI dry run, then
@@ -84,9 +84,11 @@ The stamped files, in one commit:
 | File | Change |
 |---|---|
 | `src/prov/__init__.py` | `__version__ = "X.Y.Z"`, the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
-| `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it |
+| `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it. Add the opening summary and the action list that `CONTRIBUTING.md` (Changelog entries) describes |
 | `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme`. An unplanned point release has no row under **Next**; add its row under **Released** directly |
-| `docs/reference/conformance.md` | Per-release revisit; the page states it is "revisited at every release"; verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
+| `docs/reference/conformance.md` | Per-release revisit: verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
+| `docs/whats-new-3.md` | Update "What comes next" for the release |
+| `SECURITY.md` | Update the supported-versions table |
 | `CITATION.cff` | `version: "X.Y.Z"`; `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
 Also set the status line of each spec under `planning/specs/` that the release ships to
@@ -229,7 +231,7 @@ series, so that every later PR builds on the new floor. The places that name the
   `CONTRIBUTING.md` on the versions a pull request must pass on.
 - `README.md`, `docs/installation.md`, `docs/whats-new-3.md` and the `HISTORY.md` entry.
 - `ROADMAP.md`'s support-policy paragraph, in the release PR.
-- `SECURITY.md`, which says what each supported line requires, in the release PR.
+- `SECURITY.md`'s supported-versions table, in the release PR.
 - `main`'s branch protection, which requires the dropped version's `pytest` check until
   the PR that removes it from the matrix is about to merge.
 
@@ -331,8 +333,8 @@ Each entry gives the symptom, the cause and the fix.
   checkout's `prov` instead of the published wheel, silently. Run it with
   `env -u VIRTUAL_ENV` in front of `uv`, as §5 shows.
 - **"Running mypy on PyPy is not supported yet".** The interpreter loop left `.venv` on
-  `pypy3.11`; that is the interpreter, not a type error. Re-run pinned:
-  `uv run --python 3.13 --extra rdf --extra xml --extra dot --extra graph mypy src`.
+  `pypy3.11`; that is the interpreter, not a type error. Re-run pinned, as `CONTRIBUTING.md`
+  shows (Checks every pull request must pass).
 - **A feedstock merge refused for "base branch policy".** The message is wrong. The bot's
   rerender touched `.github/workflows/`, and the `gh` token lacks the `workflow` scope,
   which the merge REST API reports as a 403. Fix with
