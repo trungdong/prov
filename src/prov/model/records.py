@@ -463,7 +463,7 @@ class Literal:
         """Initialise the literal.
 
         Args:
-            value: The literal's value. The stored form follows the table in the
+            value: The literal's value. The stored form follows the
                 :ref:`Python values <python-values>` section of the reference.
                 The datatype stays as given. A ``Literal`` holds the text its
                 caller gave it, however it was spelled, so

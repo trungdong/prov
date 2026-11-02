@@ -5,7 +5,7 @@ write qualified names against a container's prefix map, and their readers fan a
 membership out into one ``hadMember`` record per member. Those pieces live here
 so that neither module imports the other's private names. The position helpers
 that PROV-JSON's messages use, and the ``object_pairs_hook`` both JSON readers
-give :func:`json.load`, live here too (#589, #532).
+give :func:`json.load`, live here too.
 
 :mod:`prov.serializers.provxml` borrows only the membership fan-out
 (``_add_memberships``).
