@@ -97,7 +97,7 @@ A `.json` file is always read as PROV-JSON. To read a PROV-JSONLD file named `.j
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. The converted document is in `outfile`. |
-| `2` | Error, such as an unsupported format or unreadable input. A runtime error prints one line, `prov-convert: error: <message>`, to stderr; a usage error or a missing file prints argparse's usage line first. |
+| `2` | Error, such as an unsupported format or unreadable input. A runtime error prints one line, `prov-convert: error: <message>`, to stderr; a usage error or a file that cannot be opened prints argparse's usage line first. |
 | `130` | Interrupted with Ctrl-C. Nothing is printed. |
 
 ## Examples
