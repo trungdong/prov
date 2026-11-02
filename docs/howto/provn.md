@@ -38,8 +38,9 @@ endDocument
 
 A statement with an attribute block that is wider than 80 columns, indentation included,
 wraps. The keyword, the identifier and the formal arguments stay on the first line, and the
-attribute block follows with one attribute per line. {py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass `width`
-to change the limit, or `width=None` to never wrap:
+attribute block follows with one attribute per line.
+{py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass `width` to change the
+limit, or `width=None` to never wrap:
 
 ```python
 one_line = document.get_provn(width=None)
@@ -58,7 +59,7 @@ provn_str = document.serialize(format="provn")
 assert provn_str == document.get_provn()
 ```
 
-`prov-convert` takes the same options with `-w`. See {doc}`cli`.
+`prov-convert` takes the same options with `-w`. See {doc}`../reference/prov-convert`.
 
 ## Read PROV-N
 
@@ -109,10 +110,11 @@ keyword, `prov` and ProvToolbox included, so `default` and `lenient` accept it.
 
 `strict` refuses these, which `default` and `lenient` accept:
 
-- `mentionOf` without the `prov:` prefix, the spelling PROV-Links uses.
+- `mentionOf` without the `prov:` prefix. PROV-Links spells it `prov:mentionOf`.
 - A `-` where the grammar has a plain identifier.
 - A `default` declaration after a `prefix` declaration.
-- A declaration of the prefix `prov` or `xsd`.
+- A declaration of the prefix `prov` or `xsd` with its standard IRI. Any other IRI for
+  either prefix raises under every profile.
 - A statement after the first bundle.
 - An identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`.
 
@@ -122,8 +124,8 @@ of a bundle whose identifier duplicates another. A `hadMember`, `alternateOf`,
 `specializationOf` or `mentionOf` that is missing a party is skipped with a
 `ProvWarning` under `default` too, and raises under `strict`.
 
-A tokenisation error, such as an unterminated string, IRI or comment, a repeated `default`
-declaration and a duplicate prefix declaration raise in every profile.
+A tokenisation error, such as an unterminated string, IRI or comment, raises in every
+profile. So do a repeated `default` declaration and a duplicate prefix declaration.
 
 ## Syntax highlighting
 
@@ -171,7 +173,7 @@ document.serialize("document.provn", format="provn", strict=True)
 ### Extensibility expressions
 
 Every profile reads an [extensibility expression](https://www.w3.org/TR/prov-n/#extensibility),
-a statement of the form `prefix:name(...)`. It drops the expression with a
+a statement of the form `prefix:name(...)`. The parser drops the expression with a
 {py:class}`~prov.model.ProvWarning` that names the predicate and its position.
 
 The parser counts the brackets that an expression's arguments open, and not the `(` of the

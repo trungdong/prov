@@ -39,17 +39,14 @@ prov-convert -f bogus document.json out.bogus
 echo $?  # 2
 ```
 
-`prov-compare` reports an error in the same form, as `prov-compare: error: <message>`, and
-exits with 2. It exits with 1 for documents that differ.
+{doc}`../reference/prov-compare` gives the exit status of `prov-compare`.
 
 ## Convert a file in place
 
-Input and output may name the same file. `prov-convert` reads and parses the input before
-it opens the output, so a successful command replaces the file with the converted document.
-This command reformats PROV-JSON with two-space indents:
+Input and output may name the same file, since `prov-convert` reads the input before it
+opens the output ({doc}`../reference/prov-convert`). This command reformats PROV-JSON with
+two-space indents:
 
 ```bash
 prov-convert -w indent=2 document.json document.json
 ```
-
-An input that fails to read leaves the file as it was.
