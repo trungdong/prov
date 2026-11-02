@@ -124,15 +124,9 @@ attribute, comparison and PROV-N methods, so those are documented once here.
    :show-inheritance:
 ```
 
-## Namespaces and literals
+(equality)=
 
-```{eval-rst}
-.. autoclass:: prov.model.NamespaceManager
-   :members:
-   :show-inheritance:
-```
-
-### Equality
+## Equality
 
 Records compare by type, identifier and attributes; a record without an identifier equals
 only a record without one. Two attribute values are the same value when they have the same
@@ -140,11 +134,57 @@ datatype and the same value in that datatype's value space. `xsd:boolean`, `xsd:
 `xsd:double`, `xsd:float` and `xsd:integer` with its subtypes have a value space here,
 every other datatype compares by text, and a text outside its datatype's lexical space
 compares as text. An `xsd:float` is keyed as a Python `float`, so two texts that differ
-only beyond single precision are two values. A plain Python value takes the datatype the writers give it, so `5` and
-`Literal("05", XSD_INT)` are one value and `5` and `Literal("5", XSD_LONG)` are two. A
-`NaN` is one value with itself. `hash()` follows `==` on records and literals. A bundle
-compares as a set of records, not by its identifier; a document also matches its bundles
-by identifier, and a bundle never equals a document.
+only beyond single precision are two values. Language tags compare case-insensitively, so
+`Literal("a", None, "EN")` equals `Literal("a", None, "en")`.
+
+A plain Python value takes the datatype the writers give it (see {ref}`python-values`), so
+`5` and `Literal("05", XSD_INT)` are one value and `5` and `Literal("5", XSD_LONG)` are
+two. A `NaN` is one value with itself. `hash()` follows `==` on records and literals. A
+bundle compares as a set of records, not by its identifier; a document also matches its
+bundles by identifier, and a bundle never equals a document.
+
+(python-values)=
+
+## Python values
+
+`get_attribute()` returns the stored form of a value. A `Decimal`, `date`, `time`,
+`timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` or `Identifier` is stored as a
+{py:class}`~prov.model.Literal` of its XSD datatype, and a record as its identifier. Every
+other type below keeps its Python type. A subclass of a listed type counts as that type. A
+value of any other type, such as a `Fraction` or a `list`, raises
+{py:class}`~prov.model.ProvValueError`. So does a value of a listed type that has no
+lexical form.
+
+| Python type | Datatype | Lexical form |
+| --- | --- | --- |
+| `str` | `xsd:string` | the text as given |
+| `bool` | `xsd:boolean` | `true` or `false` |
+| `int` | `xsd:int` within 32 bits, `xsd:long` within 64 bits, `xsd:integer` beyond | its digits |
+| `float` | `xsd:double` | `repr()`, or `NaN`, `INF` or `-INF` |
+| `datetime.datetime` | `xsd:dateTime` | `isoformat()`; an offset that is not a whole number of minutes becomes UTC, and one beyond ±14:00 is an error |
+| `decimal.Decimal` | `xsd:decimal` | `format(value, "f")`, so `Decimal("1E+2")` is `100`; `NaN`, an infinity or a value too long to write is an error |
+| `datetime.date` | `xsd:date` | `isoformat()` |
+| `datetime.time` | `xsd:time` | `isoformat()`; an offset that is not a whole number of minutes or is beyond ±14:00 is an error |
+| `datetime.timedelta` | `xsd:duration` | days, hours, minutes and seconds, such as `P1DT2H`, `-PT1H30M` or `PT0S` |
+| `uuid.UUID` | `xsd:anyURI` | `urn:uuid:…` |
+| `bytes`, `bytearray`, `memoryview` | `xsd:base64Binary` | standard base64 |
+| {py:class}`~prov.identifier.Identifier` | `xsd:anyURI` | the IRI |
+| {py:class}`~prov.identifier.QualifiedName` | `xsd:QName` | the prefixed name, resolved in the record's bundle |
+| {py:class}`~prov.model.ProvRecord` | `xsd:QName` | the record's identifier |
+| {py:class}`~prov.model.Literal` | its own | its own text |
+
+A `Literal` is kept as it is, except that one with the datatype and spelling prov writes
+for a plain value, such as `Literal("5", XSD_INT)` for `5`, is stored as that value, and so
+is an `xsd:string` `Literal` or an `xsd:dateTime` `Literal` with a valid text. A `None`
+value is skipped.
+
+## Namespaces and literals
+
+```{eval-rst}
+.. autoclass:: prov.model.NamespaceManager
+   :members:
+   :show-inheritance:
+```
 
 ```{eval-rst}
 .. autoclass:: prov.model.Literal
@@ -165,9 +205,8 @@ a type checker reports a call.
 .. autodata:: prov.model.AttributeValue
    :no-value:
 
-   A value accepted for a record attribute, before coercion. An ``Identifier`` is stored
-   as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``, ``time``, ``timedelta``,
-   ``UUID``, ``bytes``, ``bytearray`` or ``memoryview`` as a ``Literal`` of its XSD datatype.
+   A value accepted for a record attribute, before coercion. :ref:`python-values` lists
+   what each type becomes.
 
 .. autodata:: prov.model.RecordAttributesArg
    :no-value:

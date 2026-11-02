@@ -12,7 +12,8 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE]
 `prov-convert` converts a document between PROV-JSON, PROV-N, PROV-XML, PROV-O (RDF) and
 PROV-JSONLD, or renders it as any image format Graphviz supports. It reads `infile` and
 writes `outfile`, and standard input and standard output stand in for a missing or `-`
-argument.
+argument. It reads and parses the input before it opens `outfile`, so an input that fails
+to read leaves an existing output file as it was.
 
 Both formats default to `auto`, which follows the extension table under Options.
 
@@ -121,7 +122,7 @@ Convert a PROV-JSON file to an SVG diagram:
 prov-convert -f svg document.json document.svg
 ```
 
-Write PROV-N with every statement on one line, as 3.2.3 did:
+Write PROV-N with every statement on one line:
 
 ```bash
 prov-convert -f provn -w width=none document.json document.provn
