@@ -2131,7 +2131,7 @@ class ProvDocument(ProvBundle):
             )
         valid_id = self.mandatory_valid_qname(identifier)
         if valid_id in self._bundles:
-            raise ProvException("A bundle with that identifier already exists")
+            raise ProvException(_DUPLICATE_BUNDLE)
         b = ProvBundle(identifier=valid_id, _parent=self)
         self._bundles[valid_id] = b
         return b

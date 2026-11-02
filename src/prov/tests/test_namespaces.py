@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from prov.constants import PROV
-from prov.identifier import Namespace, QualifiedName
+from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
     Literal,
     NamespaceManager,
@@ -270,12 +270,24 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
         (False, "ex:a", ProvException, "already exists"),
         (True, "ex:a", ProvException, "already exists"),
         (False, Namespace("alt", EX_URI)["a"], ProvException, "already exists"),
+        (
+            False,
+            Identifier("http://zz.example/x"),
+            ProvExceptionInvalidQualifiedName,
+            None,
+        ),
     ],
-    ids=["unresolvable", "collision", "own document", "collision by IRI"],
+    ids=[
+        "unresolvable",
+        "collision",
+        "own document",
+        "collision by IRI",
+        "identifier no namespace compacts",
+    ],
 )
 def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
     own: bool,
-    failing: str | QualifiedName,
+    failing: str | Identifier,
     error: type[ProvException],
     match: str | None,
 ) -> None:

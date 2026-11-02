@@ -172,7 +172,7 @@ def _write_output(
     writer_options: Mapping[str, Any],
     color: bool,
 ) -> None:
-    """Write ``prov_doc`` to ``outfile`` in ``output_format``, coloured with ``color``."""
+    """Write ``prov_doc`` to ``outfile`` in ``output_format``, highlighted when ``color`` is true."""
     lexer = _lexer_name(output_format, writer_options) if color else None
     if lexer is None:
         _write_document(prov_doc, outfile, output_format, writer_options)
@@ -426,10 +426,9 @@ def main(argv: list[str] | None = None) -> int:
     Parses ``-f/--format``, ``-i/--input-format``, the repeatable
     ``-w/--writer-option`` and ``-r/--reader-option`` (``NAME=VALUE``), ``--color``, an
     optional input file (default stdin), and an optional output file (default
-    stdout), then
-    converts between them. The input is read before the output file opens, so an
-    input that fails to read leaves an existing output file as it was. The
-    standard streams are used for ``-`` and are not closed.
+    stdout), then converts between them. The input is read before the output file
+    opens, so an input that fails to parse leaves an existing output file as it was.
+    The standard streams are used for ``-`` and are not closed.
 
     Args:
         argv: The command-line arguments, without the program name. ``None``

@@ -168,18 +168,30 @@ def test_empty_language_tag_raises() -> None:
         Literal("hi", langtag="")
 
 
-@pytest.mark.parametrize("tag", ["", "en_US"])
-def test_unpickled_literal_is_checked_too(tag: str) -> None:
-    # A pickle from an earlier release may hold such a tag; loading it runs
-    # the same check, so no document holds a tag the writers cannot spell.
-    literal = Literal.__new__(Literal)
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"_langtag": ""}, "'hi'"),
+        ({"_langtag": "en_US"}, "'hi'"),
+        (
+            {"_datatype": "ex:type", "_langtag": None},
+            re.escape("the datatype 'ex:type' of 'hi' is not a QualifiedName"),
+        ),
+    ],
+    ids=["empty tag", "bad tag", "bad datatype"],
+)
+def test_unpickled_literal_is_checked_too(change: dict[str, Any], message: str) -> None:
+    # A pickle from an earlier release may hold a tag or a datatype the
+    # constructor refuses; loading it runs the same checks, so no document
+    # holds a literal the writers cannot spell.
     state = {
         "_value": "hi",
         "_datatype": PROV_INTERNATIONALIZEDSTRING,
-        "_langtag": tag,
+        "_langtag": "en",
+        **change,
     }
-    with pytest.raises(ProvValueError, match="'hi'"):
-        literal.__setstate__(state)
+    with pytest.raises(ProvValueError, match=message):
+        Literal.__new__(Literal).__setstate__(state)
 
 
 @pytest.mark.parametrize("tag", [None, "en"])
@@ -209,14 +221,6 @@ def test_datatype_that_is_a_qualified_name_or_none_is_kept_and_pickles() -> None
     assert tagged.langtag == "en"
     for literal in (Literal("x", XSD_STRING), tagged):
         assert pickle.loads(pickle.dumps(literal)) == literal
-
-
-def test_unpickled_literal_with_a_bad_datatype_raises() -> None:
-    # A 3.2.3 pickle may hold a datatype that is not a QualifiedName.
-    state = {"_value": "x", "_datatype": "ex:type", "_langtag": None}
-    message = "the datatype 'ex:type' of 'x' is not a QualifiedName"
-    with pytest.raises(ProvValueError, match=re.escape(message)):
-        Literal.__new__(Literal).__setstate__(state)
 
 
 @pytest.mark.parametrize(
