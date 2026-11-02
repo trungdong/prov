@@ -48,59 +48,65 @@ def _as_triple_graph(g):
     return flat
 
 
+def _sorted_nt_lines(graph):
+    return sorted(
+        line
+        for line in graph.serialize(format="nt", encoding="utf-8").splitlines()
+        if line.strip()
+    )
+
+
+def _statement_of(nt_line):
+    return next(
+        iter(rl.Dataset(default_union=True).parse(BytesIO(nt_line), format="nt"))
+    )
+
+
+def _statements_equal(first, second):
+    try:
+        return all(first[i].eq(second[i]) for i in range(3))
+    except TypeError:
+        return False
+
+
+def _pair_equal_lines(g1, g2):
+    """Pair each line of ``g1`` with the first unused line of ``g2`` it equals.
+
+    Returns the indices paired in ``g1`` and in ``g2``.
+    """
+    paired1, paired2 = set(), set()
+    for idx, g1_line in enumerate(g1):
+        g1_stmt = _statement_of(g1_line)
+        for idx2, g2_line in enumerate(g2):
+            if idx2 not in paired2 and _statements_equal(
+                g1_stmt, _statement_of(g2_line)
+            ):
+                paired1.add(idx)
+                paired2.add(idx2)
+                break
+    return paired1, paired2
+
+
+def _parse_lines(graph, lines, indices, *, keep):
+    """Parse into ``graph`` the ``lines`` whose index is (not) in ``indices``."""
+    for idx, line in enumerate(lines):
+        if (idx in indices) == keep:
+            graph.parse(BytesIO(line), format="nt")
+    return graph
+
+
 def find_diff(g_rdf, g0_rdf):
-    graphs_equal = True
     in_both, in_first, in_second = graph_diff(
         _as_triple_graph(g_rdf), _as_triple_graph(g0_rdf)
     )
-    g1 = sorted(
-        line
-        for line in in_first.serialize(format="nt", encoding="utf-8").splitlines()
-        if line.strip()
-    )
-    g2 = sorted(
-        line
-        for line in in_second.serialize(format="nt", encoding="utf-8").splitlines()
-        if line.strip()
-    )
+    g1 = _sorted_nt_lines(in_first)
+    g2 = _sorted_nt_lines(in_second)
     # Compare literals
-    if len(g1) != len(g2):
-        graphs_equal = False
-    matching_indices = [[], []]
-    for idx, g1_line in enumerate(g1):
-        g1_stmt = next(
-            iter(rl.Dataset(default_union=True).parse(BytesIO(g1_line), format="nt"))
-        )
-        match_found = False
-        for idx2, g2_line in enumerate(g2):
-            if idx2 in matching_indices[1]:
-                continue
-            g2_stmt = next(
-                iter(
-                    rl.Dataset(default_union=True).parse(BytesIO(g2_line), format="nt")
-                )
-            )
-            try:
-                all_match = all(g1_stmt[i].eq(g2_stmt[i]) for i in range(3))
-            except TypeError:
-                all_match = False
-            if all_match:
-                matching_indices[0].append(idx)
-                matching_indices[1].append(idx2)
-                match_found = True
-                break
-        if not match_found:
-            graphs_equal = False
-    in_first2 = rl.Dataset(default_union=True)
-    for idx, g1_line in enumerate(g1):
-        if idx in matching_indices[0]:
-            in_both.parse(BytesIO(g1_line), format="nt")
-        else:
-            in_first2.parse(BytesIO(g1_line), format="nt")
-    in_second2 = rl.Dataset(default_union=True)
-    for idx, g2_line in enumerate(g2):
-        if idx not in matching_indices[1]:
-            in_second2.parse(BytesIO(g2_line), format="nt")
+    paired1, paired2 = _pair_equal_lines(g1, g2)
+    graphs_equal = len(g1) == len(g2) and len(paired1) == len(g1)
+    _parse_lines(in_both, g1, paired1, keep=True)
+    in_first2 = _parse_lines(rl.Dataset(default_union=True), g1, paired1, keep=False)
+    in_second2 = _parse_lines(rl.Dataset(default_union=True), g2, paired2, keep=False)
     return graphs_equal, in_both, in_first2, in_second2
 
 
