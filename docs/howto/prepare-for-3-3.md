@@ -165,14 +165,15 @@ of an empty prefix and of a blank IRI are a `ProvValueError` now, from code, whi
 |---|---|---|---|
 | `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
 | `the value Decimal('NaN') of ex:ratio has no xsd:decimal form` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Decimal("NaN")}` | A finite `Decimal`, or the `float` `nan`, which `xsd:double` holds. |
-| `the datatype 'ex:type' of 'x' is not a QualifiedName` | [#705](https://github.com/trungdong/prov/issues/705) | `Literal("x", "ex:type")` | The resolved name, such as `doc.valid_qualified_name("ex:type")` or `EX["type"]`. |
+| `the datatype 'ex:type' of 'x' is not a QualifiedName` | [#705](https://github.com/trungdong/prov/issues/705) | `Literal("x", "ex:type")` | The resolved name, such as `Namespace("ex", "http://example.org/")["type"]`. |
 
-The error is a `ProvValueError` where the value is asserted. An attribute value has a
-PROV form when it is a `str`, `int`, `float`, `bool`, `datetime.datetime`, `Identifier`,
-`QualifiedName`, `Literal` or record, or an instance of a subclass of one of them, or a
-value of a type in the table below, which 3.3.0 stores as a `Literal` of its datatype in
-the form shown. 3.2.x stored a value of any other type as given, and no format could
-write it faithfully.
+The error is a `ProvValueError` where the value is asserted, and the datatype error is one
+where the `Literal` is built, from code or from a pickle written by an earlier release. An
+attribute value has a PROV form when it is a `str`, `int`, `float`, `bool`,
+`datetime.datetime`, `Identifier`, `QualifiedName`, `Literal` or record, or an instance of
+a subclass of one of them, or a value of a type in the table below, which 3.3.0 stores as
+a `Literal` of its datatype in the form shown. 3.2.x stored a value of any other type as
+given, and no format could write it faithfully.
 
 | Python type | Datatype | Written as |
 |---|---|---|

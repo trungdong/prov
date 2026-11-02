@@ -482,7 +482,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   are gone ([#737](https://github.com/trungdong/prov/issues/737))
 - A `Literal` whose datatype is not a `QualifiedName` (or `None`) raises `ProvValueError`
   where it is built or unpickled, so pass the resolved name, where 3.2.3 accepted any
-  object and wrote it as given ([#705](https://github.com/trungdong/prov/issues/705))
+  object ([#705](https://github.com/trungdong/prov/issues/705))
 
 ### Additions
 
@@ -619,13 +619,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `prov:label` with its identifier once, where 3.2.3 drew the identifier twice, as the
   node text and again beneath it ([#695](https://github.com/trungdong/prov/issues/695))
 - A refused `ProvDocument.add_bundle()` leaves the bundle's document link, identifier and
-  namespaces as they were, where 3.2.3 linked the bundle, set its identifier and could
-  register the identifier's namespace ([#726](https://github.com/trungdong/prov/issues/726))
+  namespaces as they were, where 3.2.3 left the bundle linked and could set its identifier
+  and register its namespace ([#726](https://github.com/trungdong/prov/issues/726))
 - Writing N-Triples, as `rdf_format="nt"` or `prov-convert` to a `.nt` file, prints no
   rdflib encoding warning, where 3.2.3 printed `UserWarning: NTSerializer always uses UTF-8
   encoding` ([#742](https://github.com/trungdong/prov/issues/742))
 - `prov-convert` reads its input before it opens the output file, so an input that fails to
-  read leaves an existing output file as it was, where 3.2.3 emptied it
+  parse leaves an existing output file as it was, where 3.2.3 emptied it
   ([#742](https://github.com/trungdong/prov/issues/742))
 - `prov.read()` is annotated as returning a `ProvDocument`, where 3.2.3 said
   `ProvDocument | None` ([#742](https://github.com/trungdong/prov/issues/742))
