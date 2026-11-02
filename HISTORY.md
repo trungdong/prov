@@ -725,6 +725,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   then fail to find it. A subclass may still set attributes of its own; one that set a
   base field in its own `__init__` calls the base class's `__init__` instead
   ([#444](https://github.com/trungdong/prov/issues/444))
+- `sorted_attributes` is no longer part of the public API; it stays importable
+  ([#742](https://github.com/trungdong/prov/issues/742))
 
 ## 3.2.3 (2026-10-19)
 

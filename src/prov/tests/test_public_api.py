@@ -83,7 +83,6 @@ PUBLIC_API = {
         "XSD",
         "XSI",
         "parse_xsd_datetime",
-        "sorted_attributes",
     ],
     "prov.identifier": ["Identifier", "QualifiedName", "Namespace"],
     "prov.constants": [
