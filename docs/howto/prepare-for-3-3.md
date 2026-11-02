@@ -1,8 +1,8 @@
 # Upgrading to prov 3.3.0
 
-`prov` 3.3.0 rejects some input that 3.2.3 read, and reads a few other inputs
-differently. Each section covers one kind of input. Its table gives each error, the input
-that causes it and what to write instead, and its text says what 3.2.3 did with the same
+Find the message `prov` 3.3.0 raised, or the input it reads differently from 3.2.3, in
+the section for that kind of input. Each table gives the error, the input that causes it
+and what to write instead, and the text after the table says what 3.2.3 did with the same
 input. On `prov` 3.2.3, the page at
 <https://prov.readthedocs.io/en/3.2.3/howto/prepare-for-3-3.html> shows how to turn that
 release's warnings into errors and find these inputs before upgrading.
@@ -175,15 +175,19 @@ refusal of a blank IRI is a `ProvValueError`, which `except ValueError` still ca
 | `Invalid Qualified Name: http://dn/, the qualified name 'http://dn/' does not resolve, because the IRI http://dn/ is the default namespace and has no qualified-name form; declare a prefix for it` | [#473](https://github.com/trungdong/prov/issues/473) | `document.entity("http://dn/")` where `http://dn/` is the default namespace | An identifier with a local part, such as `document.entity("e1")`. |
 | `cannot declare default <http://bn/>: this bundle holds e001, which would read as http://bn/e001` | [#573](https://github.com/trungdong/prov/issues/573) | `bundle = document.bundle("e001")` under the document's default namespace, then `bundle.set_default_namespace("http://bn/")` | A prefixed bundle identifier, such as `document.bundle("ex:e001")`. |
 | `cannot declare prefix ex <http://other.org/>: this bundle holds ex:b2, which would read as http://other.org/b2` | [#573](https://github.com/trungdong/prov/issues/573) | `bundle = document.bundle("ex:b2")`, then `bundle.add_namespace("ex", "http://other.org/")` | Another prefix for the other IRI, such as `bundle.add_namespace("other", "http://other.org/")`. |
+| `The "prefix" object declares two different default namespaces, under "" (…) and "default" (…)`, or `A @context entry declares two different default namespaces, under "@vocab" and ""` | [#654](https://github.com/trungdong/prov/issues/654) | `{"prefix": {"": "http://a/", "default": "http://b/"}}` in PROV-JSON, or `{"@vocab": "http://b/", "": "http://a/"}` in a PROV-JSONLD `@context` | One default entry, such as `"default": "http://b/"` in PROV-JSON or `"@vocab": "http://b/"` in PROV-JSONLD. |
 
-The first row is a `ProvValueError`, the middle two a `ProvExceptionInvalidQualifiedName`,
-and the others a `ProvException`, each raised from code. 3.2.3 accepted a namespace with no
-prefix and made it the default of the first scope that met a name from it. It made a
-copied default-namespace name the target's default when the target had none, and wrote
-the name under a `dn` prefix it minted when the target had another default. It raised
-`ProvElementIdentifierRequired` for an identifier equal to the default namespace IRI. It
-accepted a declaration that changed a name the bundle held, so a prefixed bundle identifier
-read back under the IRI the bundle bound the prefix to.
+From code, the first row is a `ProvValueError`, the third and fourth a
+`ProvExceptionInvalidQualifiedName`, and the second, fifth and sixth a `ProvException`.
+The last row is the reader's `ProvJSONException` or `ProvJSONLDException`. 3.2.3 accepted
+a namespace with no prefix and made it the default of the first scope that met a name from
+it. It made a copied default-namespace name the target's default when the target had none,
+and wrote the name under a `dn` prefix it minted when the target had another default. It
+raised `ProvElementIdentifierRequired` for an identifier equal to the default namespace
+IRI. It accepted a declaration that changed a name the bundle held, so a prefixed bundle
+identifier read back under the IRI the bundle bound the prefix to. For two default entries
+in one object it took `"default"` or `@vocab` as the default, and wrote the `""` entry as
+a nameless PROV-N `prefix` from PROV-JSON or as `prefix _1` from PROV-JSONLD.
 
 ## Python values
 
@@ -212,8 +216,9 @@ PROV-JSONLD readers read each bare JSON number with a fraction or an exponent as
 
 An `Identifier` given as a value is stored as a `Literal` typed `xsd:anyURI`, the form
 every writer wrote for it and every reader now builds, so `isinstance(value, Identifier)`
-no longer matches a stored value. A `QualifiedName` value is unchanged. 3.2.3 did not
-warn about this.
+no longer matches a stored value. Test a stored value with
+`isinstance(value, Literal) and value.datatype == XSD_ANYURI`, and read its IRI from
+`value.value`. A `QualifiedName` value is unchanged. 3.2.3 did not warn about this.
 
 ## Qualified names
 
@@ -283,14 +288,14 @@ an attribute name, a formal attribute value other than a time and a `hadMember` 
 warning.
 
 In PROV-JSONLD, the context marks the values of `type`, `role` and `location` as IRIs, so
-a bare string there is an IRI, as a `{"@id": …}` node reference is: one a declared
-namespace compacts is the qualified name, and one no namespace compacts is rejected with
-`ProvJSONLDException`, as a node reference is. 3.2.3 kept that string as an `xsd:QName`
-`Literal` and warned that 3.3.0 would reject it, and read a node reference no namespace
-compacts as an `Identifier`. A reference to a blank node, `{"@id": "_:b1"}` or
-`"_:b1"`, names no record, so the reader drops that value with a `ProvWarning`. An
-`xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared
-prefix is rejected by the model, and the reader's error names the record.
+a bare string there is an IRI, as a `{"@id": …}` node reference is. When a declared
+namespace compacts the IRI, the value is that qualified name, and when none does, the
+reader rejects it with `ProvJSONLDException`, as it rejects a node reference. 3.2.3 kept
+that string as an `xsd:QName` `Literal` and warned that 3.3.0 would reject it, and read a
+node reference no namespace compacts as an `Identifier`. A reference to a blank node,
+`{"@id": "_:b1"}` or `"_:b1"`, names no record, so the reader drops that value with a
+`ProvWarning`. An `xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or
+an undeclared prefix is rejected by the model, and the reader's error names the record.
 
 In code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts when no prefix named `http` is
@@ -310,6 +315,9 @@ code, as the attribute name does, and the PROV-JSONLD reader raises `ProvJSONLDE
 with it as the cause.
 PROV-XML documents are unchanged, because the PROV-XML codec reads and writes `xsi:type`
 itself.
+
+`prov.model.DEFAULT_NAMESPACES` has no `xsi` key, where 3.2.3 held `prov`, `xsd` and
+`xsi`. Code that read `DEFAULT_NAMESPACES["xsi"]` uses `prov.constants.XSI` instead.
 
 `prov` 3.2.x wrote `xsi:` names to PROV-JSON and PROV-JSONLD without an `xsi` entry in
 the prefix map. Add an `xsi` entry for `http://www.w3.org/2001/XMLSchema-instance` to such
@@ -373,7 +381,7 @@ warn about it.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in the document that will hold it, or `update()` a fresh bundle of that document from it. `update()` registers every prefixed namespace by itself. A bundle whose bare names use a default namespace needs that default declared first, on the document that will hold the bundle or on the fresh bundle, where it was declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
+| `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in its target document, or `update()` a fresh bundle of the target document from it. `update()` registers every prefixed namespace by itself. A bundle whose bare names use a default namespace needs that default declared first, on the target document or on the fresh bundle, where it was declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
 
 ## Equality
 
@@ -442,14 +450,16 @@ A bundle key starts with `bundle 'ex:b'` and a colon.
 
 ## PROV-JSONLD
 
-`prov` 3.3.0 raises `ProvJSONLDException` for this input.
+`prov` 3.3.0 raises `ProvJSONLDException` for each of these.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the key 'ex:k' is repeated in a JSON object` | [#532](https://github.com/trungdong/prov/issues/532) | `"ex:k": ["a"], "ex:k": ["b"]` in one node object | One key holding every value, `"ex:k": ["a", "b"]`. |
+| `prov:Activity 'ex:a': The 'startTime' attribute is not an xsd:dateTime: '2011-11-16'` | [#514](https://github.com/trungdong/prov/issues/514) | `"startTime": "2011-11-16"` on a `prov:Activity` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
 
-The message names only the key, because Python's JSON parser reports no position for it.
-3.2.3 kept the last value without a message.
+The repeated-key message names only the key, because Python's JSON parser reports no
+position for it. 3.2.3 kept the last value of a repeated key without a message, and read a
+statement whose formal time it could not parse without that time.
 
 ## PROV-XML
 
@@ -461,12 +471,13 @@ The message names only the key, because Python's JSON parser reports no position
 
 3.2.3 made that namespace the default of the first scope that met it.
 
-The PROV-XML reader also reads two declarations differently:
+The PROV-XML reader also reads three inputs differently:
 
-| Read | 3.2.3 | 3.3.0 |
-|---|---|---|
-| An `xmlns` on `prov:document` that no name uses | dropped | the document's default namespace, which the PROV-JSON, PROV-JSONLD, PROV-N and PROV-XML writers declare ([#649](https://github.com/trungdong/prov/pull/649)) |
-| An `xmlns:un` on `prov:bundleContent` that no name uses | dropped | registered on the bundle, so `bundle.get_registered_namespaces()` lists it and the writers declare it inside the bundle |
+| Read | Issue | 3.2.3 | 3.3.0 |
+|---|---|---|---|
+| An `xmlns` on `prov:document` that no name uses | [#649](https://github.com/trungdong/prov/pull/649) | dropped | the document's default namespace, which the PROV-JSON, PROV-JSONLD, PROV-N and PROV-XML writers declare |
+| An `xmlns:un` on `prov:bundleContent` that no name uses | [#649](https://github.com/trungdong/prov/pull/649) | dropped | registered on the bundle, so `bundle.get_registered_namespaces()` lists it and the writers declare it inside the bundle |
+| `xsi:type=":t"` under an `xmlns`, the form 3.2.3 wrote for a datatype in the default namespace | [#570](https://github.com/trungdong/prov/issues/570) | the local part `:t` in the default namespace | the default namespace's `t` |
 
 Remove an unused declaration from the file if the output must not declare it.
 

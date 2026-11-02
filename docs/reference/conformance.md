@@ -273,7 +273,10 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
 - **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built;
   PROV-XML's `xml:lang=""` is rejected on read.
 - **C6. Language tag that is not BCP 47.** A tag such as `en_US` is rejected when the
-  `Literal` is built, from any format or from code, so no writer meets one.
+  `Literal` is built, from any format or from code, so no writer meets one. A tag is
+  letters, followed by any number of groups of letters and digits that each start with a
+  hyphen. `prov` checks this shape only and does not look the tag up in the BCP 47
+  registry.
 - **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
   in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
   the round trip compares equal; the original offset is not preserved.

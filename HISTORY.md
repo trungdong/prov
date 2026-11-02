@@ -12,13 +12,10 @@ lists each message, the input that causes it and what to write instead.
 - `prov` requires Python 3.11 or later, since Python 3.10 reached its end of life on
   2026-10-31 ([#604](https://github.com/trungdong/prov/pull/604))
 - The five format errors derive from `ProvSerializationError`, and a reader raises its
-  format's error for a model rejection too, with the model's error as `__cause__`. `prov.read()` without
-  `format=` raises `ProvFormatNotDetected`, still a `TypeError`, and chains the error of
-  the reader that the content's first character names. A value the model cannot hold
-  raises `ProvValueError`, a `ProvException` and a `ValueError`. Write
+  format's error for a model rejection too, with the model's error as `__cause__`. Write
   `except ProvSerializationError` around a read, or `except prov.Error` for both kinds,
   where 3.2.3 raised the model's error or a bare `ValueError`
-  ([how errors surface](https://prov.readthedocs.io/en/latest/howto/read-write.html#how-errors-surface))
+  ([#653](https://github.com/trungdong/prov/issues/653))
 - A `Literal` of `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` or an integer
   type compares by its value, so `Literal("05", XSD_INT) == Literal("5", XSD_INT)`, and
   keeps a non-canonical text such as `"05"` as written, where 3.2.3 compared every type
@@ -35,10 +32,10 @@ lists each message, the input that causes it and what to write instead.
 - `get_records()` with a class or a tuple of classes returns a list, so write
   `next(iter(...))` to take the first record, where 3.2.3 returned a one-shot iterator
   ([#491](https://github.com/trungdong/prov/issues/491))
-- A bundle declares only the namespaces it binds itself, so the PROV-N, PROV-JSON and
-  PROV-JSONLD writers no longer repeat the document's `prefix ex` inside each bundle that
-  uses it, and `bundle.get_registered_namespaces()` lists the bundle's own declarations
-  only ([#449](https://github.com/trungdong/prov/issues/449))
+- A bundle declares only the namespaces it binds itself, so a document read from
+  PROV-JSON, PROV-JSONLD or PROV-XML no longer writes the document's `prefix ex` again
+  inside each bundle that uses it, and `bundle.get_registered_namespaces()` lists the
+  bundle's own declarations only ([#449](https://github.com/trungdong/prov/issues/449))
 - The PROV-N writer puts a statement that has an attribute block and is wider than 80
   columns on several rows, one attribute per row, where 3.2.3 wrote one line. Pass
   `width=None` for the one-line shape, and give a `get_provn()` override a
@@ -81,10 +78,8 @@ lists each message, the input that causes it and what to write instead.
 ### Fixes
 
 - The PROV-O, PROV-JSON and PROV-JSONLD readers register a default binding, such as
-  Turtle's `@prefix :`, as the document's default namespace, where 3.2.3 registered an
-  empty prefix that PROV-N wrote as a nameless `prefix` declaration, which does not read
-  back. The PROV-O reader no longer declares rdflib's
-  own bindings, such as `foaf`, as the document's
+  Turtle's `@prefix :`, as the document's default namespace, where 3.2.3 wrote it as a
+  nameless PROV-N `prefix`. The PROV-O reader no longer declares rdflib's own bindings
   ([#654](https://github.com/trungdong/prov/issues/654))
 - A `Literal` whose datatype is in a namespace nothing declared registers that namespace
   when it is asserted, so every writer declares it, where 3.2.3 wrote `"1" %% zz:t` with
@@ -118,11 +113,10 @@ lists each message, the input that causes it and what to write instead.
   its attributes unchanged, where 3.2.3 added an empty entry that moved a later attribute
   earlier in PROV-JSON, PROV-JSONLD and PROV-N output
   ([#696](https://github.com/trungdong/prov/issues/696))
-- A bundle's own default namespace round-trips through PROV-XML, and a typed literal whose
-  datatype is in the default namespace round-trips through PROV-XML, and through PROV-N
-  when its local part holds `:`, where
-  3.2.3 read the bundle's names back in the document's default and wrote such a datatype
-  as `xsi:type=":t"` ([#572](https://github.com/trungdong/prov/issues/572))
+- A bundle's own default namespace and a datatype in the default namespace round-trip
+  through PROV-XML, and PROV-N escapes a `:` in such a datatype's local part as
+  `"1" %% a\:b`, where 3.2.3 read the bundle's names in the document's default and wrote
+  the datatype as `xsi:type=":t"` ([#572](https://github.com/trungdong/prov/issues/572))
 - A subclass of `int`, `float` or `datetime`, such as an `(int, Enum)` member, a
   `numpy.float64` or a `pandas.Timestamp` at microsecond precision, is written as the
   plain value is and reads back equal, where 3.2.3 wrote an `(int, Enum)` member by its
