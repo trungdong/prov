@@ -11,8 +11,8 @@ lists each message, the input that causes it and what to write instead.
 
 - `prov` requires Python 3.11 or later, since Python 3.10 reached its end of life on
   2026-10-31 ([#604](https://github.com/trungdong/prov/pull/604))
-- Every reader error is a `ProvSerializationError`, and a reader raises its format's error
-  for a model rejection too, with the model's error as `__cause__`. `prov.read()` without
+- The five format errors derive from `ProvSerializationError`, and a reader raises its
+  format's error for a model rejection too, with the model's error as `__cause__`. `prov.read()` without
   `format=` raises `ProvFormatNotDetected`, still a `TypeError`, and chains the error of
   the reader that the content's first character names. A value the model cannot hold
   raises `ProvValueError`, a `ProvException` and a `ValueError`. Write
@@ -82,7 +82,8 @@ lists each message, the input that causes it and what to write instead.
 
 - The PROV-O, PROV-JSON and PROV-JSONLD readers register a default binding, such as
   Turtle's `@prefix :`, as the document's default namespace, where 3.2.3 registered an
-  empty prefix that PROV-N could not write. The PROV-O reader no longer declares rdflib's
+  empty prefix that PROV-N wrote as a nameless `prefix` declaration, which does not read
+  back. The PROV-O reader no longer declares rdflib's
   own bindings, such as `foaf`, as the document's
   ([#654](https://github.com/trungdong/prov/issues/654))
 - A `Literal` whose datatype is in a namespace nothing declared registers that namespace
@@ -118,7 +119,8 @@ lists each message, the input that causes it and what to write instead.
   earlier in PROV-JSON, PROV-JSONLD and PROV-N output
   ([#696](https://github.com/trungdong/prov/issues/696))
 - A bundle's own default namespace round-trips through PROV-XML, and a typed literal whose
-  datatype is in the default namespace round-trips through PROV-N and PROV-XML, where
+  datatype is in the default namespace round-trips through PROV-XML, and through PROV-N
+  when its local part holds `:`, where
   3.2.3 read the bundle's names back in the document's default and wrote such a datatype
   as `xsi:type=":t"` ([#572](https://github.com/trungdong/prov/issues/572))
 - A subclass of `int`, `float` or `datetime`, such as an `(int, Enum)` member, a
@@ -154,8 +156,8 @@ fixed issue.
   bundle that made the record beside it. 4.0 removes it
   ([#734](https://github.com/trungdong/prov/issues/734))
 - `Identifier`, `QualifiedName`, `Namespace` and `Literal` raise `AttributeError` when code
-  assigns or deletes a field after construction, so a subclass that sets a base field
-  calls the base class's `__init__` instead, where 3.2.3 let the change through
+  assigns or deletes a field after construction, so a subclass that set a base field in its
+  own `__init__` now calls the base class's `__init__`, where 3.2.3 let the change through
   ([#444](https://github.com/trungdong/prov/issues/444))
 - `sorted_attributes` is no longer public API and stays importable
   ([#742](https://github.com/trungdong/prov/pull/742))
