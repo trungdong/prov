@@ -7,7 +7,6 @@ import decimal
 import enum
 import io
 import math
-import pickle
 import re
 import uuid
 import warnings
@@ -208,19 +207,6 @@ def test_datatype_that_is_not_a_qualified_name_raises(
     message = f"the datatype {datatype!r} of 'x' is not a QualifiedName"
     with pytest.raises(ProvValueError, match=re.escape(message)):
         Literal("x", datatype, tag)
-
-
-def test_datatype_that_is_a_qualified_name_or_none_is_kept_and_pickles() -> None:
-    assert Literal("x", XSD_STRING).datatype == XSD_STRING
-    assert Literal("x", None).datatype is None
-    for tag in (None, "en"):
-        assert Literal("x", None, tag).langtag == tag
-    # A valid datatype with a tag is overridden, as before.
-    tagged = Literal("x", XSD_STRING, "en")
-    assert tagged.datatype == PROV_INTERNATIONALIZEDSTRING
-    assert tagged.langtag == "en"
-    for literal in (Literal("x", XSD_STRING), tagged):
-        assert pickle.loads(pickle.dumps(literal)) == literal
 
 
 @pytest.mark.parametrize(

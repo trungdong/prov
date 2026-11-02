@@ -32,7 +32,7 @@ from prov.serializers.provrdf import (
     _DecodeState,
     literal_rdf_representation,
 )
-from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
+from prov.tests.conftest import add_ordered_namespaces, ex_document, roundtrip_document
 
 logger = logging.getLogger(__name__)
 
@@ -2124,8 +2124,7 @@ def test_non_finite_doubles_are_written_in_xsd_spelling(rdf_format) -> None:
 def test_the_default_encoding_changes_no_byte_and_no_n_triples_warns(
     rdf_format,
 ) -> None:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
+    document = ex_document()
     e1 = document.entity("ex:e1", {"ex:name": "alpha", "ex:count": 3})
     e2 = document.entity("ex:e2", {"ex:name": "beta", "ex:count": 4})
     document.wasDerivedFrom(e2, e1)

@@ -21,7 +21,7 @@ import importlib.util
 import io
 import json
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 import tomllib
 
@@ -370,7 +370,7 @@ def test_attribute_constants_keep_one_order_under_every_hash_seed(seed: str) -> 
         "    list(PROV_ID_ATTRIBUTES_MAP.values()),\n"
         "]))\n"
     )
-    child = subprocess.run(
+    child = subprocess.run(  # nosec B603 - nosemgrep
         [sys.executable, "-P", "-c", code],
         env={**os.environ, "PYTHONHASHSEED": seed},
         capture_output=True,

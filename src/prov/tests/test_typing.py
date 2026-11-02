@@ -26,6 +26,7 @@ from prov.model import (
     QualifiedName,
     StreamOrPath,
 )
+from prov.tests.conftest import ex_document
 from prov.tests.examples import primer_example
 
 
@@ -101,8 +102,7 @@ def test_serialize_returns_str_without_a_destination_and_none_with_one(
 
 
 def test_read_returns_a_document() -> None:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
+    document = ex_document()
     document.entity("ex:e")
     loaded = read(io.StringIO(document.serialize(format="json")), format="json")
     assert_type(loaded, ProvDocument)

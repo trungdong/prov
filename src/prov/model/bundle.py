@@ -2044,8 +2044,8 @@ class ProvDocument(ProvBundle):
         """Add a bundle to this document.
 
         If a document (with no nested bundles) is passed, its records are copied
-        into a fresh bundle. The bundle's identifier is normalised against this
-        document's namespaces.
+        into a fresh bundle. The bundle's identifier resolves against the bundle's own
+        namespaces first and then this document's.
 
         Args:
             bundle: The :class:`ProvBundle` to add.
@@ -2089,13 +2089,28 @@ class ProvDocument(ProvBundle):
         if not identifier:
             raise ProvException("The provided bundle has no identifier")
 
-        # A QualifiedName is checked by IRI before anything is linked, so a
-        # refusal never registers its namespace on the bundle
+        valid_id = self._bundle_identifier(bundle, identifier)
+
+        # IMPORTANT: Rewriting the bundle identifier for consistency
+        bundle._identifier = valid_id
+        self._bundles[valid_id] = bundle
+        bundle._document = self
+
+    def _bundle_identifier(
+        self, bundle: ProvBundle, identifier: QualifiedNameCandidate
+    ) -> QualifiedName:
+        """Link ``bundle`` to this document's namespaces and resolve ``identifier``.
+
+        A ``QualifiedName`` is checked before the link because resolving it may
+        register its namespace on the bundle. A string or ``Identifier`` resolves
+        through the link, which a refusal restores, and the second check covers
+        those. The link stays for resolution because an unlinked read would
+        compact a prefix the document declares (#599).
+        """
         if isinstance(identifier, QualifiedName) and identifier in self._bundles:
             raise ProvException(_DUPLICATE_BUNDLE)
 
-        # Link the bundle namespace manager to the document's; a refused
-        # bundle gets its previous parent back
+        previous = bundle._namespaces.parent
         bundle._namespaces.parent = self._namespaces
         try:
             valid_id = bundle.mandatory_valid_qname(identifier)
@@ -2104,11 +2119,7 @@ class ProvDocument(ProvBundle):
         except ProvException:
             bundle._namespaces.parent = previous
             raise
-
-        # IMPORTANT: Rewriting the bundle identifier for consistency
-        bundle._identifier = valid_id
-        self._bundles[valid_id] = bundle
-        bundle._document = self
+        return valid_id
 
     def bundle(self, identifier: QualifiedNameCandidate) -> ProvBundle:
         """Create a new, empty named bundle in this document.
