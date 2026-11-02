@@ -72,5 +72,6 @@ document.serialize(format="jsonld", context="embed")
 ## Limitations
 
 The submission defines no Mention term, so a document with a
-{py:class}`~prov.model.ProvMention` cannot be written or read ({doc}`../reference/conformance`,
-C2). The PROV-JSONLD notes on the same page state what the reader accepts and what it drops.
+{py:class}`~prov.model.ProvMention` cannot be written or read (C2 in
+{doc}`../reference/conformance`). The PROV-JSONLD notes on the same page state what the
+reader accepts and what it drops.

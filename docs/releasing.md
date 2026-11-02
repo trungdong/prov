@@ -10,8 +10,9 @@ Substitute the version being released for `X.Y.Z` throughout.
    `uv run python benchmarks/ab.py <previous tag> --python 3.12` run twice, the second time
    with `--gc`, the suite-count comparison, and `uv build` with the wheel listing.
 2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`,
-   `docs/reference/conformance.md`, `docs/whats-new-3.md`, `SECURITY.md`, `CITATION.cff`; the status lines and index rows of the
-   specs the release ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
+   `docs/reference/conformance.md`, `docs/whats-new-3.md`, `SECURITY.md`, `CITATION.cff`;
+   the status lines and index rows of the specs the release ships; `pyproject.toml` and
+   `README.md` if a serializer changed (§2).
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
 4. Publish: `gh workflow run release.yml` as the TestPyPI dry run, then
    `gh release create X.Y.Z` with notes from `HISTORY.md`, each followed by
@@ -51,7 +52,7 @@ Then the checks only a release runs:
 
 ```bash
 # prov must raise no DeprecationWarning, PendingDeprecationWarning or FutureWarning
-# of its own (#340, #441); the ini-style filter is deliberate, the -W form silently
+# of its own; the ini-style filter is deliberate, the -W form silently
 # ignores submodules
 uv run --python 3.15 --extra rdf --extra xml --extra dot --extra graph pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
 
@@ -112,7 +113,7 @@ interpreting:
   cyclomatic-complexity threshold of 15 even when the function itself looks untouched.
 - **Coveralls is advisory.** A "Coverage decreased" failure is non-blocking *provided* the
   local gate passes: `uv run coverage run -m pytest && uv run coverage report` must exit 0
-  against the `fail_under = 97` floor in `pyproject.toml`. Defensive `raise` branches in
+  against the `fail_under` floor in `pyproject.toml`. Defensive `raise` branches in
   new code routinely cost a fraction of a percent on the delta while the floor still holds.
 
 A PR that shows "no checks", or a matrix job stalled in "Setup Graphviz", is a CI hiccup;

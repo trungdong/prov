@@ -175,10 +175,10 @@ listed type that has no lexical form.
 
 A `Literal` built directly from a Python value stores three forms that the table does not
 cover. A `float` given the datatype `xsd:decimal` is stored as its decimal text, so `0.1`
-gives `0.1` and `1e22` gives `10000000000000000000000`. A bytes-like value given the
-datatype `xsd:hexBinary` is stored as uppercase hex, so `b"\xab\xcd"` gives `ABCD`. Any
-other value with no form in the table is stored through `str()`, so a `list` gives
-`[1, 2]` and a `Fraction` gives `1/3`.
+gives `0.1`, `1e22` gives `10000000000000000000000`, `nan` gives `NaN` and the infinities
+give `Infinity` and `-Infinity`. A bytes-like value given the datatype `xsd:hexBinary` is
+stored as uppercase hex, so `b"\xab\xcd"` gives `ABCD`. Any other value with no form in the
+table is stored through `str()`, so a `list` gives `[1, 2]` and a `Fraction` gives `1/3`.
 
 A `Literal` is kept as it is, except that one with the datatype and spelling prov writes
 for a plain value, such as `Literal("5", XSD_INT)` for `5`, is stored as that value, and so

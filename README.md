@@ -60,8 +60,8 @@ The [tutorial](https://prov.readthedocs.io/en/latest/tutorial/getting-started.ht
 - PROV-N syntax highlighting through a Pygments lexer, with the `pygments` extra.
 - Command-line tools, `prov-convert` and `prov-compare`.
 
-Public repositories on GitHub
-[depend on this package](https://github.com/trungdong/prov/network/dependents).
+GitHub lists the
+[public repositories that depend on this package](https://github.com/trungdong/prov/network/dependents).
 [What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html) summarises the 3.x
 line, and the [announcement post](https://trungdong.github.io/provpy-3.html) explains the move.
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned releases,

@@ -53,9 +53,8 @@ Pyright accepts the call without the annotation.
 `AttributeValue` covers `str`, `int`, `float`, `bool`, `datetime.datetime`,
 {py:class}`~prov.identifier.Identifier`, {py:class}`~prov.identifier.QualifiedName`,
 {py:class}`~prov.model.Literal`, any {py:class}`~prov.model.ProvRecord`, `None`, and the
-types `prov` stores as a `Literal`: `decimal.Decimal`, `datetime.date`, `datetime.time`,
-`datetime.timedelta`, `uuid.UUID`, `bytes`, `bytearray` and `memoryview`. A record stands
-for its identifier. A `None` value is skipped.
+further types that {ref}`python-values` lists as stored in a `Literal`. A record stands for
+its identifier. A `None` value is skipped.
 
 ## Pass attributes as pairs
 
@@ -70,12 +69,11 @@ The values in pairs are typed `Any`, so a checker does not examine them.
 
 ## Values prov stores as a Literal
 
-A value of one of the types that the list above says `prov` stores as a
+A value of a type that {ref}`python-values` lists as stored in a
 {py:class}`~prov.model.Literal` becomes a `Literal` of its XSD datatype, and
-`get_attribute()` returns a set holding it. {ref}`python-values` lists the datatype and
-lexical form of each. A checker reports a value of any other type, such as a `Fraction`, and `prov` raises
-{py:class}`~prov.model.ProvValueError` for it at runtime. To choose the datatype yourself,
-write the `Literal`:
+`get_attribute()` returns a set holding it. A checker reports a value of any other type,
+such as a `Fraction`, and `prov` raises {py:class}`~prov.model.ProvValueError` for it at
+runtime. To choose the datatype yourself, write the `Literal`:
 
 ```python
 from prov.model import XSD, XSD_DECIMAL, Literal

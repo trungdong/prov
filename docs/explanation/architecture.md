@@ -49,13 +49,9 @@ level and returns a new document, or the document itself when it has no bundles.
 
 Each serializer subclasses {py:class}`~prov.serializers.Serializer` and implements
 `serialize()` and `deserialize()`. `prov.serializers.Registry` holds them under their
-format names in insertion order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and
-{py:func}`prov.serializers.get` resolves a name to a class.
-
-{py:func}`prov.read` reads a file, path or string without a `format` by trying the
-registered formats in that order until one succeeds, rewinding the stream between attempts
-where it can. The order is part of the contract, because `json` is tried first and it is
-the only attempt that can succeed on a non-seekable stream.
+format names, and {py:func}`prov.serializers.get` resolves a name to a class.
+{py:meth}`~prov.serializers.Registry.load_serializers` gives the registry order, and
+{ref}`auto-detect` shows how {py:func}`prov.read` walks it.
 
 The registry is populated lazily, on the first call to {py:func}`prov.serializers.get` or
 {py:func}`prov.read`, by `Registry.load_serializers()`. Formats whose parser is an optional
@@ -66,9 +62,8 @@ naming the extra to install when the format is one of the optional ones.
 
 ## Extras
 
-The core package has no runtime dependencies. `rdflib` sits behind the `rdf` extra, `lxml`
-behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, `matplotlib`,
-`pydot` and `networkx` behind `plot`, and `pygments` behind `pygments` (see
-{doc}`../installation`). `prov.graph`, `prov.dot` and `prov.pygments` raise
-`ModuleNotFoundError` naming the extra when imported without it. `prov.pygments` imports
-nothing from `prov`, and {doc}`../development` gives the reason.
+The core package has no runtime dependencies. Each optional capability sits behind an
+extra, and {doc}`../installation` lists which extra installs which package. `prov.graph`,
+`prov.dot` and `prov.pygments` raise `ModuleNotFoundError` naming the extra when imported
+without it. `prov.pygments` imports nothing from `prov`, and {doc}`../development` gives
+the reason.

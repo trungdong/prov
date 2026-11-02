@@ -127,8 +127,9 @@ names public annotations expose.
 ## Pull request guidelines
 
 1. Include tests.
-2. If the pull request adds functionality, update the docs. Give new functions a docstring
-   and add the feature to the list in README.md.
+2. If the pull request adds functionality, update the docs and follow the "Documentation
+   rules" below. Give new functions a docstring and add the feature to the list in
+   README.md.
 3. The pull request must pass on CPython 3.11 to 3.15 and on PyPy 3.11. The automated
    checks at the bottom of the pull request run the full matrix.
 4. The `benchmark` check times your change and the target branch on one CI runner. It is
@@ -180,7 +181,8 @@ Every pull request that touches a page or a docstring follows these rules.
 6. Link an issue only for an open limitation or a decision a reader may want to follow. Never
    link one to record the history of a fix.
 7. Change no behaviour in a documentation change. Correct a sentence that is wrong against
-   the code, and list the correction in the pull request body.
+   the code, never the code to match the sentence, and list the correction in the pull
+   request body.
 
 | Fact | Home |
 |---|---|

@@ -26,11 +26,14 @@ first character does not name its reader. Pass `format=` to see the rule on its 
 
 Around a read, `except prov.serializers.ProvSerializationError` catches a reader's
 rejection, and `except prov.Error` catches that and the model's refusal both. A syntax
-error from the parsing library, such as `json.JSONDecodeError`, is outside both.
+error from the parsing library, such as `json.JSONDecodeError` under an explicit `format=`,
+is outside both.
 {doc}`read-write` has the `except` table, and {doc}`../reference/serializers` holds the
 exception tree.
 
 ## PROV-N declarations
+
+The `strict`, `default` and `lenient` profiles are in {ref}`provn-profiles`.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
@@ -189,8 +192,8 @@ raised `ProvElementIdentifierRequired` for an identifier equal to the default na
 IRI. It accepted a declaration that changed a name the bundle held, so a prefixed bundle
 identifier read back under the IRI the bundle bound the prefix to. For two default entries
 in one object it took `"default"` or `@vocab` as the default, and wrote the `""` entry as
-a nameless PROV-N `prefix`, or as `prefix _1` from a PROV-JSONLD context that put `@vocab`
-first.
+a nameless PROV-N `prefix`, or as `prefix _1` when the default entry came first, in a
+PROV-JSON `prefix` object or a PROV-JSONLD context.
 
 ## Python values
 
@@ -282,8 +285,10 @@ a bundle before the bundle's own namespaces could compact the text. A value whos
 is declared is stored as a `QualifiedName`, in code and from every format, and
 `get_attribute()` returns it. In code, and for an `xsd:QName` value read from PROV-N or
 PROV-O, 3.2.3 kept such a value as a `Literal`. `prov` 3.2.x kept a value whose prefix was
-not declared as a `Literal`, and its PROV-N, PROV-JSON and PROV-JSONLD readers read a full
-IRI as a name in a declared namespace the IRI starts with. The rows for #553 and #622 are
+not declared as a `Literal`, and its PROV-JSON and PROV-JSONLD readers read a full IRI as a
+name in a declared namespace the IRI starts with, as its PROV-N reader did for a
+`prov:QUALIFIED_NAME` value. Its PROV-N reader kept an `xsd:QName` value with a full IRI as
+a `Literal` and warned. The rows for #553 and #622 are
 positions 3.2.3 read without a warning.
 
 A formal attribute is one of the record's arguments in PROV-N, such as `prov:entity` or

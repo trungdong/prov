@@ -91,6 +91,8 @@ except ProvNSyntaxError as error:
 2 10 the qualified name 'ex:e1' does not resolve, because its prefix 'ex' is not declared
 ```
 
+(provn-profiles)=
+
 ## Choose a parsing profile
 
 The parser accepts three dialects, selected with `profile`:
@@ -163,7 +165,7 @@ c.HighlightMagicsPreprocessor.languages = {"%%provn": "provn"}
 default, which ProvToolbox reads. They also write an identifier or attribute block on
 `alternateOf`, `specializationOf` and `hadMember` when a record carries one, which the
 grammar does not allow. Pass `strict=True` to write `prov:mentionOf` and to drop those
-identifiers and attribute blocks. Each drop raises a {py:class}`~prov.model.ProvWarning`
+identifiers and attribute blocks. Each drop issues a {py:class}`~prov.model.ProvWarning`
 that names the record. The output then parses under the `strict` profile:
 
 ```python

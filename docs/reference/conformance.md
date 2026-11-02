@@ -110,12 +110,12 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | String, with or without an explicit `xsd:string` | a string | ✓ in every format |
 | Language-tagged string | the tag as given; tags compare case-insensitively | ✓ C5 C6 |
 | Boolean | `xsd:boolean`, spelled `true` and `false`; `1` and `0` read as the same value and keep their text | ✓ |
-| Python `int` with no datatype | `xsd:int` when it fits 32 bits, else `xsd:long` when it fits 64, else `xsd:integer`; PROV-N writes `xsd:int` as a bare number | ✓ |
+| Python `int` with no datatype | the datatype that {ref}`python-values` gives for its size; PROV-N writes `xsd:int` as a bare number | ✓ |
 | Integer with an asserted datatype (`xsd:long`, `xsd:short`, `xsd:unsignedByte`, ...) | the asserted datatype, never collapsed to a narrower one | ✓ |
 | `xsd:decimal` | as given; `10`, `10.0` and `"10.00"` are one value (see {ref}`equality`) | ✓ |
 | Python `float` | `xsd:double` at full precision | ✓ |
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
-| `xsd:dateTime` | the `xsd:dateTime` lexical form with at most six fractional digits and a year from 1 to 9999; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one, a longer fraction or a year outside the range stays a `Literal`; PROV-O reads a longer fraction truncated (C10) | ✓ C7 C10 |
+| `xsd:dateTime` | the form that {ref}`python-values` gives; a typed literal with an offset beyond ±14:00, a fraction of more than six digits or a year outside 1 to 9999 stays a `Literal`; PROV-O reads a longer fraction truncated (C10) | ✓ C7 C10 |
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given, compared by the rules in {ref}`equality`; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
 | Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form listed under {ref}`python-values`; a value of any other type is rejected | ✓ C10 |
 
@@ -199,7 +199,8 @@ one of the statement's own arguments are errors.
 - Names escaped as in C3 are unescaped.
 - The reader does not expand an entity declared in a `DOCTYPE`, internal or external, and
   never touches the network, because expansion opens a document to entity-expansion and
-  file-disclosure attacks. A value written as a reference to such an entity reads as empty.
+  file-disclosure attacks. A value that contains a reference to such an entity reads as the
+  text before the reference, which is empty when the reference comes first.
   Predefined entities and character references, such as `&amp;` and `&#67;`, read as usual.
 
 ### PROV-JSONLD
@@ -247,13 +248,16 @@ one of the statement's own arguments are errors.
   reads under rdflib's IRI for that prefix, because rdflib replaces the source's binding
   at parse. A prefix the source declares and no name uses is not written by `prov`'s
   Turtle, so it does not survive a round trip.
+- Only the quad-based syntaxes, `trig` and `nquads`, keep bundles as separate named graphs.
+  A triple-based syntax such as `turtle`, `xml` or `nt` flattens every bundle into one graph
+  and loses which bundle each statement came from.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options
 (`profile` for PROV-N; `rdf_format`, `relation_mapper` and `predicate_mapper` for PROV-O;
 the `json.load` hooks for PROV-JSON and PROV-JSONLD, which receive each object after the
-check for repeated keys). An option a format does not accept raises `TypeError` naming the
-format.
+check for repeated keys). With an explicit `format`, an option that the format does not
+accept raises `TypeError` naming the format.
 
 ## Edge cases
 

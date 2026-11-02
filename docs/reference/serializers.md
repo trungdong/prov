@@ -67,11 +67,16 @@ document. When the source starts with `{` or `document` and the reader that name
 it with a `ProvSerializationError`, that error is the `__cause__`. Otherwise it has no
 cause.
 
-Input that is not well-formed in the underlying syntax raises the parsing library's own
-error, outside the tree: `json.JSONDecodeError` for the two JSON formats, `lxml`'s
-`XMLSyntaxError`, and rdflib's parser error for the chosen `rdf_format`, `BadSyntax` for
-TriG and Turtle. An unsupported value for the `profile` or `context` option raises
-`ValueError`, and an option name that {py:func}`prov.read` does not accept for the format raises `TypeError`.
+With an explicit `format`, input that is not well-formed in the underlying syntax raises the
+parsing library's own error, outside the tree: `json.JSONDecodeError` for the two JSON
+formats, `lxml`'s `XMLSyntaxError`, and rdflib's parser error for the chosen `rdf_format`,
+`BadSyntax` for TriG and Turtle. Also with an explicit `format`, {py:func}`prov.read` raises
+`ValueError` for an unsupported `profile` and `TypeError` for an option name that the
+format's reader does not accept. `serialize` raises `ValueError` for an unsupported
+`context`, a PROV-JSONLD write option, and the two JSON writers raise `TypeError` for a
+keyword that `json.JSONEncoder` does not accept. Without a `format`, {py:func}`prov.read`
+passes an option only to the readers that declare it, so an undeclared name has no effect,
+and an unsupported `profile` ends in `ProvFormatNotDetected`.
 
 ```{eval-rst}
 .. autoclass:: prov.serializers.ProvSerializationError
