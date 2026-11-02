@@ -19,6 +19,10 @@ Three different questions are answered here:
 import importlib
 import importlib.util
 import io
+import json
+import os
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -26,6 +30,7 @@ import pytest
 
 import prov.model
 import prov.serializers
+from prov.constants import PROV_ATTRIBUTES
 from prov.model import ProvDocument
 from prov.tests.examples import primer_example
 
@@ -354,6 +359,27 @@ def test_names_importable() -> None:
         unlisted.extend(f"{module_name}.{n}" for n in exported if n not in names)
     assert missing == [], f"Public API names missing: {missing}"
     assert unlisted == [], f"__all__ names missing from PUBLIC_API: {unlisted}"
+
+
+@pytest.mark.parametrize("seed", ["1", "2"])
+def test_attribute_constants_keep_one_order_under_every_hash_seed(seed: str) -> None:
+    code = (
+        "import json\n"
+        "from prov.constants import PROV_ID_ATTRIBUTES_MAP, PROV_RECORD_ATTRIBUTES\n"
+        "print(json.dumps([\n"
+        "    [s for _, s in PROV_RECORD_ATTRIBUTES],\n"
+        "    list(PROV_ID_ATTRIBUTES_MAP.values()),\n"
+        "]))\n"
+    )
+    child = subprocess.run(
+        [sys.executable, "-P", "-c", code],
+        env={**os.environ, "PYTHONHASHSEED": seed},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    expected = sorted(str(attr) for attr in PROV_ATTRIBUTES)
+    assert json.loads(child.stdout) == [expected, expected]
 
 
 def test_serializer_registry_formats() -> None:
