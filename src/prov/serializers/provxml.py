@@ -100,6 +100,9 @@ def _element_position(element: etree._Element, rec_id: str | None) -> str:
 class ProvXMLSerializer(Serializer):
     """PROV-XML serializer for :class:`~prov.model.ProvDocument`"""
 
+    serialize_options = frozenset({"force_types"})
+    """The :meth:`serialize` keywords the command line may name."""
+
     def serialize(
         self, stream: io.IOBase, force_types: bool = False, **kwargs: Any
     ) -> None:

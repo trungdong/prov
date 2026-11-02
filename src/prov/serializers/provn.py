@@ -18,6 +18,9 @@ class ProvNSerializer(Serializer):
 
     deserialize_options = frozenset({"profile"})
 
+    serialize_options = frozenset({"strict", "width"})
+    """The :meth:`serialize` keywords the command line may name."""
+
     def serialize(
         self,
         stream: io.IOBase,

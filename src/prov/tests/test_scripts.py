@@ -13,18 +13,24 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 """
 
 import contextlib
+import inspect
 import io
+import re
 import shutil
+import subprocess  # nosec B404
 import sys
-from typing import NoReturn
+import warnings
+from typing import NoReturn, cast
 
 import pytest
+from pygments.util import ClassNotFound
 
 import prov
 from prov.model import ProvDocument
-from prov.scripts import _format_names, _run
+from prov.scripts import _format_names, _pair, _run, _typed
 from prov.scripts.compare import main as compare_main
 from prov.scripts.convert import (
+    _GRAPHVIZ_OPTIONS,
     GRAPHVIZ_SUPPORTED_FORMATS,
     CLIError,
     _output_format,
@@ -32,6 +38,7 @@ from prov.scripts.convert import (
     main as convert_main,
 )
 from prov.serializers import Registry
+from prov.tests.conftest import ex_document, unresolved_sentence
 from prov.tests.examples import primer_example, w3c_publication_1
 
 
@@ -79,6 +86,9 @@ STDIN_STREAMS = {
 
 EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
 TURTLE = {"rdf_format": "turtle"}
+needs_dot = pytest.mark.skipif(
+    not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
+)
 
 
 def _write(path, fmt: str, **options) -> None:
@@ -140,9 +150,7 @@ def test_convert_to_provn(infile, tmp_path, monkeypatch) -> None:
     assert outfile.read_bytes() == expected.encode()
 
 
-@pytest.mark.skipif(
-    not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
-)
+@needs_dot
 def test_convert_to_dot(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.dot"
     monkeypatch.setattr(
@@ -153,9 +161,15 @@ def test_convert_to_dot(infile, tmp_path, monkeypatch) -> None:
     assert outfile.stat().st_size > 0
 
 
-@pytest.mark.skipif(
-    not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
-)
+def test_the_graphviz_writer_options_are_prov_to_dots_keywords() -> None:
+    pytest.importorskip("pydot")
+    from prov.dot import prov_to_dot
+
+    parameters = set(inspect.signature(prov_to_dot).parameters)
+    assert parameters - {"bundle"} == _GRAPHVIZ_OPTIONS
+
+
+@needs_dot
 def test_convert_to_rendered_graphviz_format(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.svg"
     monkeypatch.setattr(
@@ -469,6 +483,17 @@ def test_convert_detection_errors_exit_2_with_one_line(
         assert err == f"prov-convert: error: {message}\n"
 
 
+def test_convert_a_broken_document_on_stdin_exits_2_with_one_line(
+    tmp_path, capsys, monkeypatch
+) -> None:
+    data = b"document\n  entity(ex:a)\nendDocument\n"
+    monkeypatch.setattr(sys, "stdin", STDIN_STREAMS["pipe-bytes"](data))
+    assert convert_main(["-", str(tmp_path / "out.json")]) == 2
+    reason = unresolved_sentence("ex:a", "its prefix 'ex' is not declared")
+    expected = f"{NOT_DETECTED} line 2, column 10: {reason}"
+    assert capsys.readouterr().err == f"prov-convert: error: {expected}\n"
+
+
 @pytest.mark.parametrize("stream", STDIN_STREAMS)
 @pytest.mark.parametrize("fmt", ["json", "provn"])
 def test_convert_detects_a_document_on_stdin(
@@ -511,6 +536,518 @@ def test_convert_an_empty_document_on_stdin_exits_2(monkeypatch, capsys) -> None
 )
 def test_output_format_resolution(path, flag, expected) -> None:
     assert _output_format(path, flag) == expected
+
+
+# Options.
+
+# The default profile refuses it and the lenient profile skips it with a warning.
+UNKNOWN_STATEMENT = (
+    "document\nprefix ex <http://example.org/>\nentity(ex:e2)\nfoo(ex:e1)\nendDocument"
+)
+# The default profile reads the bare mentionOf and the strict profile refuses it.
+BARE_MENTION = (
+    "document\nprefix ex <http://example.org/>\nentity(ex:e1)\n"
+    "mentionOf(ex:e1, ex:e0, ex:b)\nendDocument"
+)
+# Under the default width the PROV-N writer wraps the wide statement.
+ONE_LINE = b'ex:e1, [prov:label="Report", ex:note='
+
+
+def _options_document() -> ProvDocument:
+    """A document on which every writer option changes the output."""
+    doc = ex_document()
+    doc.entity("ex:e1", {"prov:label": "Report", "ex:note": "x" * 80})
+    doc.entity("ex:e2")
+    doc.alternateOf("ex:e1", "ex:e2").add_attributes({"ex:why": "x"})
+    return doc
+
+
+def _written(doc: ProvDocument, fmt: str, **options) -> bytes:
+    """The bytes the library writes for ``doc`` with ``options``."""
+    if fmt == "dot":
+        from prov.dot import prov_to_dot
+
+        return cast(bytes, prov_to_dot(doc, **options).create(format="dot"))
+    buffer = io.BytesIO()
+    doc.serialize(buffer, format=fmt, **options)
+    return buffer.getvalue()
+
+
+def _no_option(role: str, fmt: str, name: str, accepted: str) -> str:
+    """The sentence for a ``fmt`` ``role`` (``writer`` or ``reader``) given option ``name``."""
+    return f"the {fmt!r} {role} accepts no option {name!r}; it accepts: {accepted}"
+
+
+@pytest.fixture
+def options_infile(tmp_path):
+    path = tmp_path / "doc.json"
+    _options_document().serialize(str(path), format="json")
+    return path
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("none", None),
+        ("None", None),
+        ("NONE", None),
+        ("true", True),
+        ("TRUE", True),
+        ("False", False),
+        ("80", 80),
+        ("-1", -1),
+        ("+5", 5),
+        ("007", 7),
+        ("trig", "trig"),
+        ("", ""),
+        ("1.5", "1.5"),
+        ("1_0", "1_0"),
+        ("\u0663", "\u0663"),
+        ("5\n", "5\n"),
+        (" 5", " 5"),
+    ],
+)
+def test_option_values_are_typed(value, expected) -> None:
+    typed = _typed(value)
+    assert typed == expected
+    assert type(typed) is type(expected)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("direction=a=b", ("direction", "a=b")), ("width=", ("width", ""))],
+)
+def test_an_option_splits_at_the_first_equals(text, expected) -> None:
+    assert _pair(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("main", "flags"),
+    [
+        (convert_main, ["-w", "width"]),
+        (convert_main, ["-w", "=1"]),
+        (convert_main, ["--reader-option", "profile"]),
+        (compare_main, ["-r", "profile"]),
+        (compare_main, ["-R", "=1"]),
+    ],
+)
+def test_an_option_without_a_name_or_equals_is_a_usage_error(
+    main, flags, infile, capsys
+) -> None:
+    with pytest.raises(SystemExit) as ctx:
+        main([*flags, str(infile), str(infile)])
+    assert ctx.value.code == 2
+    assert "is not NAME=VALUE" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("flags", "fmt", "options", "shows"),
+    [
+        pytest.param(
+            ["-f", "provn", "-w", "width=none"],
+            "provn",
+            {"width": None},
+            ONE_LINE,
+            id="none",
+        ),
+        pytest.param(
+            ["-f", "provn", "-w", "width=40", "-w", "width=none"],
+            "provn",
+            {"width": None},
+            ONE_LINE,
+            id="last-wins",
+        ),
+        pytest.param(
+            ["-f", "provn", "-w", "strict=true"],
+            "provn",
+            {"strict": True},
+            b"",
+            id="strict",
+        ),
+        pytest.param(
+            ["-f", "json", "-w", "indent=2"], "json", {"indent": 2}, b"", id="json"
+        ),
+        pytest.param(
+            ["-f", "jsonld", "-w", "context=embed"],
+            "jsonld",
+            {"context": "embed"},
+            b"",
+            id="jsonld",
+        ),
+        pytest.param(
+            ["-f", "xml", "-w", "force_types=true"],
+            "xml",
+            {"force_types": True},
+            b"",
+            id="xml",
+        ),
+        pytest.param(
+            ["-f", "dot", "-w", "use_labels=true"],
+            "dot",
+            {"use_labels": True},
+            b"",
+            id="dot",
+            marks=needs_dot,
+        ),
+    ],
+)
+def test_writer_options_reach_the_writer(
+    options_infile, tmp_path, flags, fmt, options, shows
+) -> None:
+    if fmt in EXTRAS:
+        pytest.importorskip(EXTRAS[fmt])
+    target = tmp_path / "out.dat"
+    doc = _read_back(options_infile, "json")
+    with warnings.catch_warnings():
+        # The strict profile warns for each statement it drops.
+        warnings.simplefilter("ignore")
+        assert convert_main([*flags, str(options_infile), str(target)]) == 0
+        written = target.read_bytes()
+        assert written == _written(doc, fmt, **options)
+        # The option changes the output, so the row pins more than the default.
+        assert written != _written(doc, fmt)
+    assert shows in written
+
+
+def test_rdf_format_names_the_turtle_writer_and_reader(tmp_path) -> None:
+    pytest.importorskip("rdflib")
+    source = tmp_path / "doc.json"
+    turtle = tmp_path / "out.dat"
+    back = tmp_path / "back.json"
+    _write(source, "json")
+    flags = ["-f", "rdf", "-w", "rdf_format=turtle"]
+    assert convert_main([*flags, str(source), str(turtle)]) == 0
+    assert _read_back(turtle, "rdf", **TURTLE) == primer_example()
+    # The extension is unknown, so -i names the format and -r its syntax. The
+    # default RDF reader refuses RDF/XML, so only the option makes it read.
+    xml = tmp_path / "doc.dat"
+    _write(xml, "rdf", rdf_format="xml")
+    flags = ["-i", "rdf", str(xml), str(back)]
+    assert convert_main(flags) == 2
+    assert convert_main(["-r", "rdf_format=xml", *flags]) == 0
+    assert _read_back(back, "json") == primer_example()
+
+
+@pytest.mark.parametrize(
+    ("text", "profile", "plain_code", "code", "errors"),
+    [(BARE_MENTION, "strict", 0, 2, 1), (UNKNOWN_STATEMENT, "lenient", 2, 0, 0)],
+    ids=["strict", "lenient"],
+)
+def test_reader_options_reach_the_reader(
+    tmp_path, capsys, text, profile, plain_code, code, errors
+) -> None:
+    source = tmp_path / "doc.provn"
+    target = tmp_path / "out.json"
+    source.write_text(text)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # Without the option the default profile gives the other result.
+        assert convert_main([str(source), str(target)]) == plain_code
+        capsys.readouterr()
+        flags = ["-r", f"profile={profile}"]
+        assert convert_main([*flags, str(source), str(target)]) == code
+    assert capsys.readouterr().err.count("prov-convert: error: ") == errors
+
+
+@pytest.mark.parametrize(
+    ("flags", "target_name", "message", "extras"),
+    [
+        pytest.param(
+            ["-f", "provn", "-w", "wdith=1"],
+            "out.provn",
+            _no_option("writer", "provn", "wdith", "strict, width"),
+            (),
+            id="provn-writer",
+        ),
+        pytest.param(
+            ["-f", "svg", "-w", "labels=true"],
+            "out.svg",
+            _no_option(
+                "writer",
+                "svg",
+                "labels",
+                "direction, show_element_attributes, show_nary, "
+                "show_relation_attributes, use_labels",
+            ),
+            (),
+            id="graphviz-writer",
+        ),
+        pytest.param(
+            ["-w", "width=1"],
+            "out.ttl",
+            _no_option("writer", "rdf", "width", "rdf_format"),
+            ("rdflib",),
+            id="the-extensions-format",
+        ),
+        pytest.param(
+            ["-i", "json", "-r", "profile=x"],
+            "out.dat",
+            _no_option("reader", "json", "profile", "none"),
+            (),
+            id="json-reader",
+        ),
+        pytest.param(
+            ["-i", "json", "-r", "object_hook=x"],
+            "out.dat",
+            _no_option("reader", "json", "object_hook", "none"),
+            (),
+            id="json-callable",
+        ),
+        pytest.param(
+            ["-i", "rdf", "-r", "relation_mapper=x"],
+            "out.dat",
+            _no_option("reader", "rdf", "relation_mapper", "rdf_format"),
+            ("rdflib",),
+            id="rdf-mapper",
+        ),
+        pytest.param(
+            ["-f", "bogus", "-w", "x=1"],
+            "out.dat",
+            'No serializer available for the format "bogus"',
+            (),
+            id="unknown-format",
+        ),
+        pytest.param(
+            ["-i", "xml", "-r", "profile=x"],
+            "out.dat",
+            _no_option("reader", "xml", "profile", "none"),
+            ("lxml",),
+            id="xml-reader",
+        ),
+    ],
+)
+def test_an_undeclared_option_exits_2_before_the_output_is_opened(
+    infile, tmp_path, capsys, flags, target_name, message, extras
+) -> None:
+    for extra in extras:
+        pytest.importorskip(extra)
+    target = tmp_path / target_name
+    target.write_bytes(b"keep")
+    assert convert_main([*flags, str(infile), str(target)]) == 2
+    assert capsys.readouterr().err == f"prov-convert: error: {message}\n"
+    assert target.read_bytes() == b"keep"
+
+
+@pytest.mark.parametrize(
+    ("name", "code", "stderr"),
+    [
+        ("profile", 0, ""),
+        (
+            "porfile",
+            2,
+            "prov-convert: error: "
+            + _no_option("reader", "auto", "porfile", "profile, rdf_format")
+            + "\n",
+        ),
+    ],
+    ids=["member", "typo"],
+)
+def test_a_reader_option_is_checked_against_every_reader_under_detection(
+    monkeypatch, capsys, name, code, stderr
+) -> None:
+    pytest.importorskip("rdflib")
+    monkeypatch.setattr(
+        sys, "stdin", STDIN_STREAMS["pipe-bytes"](UNKNOWN_STATEMENT.encode())
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert convert_main(["-r", f"{name}=lenient"]) == code
+    assert capsys.readouterr().err == stderr
+
+
+# Colour.
+
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _converted(infile, monkeypatch, flags, *, outfile=None, tty=False, env=None) -> str:
+    """Run ``prov-convert`` and return what it wrote to ``outfile`` or standard output.
+
+    Standard output reports ``tty`` from ``isatty``, and ``NO_COLOR`` and
+    ``TERM`` are ``env``'s, else unset.
+    """
+    for name in ("NO_COLOR", "TERM"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in (env or {}).items():
+        monkeypatch.setenv(name, value)
+    stdout = io.TextIOWrapper(io.BytesIO())
+    monkeypatch.setattr(stdout, "isatty", lambda: tty)
+    monkeypatch.setattr(sys, "stdout", stdout)
+    paths = [str(infile)] if outfile is None else [str(infile), str(outfile)]
+    assert convert_main([*flags, *paths]) == 0
+    if outfile is not None:
+        return outfile.read_bytes().decode("utf-8")
+    return cast(io.BytesIO, stdout.buffer).getvalue().decode("utf-8")
+
+
+def run_isolated(code: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # nosec B603 - nosemgrep
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=False
+    )
+
+
+@pytest.mark.parametrize(
+    ("flags", "name", "coloured"),
+    [
+        pytest.param(["-f", "provn"], "out.dat", True, id="provn"),
+        pytest.param(["-f", "json"], "out.dat", True, id="json"),
+        pytest.param(["-f", "jsonld"], "out.dat", True, id="jsonld"),
+        pytest.param(["-f", "xml"], "out.dat", True, id="xml"),
+        pytest.param(["-f", "dot"], "out.dat", True, id="dot", marks=needs_dot),
+        pytest.param(["-f", "rdf"], "out.dat", False, id="rdf-trig"),
+        pytest.param(
+            ["-f", "rdf", "-w", "rdf_format=turtle"], "out.dat", True, id="rdf-turtle"
+        ),
+        pytest.param([], "out.ttl", True, id="ttl-extension"),
+        pytest.param([], "out.trig", False, id="trig-extension"),
+        pytest.param(
+            ["-f", "svg", "-w", "use_labels=true"],
+            "out.dat",
+            False,
+            id="svg",
+            marks=needs_dot,
+        ),
+    ],
+)
+def test_color_always_colours_a_format_that_has_a_lexer(
+    infile, tmp_path, monkeypatch, flags, name, coloured
+) -> None:
+    always = _converted(
+        infile, monkeypatch, ["--color", "always", *flags], outfile=tmp_path / name
+    )
+    assert ("\x1b[" in always) is coloured
+
+
+@pytest.mark.parametrize(
+    "fmt", ["provn", "json", "jsonld", "xml", pytest.param("dot", marks=needs_dot)]
+)
+def test_color_only_adds_escape_sequences(infile, tmp_path, monkeypatch, fmt) -> None:
+    # RDF is left out because its blank nodes differ between two runs.
+    outputs = [
+        _converted(
+            infile,
+            monkeypatch,
+            ["--color", choice, "-f", fmt],
+            outfile=tmp_path / choice,
+        )
+        for choice in ("always", "never")
+    ]
+    always, never = outputs
+    assert ANSI.sub("", always) == never
+
+
+def test_color_writes_plain_when_the_output_holds_a_carriage_return(
+    tmp_path, monkeypatch
+) -> None:
+    # Pygments turns a carriage return into a line feed.
+    doc = ex_document()
+    doc.entity("ex:e1", {"prov:label": "line1\r\nline2\rx"})
+    source = tmp_path / "doc.json"
+    doc.serialize(str(source), format="json")
+    flags = ["-f", "provn"]
+    always = _converted(
+        source, monkeypatch, ["--color", "always", *flags], outfile=tmp_path / "a.dat"
+    )
+    assert "\r" in always
+    assert "\x1b[" not in always
+
+
+def test_color_always_writes_text_to_a_text_only_stream(infile, monkeypatch) -> None:
+    texts = []
+    for choice in ("never", "always"):
+        stdout = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", stdout)
+        flags = ["--color", choice, "-f", "provn", str(infile)]
+        assert convert_main(flags) == 0
+        texts.append(stdout.getvalue())
+    never, always = texts
+    assert "\x1b[" in always
+    assert ANSI.sub("", always) == never
+
+
+@pytest.mark.parametrize("error", [ClassNotFound, ImportError])
+def test_color_writes_plain_when_the_lexer_cannot_be_fetched(
+    infile, tmp_path, monkeypatch, capsys, error
+) -> None:
+    def fetch(*args, **kwargs) -> NoReturn:
+        raise error("no lexer")
+
+    monkeypatch.setattr("pygments.lexers.get_lexer_by_name", fetch)
+    flags = ["-f", "provn"]
+    always = _converted(
+        infile, monkeypatch, ["--color", "always", *flags], outfile=tmp_path / "a.dat"
+    )
+    never = _converted(
+        infile, monkeypatch, ["--color", "never", *flags], outfile=tmp_path / "n.dat"
+    )
+    assert always == never
+    assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize(
+    ("choice", "tty", "env", "to_file", "coloured"),
+    [
+        pytest.param("auto", True, {}, False, True, id="terminal"),
+        pytest.param("auto", True, {"NO_COLOR": ""}, False, True, id="empty-no-color"),
+        pytest.param("auto", True, {"NO_COLOR": "1"}, False, False, id="no-color"),
+        pytest.param("auto", True, {"TERM": "dumb"}, False, False, id="dumb"),
+        pytest.param("auto", True, {}, True, False, id="output-file"),
+        pytest.param("auto", False, {}, False, False, id="pipe"),
+        pytest.param("never", True, {}, False, False, id="never"),
+        pytest.param("always", False, {"NO_COLOR": "1"}, False, True, id="always"),
+    ],
+)
+def test_color_follows_the_flag_the_output_and_the_environment(
+    infile, tmp_path, monkeypatch, choice, tty, env, to_file, coloured
+) -> None:
+    text = _converted(
+        infile,
+        monkeypatch,
+        ["--color", choice, "-f", "provn"],
+        outfile=tmp_path / "out.dat" if to_file else None,
+        tty=tty,
+        env=env,
+    )
+    assert text.startswith(("document", "\x1b["))
+    assert ("\x1b[" in text) is coloured
+
+
+@pytest.mark.parametrize(
+    ("choice", "code", "prefix", "stderr"),
+    [
+        pytest.param(
+            "always",
+            2,
+            "",
+            'prov-convert: error: --color=always needs the optional "pygments" extra; '
+            'install "prov[pygments]"\n',
+            id="always",
+        ),
+        pytest.param("auto", 0, "document", "", id="auto"),
+    ],
+)
+def test_color_without_pygments(infile, choice, code, prefix, stderr) -> None:
+    # The child is on a terminal with Pygments unimportable. Standard output
+    # stays empty under "always" and plain under "auto"; the exit status is
+    # main()'s return value.
+    result = run_isolated(
+        "import io, os, sys\n"
+        "sys.modules['pygments'] = None\n"
+        "os.environ.pop('NO_COLOR', None)\n"
+        "os.environ['TERM'] = 'xterm'\n"
+        "from prov.scripts.convert import main\n"
+        "out = io.TextIOWrapper(io.BytesIO())\n"
+        "out.isatty = lambda: True\n"
+        "sys.stdout = out\n"
+        f"rc = main(['--color', {choice!r}, '-f', 'provn', {str(infile)!r}])\n"
+        "sys.__stdout__.write(out.buffer.getvalue().decode())\n"
+        "sys.exit(rc)\n"
+    )
+    assert result.returncode == code
+    assert result.stderr == stderr
+    assert bool(result.stdout) == bool(prefix)
+    assert result.stdout.startswith(prefix)
+    assert "\x1b" not in result.stdout
 
 
 # prov-compare.
@@ -670,6 +1207,37 @@ def test_compare_a_flag_replaces_the_extension(provn_and_xml, capsys) -> None:
     assert capsys.readouterr().err.startswith("prov-compare: error: ")
 
 
+def test_compare_passes_each_file_its_own_reader_options(tmp_path, capsys) -> None:
+    pytest.importorskip("rdflib")
+    provn_file = tmp_path / "a.provn"
+    xml_file = tmp_path / "b.dat"
+    provn_file.write_text(UNKNOWN_STATEMENT)
+    files = [str(provn_file), str(xml_file)]
+    flags = ["-r", "profile=lenient", "-F", "rdf", "-R", "rdf_format=xml"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # The same document as the lenient PROV-N reading, as RDF/XML.
+        lenient = ProvDocument.deserialize(
+            content=UNKNOWN_STATEMENT, format="provn", profile="lenient"
+        )
+        lenient.serialize(str(xml_file), format="rdf", rdf_format="xml")
+        assert compare_main([*flags, *files]) == 0
+        # Dropping either option, or giving it to the other file, fails.
+        assert compare_main([*flags[2:], *files]) == 2
+        assert compare_main([*flags[:2], "-F", "rdf", *files]) == 2
+        swapped = ["-R", "profile=lenient", "-F", "rdf", "-r", "rdf_format=xml"]
+        assert compare_main([*swapped, *files]) == 2
+    capsys.readouterr()
+    # Each name is checked against its own file's format.
+    assert compare_main(["-F", "rdf", "-R", "porfile=x", *files]) == 2
+    sentence = _no_option("reader", "rdf", "porfile", "rdf_format")
+    assert capsys.readouterr().err == f"prov-compare: error: {sentence}\n"
+    assert compare_main(["-r", "rdf_format=x", "-F", "rdf", *files]) == 2
+    assert (
+        "the 'provn' reader accepts no option 'rdf_format'" in capsys.readouterr().err
+    )
+
+
 # Both tools.
 
 
@@ -688,8 +1256,22 @@ def test_version_prints_the_package_version(main, prog, flag, monkeypatch) -> No
     assert stdout.getvalue() == f"{prog} {prov.__version__}\n"
 
 
-@pytest.mark.parametrize("main", [convert_main, compare_main])
-def test_help_is_one_description_with_examples(main) -> None:
+# Each entry is followed by the next flag, which ends it.
+READER_NAMES = "accepted names: provn: profile; rdf: rdf_format"
+WRITER_NAMES = (
+    "accepted names: json: ensure_ascii, indent, sort_keys; "
+    "jsonld: context, ensure_ascii, indent, sort_keys; provn: strict, width; "
+    "rdf: rdf_format; xml: force_types; Graphviz formats: direction, "
+    "show_element_attributes, show_nary, show_relation_attributes, use_labels"
+)
+
+
+@pytest.mark.parametrize(
+    ("main", "entries"),
+    [(convert_main, [WRITER_NAMES, READER_NAMES]), (compare_main, [READER_NAMES])],
+    ids=["convert", "compare"],
+)
+def test_help_is_one_description_with_examples(main, entries) -> None:
     # --help formats usage to sys.stdout, which may have no .buffer attribute
     # (e.g. under contextlib.redirect_stdout(io.StringIO())).
     buf = io.StringIO()
@@ -701,8 +1283,11 @@ def test_help_is_one_description_with_examples(main) -> None:
     assert "Copyright" not in out
     assert "USAGE" not in out
     assert "examples:" in out
-    assert _format_names() in " ".join(out.split())
+    flat = " ".join(out.split())
+    assert _format_names() in flat
     assert ("Graphviz" in out) == (main is convert_main)
+    for entry in entries:
+        assert f"{entry} -" in flat
 
 
 def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:

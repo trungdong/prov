@@ -14,7 +14,8 @@ or render it as any image format Graphviz supports.
 ### Synopsis
 
 ```bash
-prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-V] [infile] [outfile]
+prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE]
+             [--color {auto,always,never}] [-V] [infile] [outfile]
 ```
 
 ### Options
@@ -23,12 +24,39 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-V] [infile] [outfile]
 | --- | --- | --- | --- |
 | `-i`, `--input-format` | `INPUT_FORMAT` | `auto` | Input format: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-f`, `--format` | `FORMAT` | `auto` | Output format: `auto`, `json`, `xml`, `rdf`, `jsonld`, `provn`, or any Graphviz output format such as `svg`, `pdf` or `png` |
+| `-w`, `--writer-option` | `NAME=VALUE` | | Pass an option to the writer. Repeatable; the last of a repeated name wins |
+| `-r`, `--reader-option` | `NAME=VALUE` | | Pass an option to the reader. Repeatable; the last of a repeated name wins |
+| `--color` | `auto`, `always` or `never` | `auto` | Colour the output with Pygments. `auto` colours standard output on a terminal; `always` colours a file or pipe too; `never` writes plain text |
 | `-V`, `--version` | | | Print the program name and version, such as `prov-convert 3.3.0`, and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `infile` | | stdin | Input file, read in `--input-format` |
 | `outfile` | | stdout | Output file, written in `--format` |
 
 Image formats need the `dot` extra and a local Graphviz install. See {doc}`graphics`.
+
+Colour needs the `pygments` extra. Under `auto`, `prov-convert` colours the output when no
+output file is named, standard output is a terminal, `NO_COLOR` is unset or empty, `TERM` is
+not `dumb` and Pygments imports. `--color always` without Pygments is an error. The formats
+with a lexer are `provn`, `json`, `jsonld`, `xml`, `dot` and `rdf` written as `turtle`,
+`xml` or `json-ld`; every other format, including the default TriG, is written plain.
+
+Each `-w` or `-r` value is typed by one rule. `none` (any case) is `None`, `true` and
+`false` (any case) are booleans, an optionally signed run of digits is an integer, and
+anything else is a string. The value is everything after the first `=`. Each format accepts
+only the names below, and any other name is an error that lists the accepted ones.
+
+| Format | `-w` writer options | `-r` reader options |
+| --- | --- | --- |
+| `provn` | `strict`, `width` | `profile` |
+| `json` | `indent`, `sort_keys`, `ensure_ascii` | none |
+| `jsonld` | `context`, `indent`, `sort_keys`, `ensure_ascii` | none |
+| `rdf` | `rdf_format` | `rdf_format` |
+| `xml` | `force_types` | none |
+| Graphviz formats | `show_nary`, `use_labels`, `direction`, `show_element_attributes`, `show_relation_attributes` | |
+
+Only `profile` (PROV-N) and `rdf_format` (RDF) are reachable with `-r`. The JSON readers
+take Python callables and the RDF reader's two mappers take dictionaries, which a command-line
+string cannot supply, so the command line does not accept those names.
 
 ### Examples
 
@@ -48,6 +76,33 @@ Convert a PROV-JSON file to an SVG diagram:
 
 ```bash
 prov-convert -f svg document.json document.svg
+```
+
+Write PROV-N with every statement on one line, as 3.2.3 did:
+
+```bash
+prov-convert -f provn -w width=none document.json document.provn
+```
+
+Write the strict PROV-N profile, or indent PROV-JSON:
+
+```bash
+prov-convert -f provn -w strict=true document.json document.provn
+prov-convert -f json -w indent=2 document.json pretty.json
+```
+
+Read PROV-N leniently, and draw an SVG diagram with labels:
+
+```bash
+prov-convert -i provn -r profile=lenient document.provn document.json
+prov-convert -f svg -w use_labels=true document.json document.svg
+```
+
+Page coloured PROV-N, or write Turtle with colour to a terminal:
+
+```bash
+prov-convert --color always -f provn document.json | less -R
+prov-convert -f rdf -w rdf_format=turtle document.json
 ```
 
 Read from stdin and write PROV-JSON to stdout. The default, `auto`, takes a file's format
@@ -80,7 +135,8 @@ in any registered format.
 ### Synopsis
 
 ```bash
-prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] file1 file2
+prov-compare [-h] [-f FORMAT1] [-r NAME=VALUE] [-F FORMAT2] [-R NAME=VALUE] [-V]
+             file1 file2
 ```
 
 ### Options
@@ -89,6 +145,8 @@ prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] file1 file2
 | --- | --- | --- | --- |
 | `-f`, `--format1` | `FORMAT1` | `auto` | Format of `file1`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-F`, `--format2` | `FORMAT2` | `auto` | Format of `file2`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
+| `-r`, `--reader-option1` | `NAME=VALUE` | | Pass an option to the reader of `file1`. Repeatable, typed as for `prov-convert -r` |
+| `-R`, `--reader-option2` | `NAME=VALUE` | | Pass an option to the reader of `file2`. Repeatable, typed as for `prov-convert -r` |
 | `-V`, `--version` | | | Print the program name and version, such as `prov-compare 3.3.0`, and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `file1`, `file2` | | | The two files to compare; `-` reads one of them from standard input |
@@ -105,6 +163,12 @@ Compare a PROV-JSON file against a PROV-XML file:
 
 ```bash
 prov-compare -f json -F xml document.json document.xml
+```
+
+Compare a lenient PROV-N file against a Turtle file:
+
+```bash
+prov-compare -r profile=lenient -R rdf_format=turtle document.provn document.ttl
 ```
 
 ### Exit codes

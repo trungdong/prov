@@ -1,6 +1,7 @@
 """Exercises prov.read(), the documented convenience entry point that wraps
 ProvDocument.deserialize() with lazy format auto-detection."""
 
+import inspect
 import io
 import json
 import locale
@@ -445,14 +446,40 @@ def test_unknown_option_for_an_explicit_format_is_a_clear_type_error(document) -
 
 
 def test_declared_options_per_serializer() -> None:
-    from prov.serializers import Registry
+    from prov.serializers import Registry, Serializer
 
     Registry.load_serializers()
+    assert Serializer.serialize_options == frozenset()
     assert Registry.serializers["provn"].deserialize_options == frozenset({"profile"})
     assert "parse_float" in Registry.serializers["json"].deserialize_options
     assert "parse_float" in Registry.serializers["jsonld"].deserialize_options
     if "rdf" in Registry.serializers:
         assert "rdf_format" in Registry.serializers["rdf"].deserialize_options
+
+
+_SERIALIZE_OPTIONS = [
+    ("provn", {"strict", "width"}),
+    ("rdf", {"rdf_format"}),
+    ("xml", {"force_types"}),
+    ("json", {"indent", "sort_keys", "ensure_ascii"}),
+    ("jsonld", {"context", "indent", "sort_keys", "ensure_ascii"}),
+]
+
+
+@pytest.mark.parametrize(("fmt", "expected"), _SERIALIZE_OPTIONS)
+def test_serialize_options_per_serializer(fmt: str, expected: set[str]) -> None:
+    from prov.serializers import Registry
+
+    Registry.load_serializers()
+    if fmt not in Registry.serializers:
+        pytest.skip(f"the {fmt} serializer is not registered")
+    cls = Registry.serializers[fmt]
+    assert cls.serialize_options == frozenset(expected)
+    accepted = set(inspect.signature(cls.serialize).parameters)
+    if fmt in ("json", "jsonld"):
+        # These pass their remaining keywords to json.dump.
+        accepted |= set(inspect.signature(json.dump).parameters)
+    assert cls.serialize_options <= accepted
 
 
 def test_read_forwards_json_load_options() -> None:

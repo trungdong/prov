@@ -840,25 +840,32 @@ class ProvJSONLDSerializer(Serializer):
     ``object_hook`` and ``object_pairs_hook`` receive each object after the
     check for repeated keys."""
 
-    def serialize(self, stream: io.IOBase, **args: Any) -> None:
-        """Serialize ``self.document`` to `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_.
+    serialize_options = frozenset({"context", "indent", "sort_keys", "ensure_ascii"})
+    """The :meth:`serialize` and :func:`json.dump` keywords the command line may
+    name."""
+
+    def serialize(self, stream: io.IOBase, context: str = "url", **args: Any) -> None:
+        """Serialize ``self.document`` to PROV-JSONLD.
+
+        The output follows the `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_
+        submission.
 
         Args:
             stream: Stream to write the output to. Text streams receive the
                 JSON text directly; other (binary) streams receive it
                 UTF-8-encoded.
-            **args: ``context`` (``"url"`` (default) or ``"embed"``) selects
-                whether ``@context`` references the canonical context by URL
-                or inlines the vendored context object; any other value
-                raises :class:`ValueError`. Remaining keyword arguments are
-                passed through to :func:`json.dump`.
+            context: ``"url"`` (default) or ``"embed"``. Selects whether
+                ``@context`` references the canonical context by URL or
+                inlines the vendored context object; any other value raises
+                :class:`ValueError`.
+            **args: Extra keyword arguments passed through to
+                :func:`json.dump`.
 
         Raises:
             ValueError: If ``context`` is neither ``"url"`` nor ``"embed"``.
             ProvJSONLDException: If ``self.document`` is ``None``, or if the
                 document contains a :class:`~prov.model.ProvMention` record.
         """
-        context = args.pop("context", "url")
         if context not in ("url", "embed"):
             raise ValueError(f'context must be "url" or "embed"; got {context!r}')
         if self.document is None:

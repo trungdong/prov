@@ -490,6 +490,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `prov-convert` and `prov-compare` detect formats by default. They read the input from its
   extension or else its content, and `prov-convert` writes the output by its extension or
   else as PROV-JSON ([#737](https://github.com/trungdong/prov/issues/737))
+- `prov-convert -w` and `-r`, and `prov-compare -r` and `-R`, pass `NAME=VALUE` options to
+  a format's writer or reader. An unknown name exits 2 and lists the names that format
+  accepts ([#667](https://github.com/trungdong/prov/issues/667))
+- `prov-convert --color` highlights the output with Pygments, on a terminal by default,
+  and `--color always` also colours a file or pipe. It needs the `pygments` extra
+  ([#684](https://github.com/trungdong/prov/issues/684))
 
 ### Fixes
 

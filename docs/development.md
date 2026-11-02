@@ -33,7 +33,9 @@ The PROV-N reader and writer set the pattern for any new serializer.
   production. Tests are one case per token class or production and one per boundary, named
   for the scenario they pin.
 - A serializer declares the keyword arguments its `deserialize()` accepts in
-  `deserialize_options`; `prov.read()` forwards only those.
+  `deserialize_options`; `prov.read()` forwards only those. Each serializer also declares the
+  writer keywords the command line may name in `serialize_options`, and the CLI checks
+  `-w` names against it.
 
 ## Tests
 

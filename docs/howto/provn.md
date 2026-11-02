@@ -29,6 +29,12 @@ one_line = document.get_provn(width=None)
 wider = document.serialize(format="provn", width=100)
 ```
 
+`prov-convert` takes the same options with `-w`. This command writes one line per statement:
+
+```bash
+prov-convert -f provn -w width=none document.json document.provn
+```
+
 ## Serialize to a file
 
 `format="provn"` goes through the same {py:meth}`~prov.model.ProvDocument.serialize` API
