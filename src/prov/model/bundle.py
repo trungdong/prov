@@ -116,6 +116,7 @@ from prov.model.records import (
 )
 
 _PROVN_IRI_FORBIDDEN = re.compile(r'[<>"{}|^`\\\x00-\x20]')
+_DUPLICATE_BUNDLE = "A bundle with that identifier already exists"
 
 
 def _check_provn_iri(namespace: Namespace) -> None:
@@ -2088,13 +2089,18 @@ class ProvDocument(ProvBundle):
         if not identifier:
             raise ProvException("The provided bundle has no identifier")
 
+        # A QualifiedName is checked by IRI before anything is linked, so a
+        # refusal never registers its namespace on the bundle
+        if isinstance(identifier, QualifiedName) and identifier in self._bundles:
+            raise ProvException(_DUPLICATE_BUNDLE)
+
         # Link the bundle namespace manager to the document's; a refused
         # bundle gets its previous parent back
         bundle._namespaces.parent = self._namespaces
         try:
             valid_id = bundle.mandatory_valid_qname(identifier)
             if valid_id in self._bundles:
-                raise ProvException("A bundle with that identifier already exists")
+                raise ProvException(_DUPLICATE_BUNDLE)
         except ProvException:
             bundle._namespaces.parent = previous
             raise

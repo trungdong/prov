@@ -618,6 +618,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `prov_to_dot()` and `plot()` with `use_labels=True` draw an element that has no
   `prov:label` with its identifier once, where 3.2.3 drew the identifier twice, as the
   node text and again beneath it ([#695](https://github.com/trungdong/prov/issues/695))
+- A refused `ProvDocument.add_bundle()` leaves the bundle's document link, identifier and
+  namespaces as they were, where 3.2.3 linked the bundle, set its identifier and could
+  register the identifier's namespace ([#726](https://github.com/trungdong/prov/issues/726))
 
 ### Project
 

@@ -23,7 +23,7 @@ from prov.model import (
 
 from . import examples
 from .attribute_values import document as attribute_values_document
-from .conftest import Roundtrip, default_namespace, ex_document
+from .conftest import EX_URI, Roundtrip, default_namespace, ex_document
 from .test_provn_corpus import (
     CORPUS,
     EXCLUDED_PROVTOOLBOX_DOCUMENTS,
@@ -269,12 +269,13 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
         (False, "zz:x", ProvExceptionInvalidQualifiedName, None),
         (False, "ex:a", ProvException, "already exists"),
         (True, "ex:a", ProvException, "already exists"),
+        (False, Namespace("alt", EX_URI)["a"], ProvException, "already exists"),
     ],
-    ids=["unresolvable", "collision", "own document"],
+    ids=["unresolvable", "collision", "own document", "collision by IRI"],
 )
 def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
     own: bool,
-    failing: str,
+    failing: str | QualifiedName,
     error: type[ProvException],
     match: str | None,
 ) -> None:
@@ -283,6 +284,8 @@ def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
     held = d1.bundle("ex:a")
     bundle = held if own else ProvBundle()
     bundles = list(d1.bundles)
+    bundle_namespaces = list(bundle.get_registered_namespaces())
+    document_namespaces = list(d1.get_registered_namespaces())
 
     with pytest.raises(error, match=match):
         d1.add_bundle(bundle, failing)
@@ -290,10 +293,39 @@ def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
     assert bundle._namespaces.parent is (d1._namespaces if own else None)
     assert bundle.identifier == (d1.valid_qualified_name("ex:a") if own else None)
     assert list(d1.bundles) == bundles
+    assert list(bundle.get_registered_namespaces()) == bundle_namespaces
+    assert list(d1.get_registered_namespaces()) == document_namespaces
     if not own:
         d2.add_bundle(bundle, "ex:b")
         assert bundle._namespaces.parent is d2._namespaces
         assert list(d2.bundles) == [bundle]
+
+
+@pytest.mark.parametrize(
+    ("declared", "identifier", "name", "on_bundle"),
+    [
+        ("", Namespace("zz", "http://zz.example/")["b"], "zz:b", ["zz"]),
+        ("bb", "bb:x", "bb:x", ["bb"]),
+    ],
+    ids=["foreign QualifiedName", "prefix only the bundle declares"],
+)
+def test_an_added_bundle_registers_its_identifier_namespace_on_the_bundle_only(
+    declared: str,
+    identifier: str | QualifiedName,
+    name: str,
+    on_bundle: list[str],
+) -> None:
+    document = ex_document()
+    bundle = ProvBundle()
+    if declared:
+        bundle.add_namespace(declared, f"http://{declared}.example/")
+    document_namespaces = list(document.get_registered_namespaces())
+
+    document.add_bundle(bundle, identifier)
+
+    assert str(bundle.identifier) == name
+    assert [n.prefix for n in bundle.get_registered_namespaces()] == on_bundle
+    assert list(document.get_registered_namespaces()) == document_namespaces
 
 
 def test_update_into_a_document_without_a_default_is_rejected() -> None:
