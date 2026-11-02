@@ -57,9 +57,10 @@ The [tutorial](https://prov.readthedocs.io/en/latest/tutorial/getting-started.ht
   [PROV-XML](https://www.w3.org/TR/prov-xml/) and [PROV-O](https://www.w3.org/TR/prov-o/) (RDF).
 - Export to graphical formats such as PDF, PNG and SVG through Graphviz.
 - Conversion to and from a [NetworkX](https://networkx.org/) `MultiDiGraph`.
+- PROV-N syntax highlighting through a Pygments lexer, with the `pygments` extra.
 - Command-line tools, `prov-convert` and `prov-compare`.
 
-Over 7,000 public repositories on GitHub
+Public repositories on GitHub
 [depend on this package](https://github.com/trungdong/prov/network/dependents).
 [What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html) summarises the 3.x
 line, and the [announcement post](https://trungdong.github.io/provpy-3.html) explains the move.

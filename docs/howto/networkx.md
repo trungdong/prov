@@ -12,7 +12,9 @@ python -m pip install "prov[graph]"
 
 {py:func}`~prov.graph.prov_to_graph` returns one node per element (entity, activity or
 agent) and one edge per relation. It flattens the document, so the records inside bundles
-are included, then unifies it, so records that share an identifier become one node:
+are included, then unifies it, so records that share an identifier become one node. It
+raises {py:class}`~prov.model.ProvUnificationError` when such records disagree, and
+{ref}`equality` defines when two attribute values are the same:
 
 ```python
 import prov.model as pm

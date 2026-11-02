@@ -44,7 +44,7 @@ can refer to a record either by the object (`e2`, `a1`) or by its identifier str
 ```python
 a1 = document.activity("a1", "2024-07-09T16:39:38", None, {pm.PROV_TYPE: "edit"})
 
-# Pass extra attributes with the ``other_attributes`` keyword.
+# Pass extra attributes with the other_attributes keyword.
 document.wasGeneratedBy(e2, a1, other_attributes={"ex:fct": "save"})
 document.wasAssociatedWith("a1", "ag2", other_attributes={pm.PROV_ROLE: "author"})
 document.agent("ag2", {pm.PROV_TYPE: pm.PROV["Person"], "ex:name": "Bob"})
@@ -107,9 +107,8 @@ dot.write_png("article-prov.png")
 
 ```{note}
 Rendering to PNG, PDF or SVG needs a local Graphviz installation, not just the `pydot`
-package. Install it from your package manager, for example `brew install graphviz` or
-`apt install graphviz`, or from <https://graphviz.org/download/>. The {doc}`../howto/graphics`
-guide covers layout direction, labels and hiding attributes.
+package. The {doc}`../howto/graphics` guide shows how to install it and covers layout
+direction, labels and hiding attributes.
 ```
 
 ## Bundles
@@ -154,9 +153,13 @@ The bundle declares its own default namespace, so `e001` inside it is
 
 ## Where next
 
-- The how-to guides cover the other formats ({doc}`../howto/provxml`,
-  {doc}`../howto/provo-rdf`, {doc}`../howto/provn`, {doc}`../howto/provjsonld`), graphics,
-  NetworkX conversion and the command-line tools.
+- {doc}`../howto/read-write` covers strings, streams and format detection, and
+  {doc}`../howto/provjson` the default format.
+- The other formats have their own how-to guides: {doc}`../howto/provxml`,
+  {doc}`../howto/provo-rdf`, {doc}`../howto/provn` and {doc}`../howto/provjsonld`.
+- {doc}`../howto/typing` covers type checking, {doc}`../howto/graphics` drawing,
+  {doc}`../howto/networkx` NetworkX conversion and {doc}`../howto/cli` the command-line
+  tools.
 - {doc}`../reference/index` documents the full API, generated from the source.
 - {doc}`../explanation/prov-dm` explains entities, activities, agents and the relations
   between them. The W3C [PROV-DM Primer](https://www.w3.org/TR/prov-primer/) is the

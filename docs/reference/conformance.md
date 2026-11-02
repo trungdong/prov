@@ -195,6 +195,10 @@ accept the `-`, except that a `hadMember`, `alternateOf`, `specializationOf` or
 - `<prov:other>` elements and attributes the model cannot represent are skipped with a
   `ProvWarning`.
 - Names escaped as in C3 are unescaped.
+- The reader does not expand an entity declared in a `DOCTYPE`, internal or external, and
+  never touches the network, because expansion opens a document to entity-expansion and
+  file-disclosure attacks. A value written as a reference to such an entity reads as empty.
+  Predefined entities and character references, such as `&amp;` and `&#67;`, read as usual.
 
 ### PROV-JSONLD
 

@@ -70,10 +70,10 @@ The values in pairs are typed `Any`, so a checker does not examine them.
 
 ## Values prov stores as a Literal
 
-A `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview`
-value is stored as a {py:class}`~prov.model.Literal` of its XSD datatype, and
-`get_attribute()` returns that `Literal`. {doc}`prepare-for-3-3` lists the lexical forms.
-A checker reports a value of any other type, such as a `Fraction`, and `prov` raises
+A value of one of the types that the list above says `prov` stores as a
+{py:class}`~prov.model.Literal` becomes a `Literal` of its XSD datatype, and
+`get_attribute()` returns a set holding it. {ref}`python-values` lists the datatype and
+lexical form of each. A checker reports a value of any other type, such as a `Fraction`, and `prov` raises
 {py:class}`~prov.model.ProvValueError` for it at runtime. To choose the datatype yourself,
 write the `Literal`:
 

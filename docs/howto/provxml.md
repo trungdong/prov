@@ -34,8 +34,5 @@ xml_str_typed = document.serialize(format="xml", force_types=True)
 
 ## Limitations
 
-An attribute name that is not an NCName, such as one containing `:`, is escaped on write
-and unescaped on read
-({doc}`../reference/conformance`, C3). The parser does not resolve external DTD entities
-and never touches the network, so a document that relies on entity expansion reads back
-with those values empty.
+{doc}`../reference/conformance` states how the format treats attribute names that are not
+NCNames (C3) and entities declared in a `DOCTYPE` (its PROV-XML notes).
