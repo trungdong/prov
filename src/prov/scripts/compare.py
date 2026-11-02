@@ -2,20 +2,16 @@
 
 import contextlib
 import sys
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
-from typing import Any
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 import prov
 from prov.scripts import (
-    _UNTYPABLE,
+    _add_option_flag,
     _format_names,
-    _input_format,
     _open_binary,
-    _option_names,
-    _options,
-    _pair,
     _read,
     _reader_names,
+    _reader_options,
     _run,
 )
 
@@ -52,17 +48,11 @@ examples:
                 "extension, else the content; default: %(default)s"
             ),
         )
-        parser.add_argument(
-            option_flag,
-            f"--reader-option{number}",
-            action="append",
-            type=_pair,
-            metavar="NAME=VALUE",
-            help=(
-                f"pass an option to file {number}'s reader, repeatable; none, true "
-                "and false (any case) and integers are typed, anything else is a "
-                f"string; accepted names: {_option_names('deserialize_options', _UNTYPABLE)}"
-            ),
+        _add_option_flag(
+            parser,
+            (option_flag, f"--reader-option{number}"),
+            f"file {number}'s reader",
+            _reader_names,
         )
     parser.add_argument(
         "-V", "--version", action="version", version=f"%(prog)s {prov.__version__}"
@@ -70,20 +60,18 @@ examples:
     return parser
 
 
-def _source(args: Namespace, number: int) -> tuple[str, str, dict[str, Any]]:
-    """Resolve the path, input format and reader options of file ``number``."""
-    path = getattr(args, f"file{number}")
-    fmt, table = _input_format(path, getattr(args, f"format{number}"))
-    pairs = getattr(args, f"reader_option{number}") or []
-    return path, fmt, _options(pairs, "reader", fmt, _reader_names(fmt), table)
-
-
 def _compare(argv: list[str] | None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     if args.file1 == "-" and args.file2 == "-":
         parser.error("only one of file1 and file2 may be '-' (standard input)")
-    sources = [_source(args, number) for number in (1, 2)]
+    sides = [
+        (args.file1, args.format1, args.reader_option1),
+        (args.file2, args.format2, args.reader_option2),
+    ]
+    sources = [
+        (path, *_reader_options(path, flag, pairs)) for path, flag, pairs in sides
+    ]
     with contextlib.ExitStack() as streams:
         opened = [
             streams.enter_context(_open_binary(parser, path, "rb", "stdin"))

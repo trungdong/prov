@@ -112,7 +112,7 @@ def _options(
     role: str,
     fmt: str,
     declared: frozenset[str],
-    defaults: Mapping[str, Any] | None = None,
+    defaults: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Type ``pairs`` into keyword options for the ``fmt`` ``role`` (``writer`` or ``reader``).
 
@@ -127,7 +127,7 @@ def _options(
             f"the {fmt!r} {role} accepts no option {unknown[0]!r}; "
             f"it accepts: {accepted}"
         )
-    return {**(defaults or {}), **{name: _typed(value) for name, value in pairs}}
+    return {**defaults, **{name: _typed(value) for name, value in pairs}}
 
 
 _UNTYPABLE = frozenset(
@@ -160,15 +160,50 @@ def _reader_names(fmt: str) -> frozenset[str]:
     return declared - _UNTYPABLE
 
 
-def _option_names(attr: str, hidden: frozenset[str] = frozenset()) -> str:
-    """List the names each registered format declares in ``attr``, for ``--help``.
+def _option_names(names_of: Callable[[str], frozenset[str]]) -> str:
+    """List the names ``names_of`` gives each registered format, for ``--help``.
 
-    A name in ``hidden`` is left out, and so is a format that declares no other.
+    A format that gives none is left out.
     """
     return "; ".join(
         f"{fmt}: {', '.join(sorted(names))}"
-        for fmt, cls in sorted(_registered().items())
-        if (names := getattr(cls, attr) - hidden)
+        for fmt in sorted(_registered())
+        if (names := names_of(fmt))
+    )
+
+
+def _reader_options(
+    path: str, flag: str, pairs: Sequence[tuple[str, str]] | None
+) -> tuple[str, dict[str, Any]]:
+    """Resolve the input format of ``path`` and the ``-i`` ``flag`` with its reader options.
+
+    ``pairs`` are the ``NAME=VALUE`` pairs of the reader-option flag, ``None``
+    when it is absent. They are checked against the format's reader, over the
+    extension's row.
+    """
+    fmt, table = _input_format(path, flag)
+    return fmt, _options(pairs or [], "reader", fmt, _reader_names(fmt), table)
+
+
+_TYPING = "; none, true and false (any case) and integers are typed, anything else is a string"
+
+
+def _add_option_flag(
+    parser: ArgumentParser,
+    flags: tuple[str, str],
+    target: str,
+    names_of: Callable[[str], frozenset[str]],
+    typing: str = _TYPING,
+    extra: str = "",
+) -> None:
+    """Add the repeatable ``NAME=VALUE`` option flag ``flags`` for ``target`` to ``parser``.
+
+    The help ends with the names ``names_of`` gives each format, then ``extra``.
+    """
+    lead = f"pass an option to {target}, repeatable{typing}; accepted names: "
+    help_text = lead + _option_names(names_of) + extra
+    parser.add_argument(
+        *flags, action="append", type=_pair, metavar="NAME=VALUE", help=help_text
     )
 
 

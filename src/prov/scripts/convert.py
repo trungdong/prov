@@ -7,22 +7,21 @@ import io
 import os
 import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import IO, Any, cast
 
 import prov
 from prov import serializers
 from prov.model import ProvDocument
 from prov.scripts import (
-    _UNTYPABLE,
+    _add_option_flag,
     _format_names,
     _input_format,
     _open_binary,
-    _option_names,
     _options,
-    _pair,
     _read,
     _reader_names,
+    _reader_options,
     _run,
 )
 from prov.serializers import _is_text_stream
@@ -88,7 +87,7 @@ _LEXERS = {
 }
 """The Pygments lexer name for each output format that has one, except ``rdf``."""
 
-_RDF_LEXERS = {"turtle": "turtle", "xml": "xml", "json-ld": "jsonld"}
+_RDF_LEXERS: Mapping[Any, str] = {"turtle": "turtle", "xml": "xml", "json-ld": "jsonld"}
 """The Pygments lexer name for each ``rdf_format`` that has one."""
 
 
@@ -172,14 +171,11 @@ def _write_colored(
     """Write ``prov_doc`` to ``outfile`` highlighted with the ``lexer`` lexer.
 
     The plain bytes are decoded, highlighted and written as ``str`` to a text
-    stream and as UTF-8 bytes to any other. Output that holds a carriage
-    return is written plain.
+    stream and as UTF-8 bytes to any other.
     """
     buffer = io.BytesIO()
     _write_document(prov_doc, buffer, output_format, options)
-    text = buffer.getvalue().decode("utf-8")
-    if "\r" not in text:
-        text = _highlight(text, lexer)
+    text = _highlight(buffer.getvalue().decode("utf-8"), lexer)
     is_text = _is_text_stream(cast(io.IOBase, outfile))
     outfile.write(text if is_text else text.encode("utf-8"))
 
@@ -209,22 +205,24 @@ def _write_document(
 def _lexer_name(fmt: str, writer_options: Mapping[str, Any]) -> str | None:
     """Return the Pygments lexer name for the ``fmt`` output, or ``None`` if it has none.
 
-    ``rdf`` keys on the ``rdf_format`` writer option, which defaults to ``trig``.
+    ``rdf`` keys on the ``rdf_format`` writer option, and its default has no lexer.
     The other Graphviz formats have no lexer in the map.
     """
     if fmt == "rdf":
-        return _RDF_LEXERS.get(writer_options.get("rdf_format", "trig"))
+        return _RDF_LEXERS.get(writer_options.get("rdf_format"))
     return _LEXERS.get(fmt)
 
 
 def _highlight(text: str, lexer_name: str) -> str:
     """Colour ``text`` with the ``lexer_name`` lexer and Pygments' 16-colour formatter.
 
-    A lexer that cannot be fetched (unknown, or its plugin fails to import)
-    leaves ``text`` plain. Otherwise removing the escape sequences gives ``text``
-    back, provided it holds no carriage return, which Pygments turns into a
-    line feed.
+    Text that holds a carriage return stays plain, because Pygments turns it
+    into a line feed. So does text for a lexer that cannot be fetched (unknown,
+    or its plugin fails to import). Otherwise removing the escape sequences
+    gives ``text`` back.
     """
+    if "\r" in text:
+        return text
     from pygments import highlight
     from pygments.formatters import TerminalFormatter
     from pygments.lexers import get_lexer_by_name
@@ -299,6 +297,19 @@ def _writer_names(fmt: str) -> frozenset[str]:
     return serializers.get(fmt).serialize_options
 
 
+def _writer_options(
+    path: str, flag: str, pairs: Sequence[tuple[str, str]] | None
+) -> tuple[str, dict[str, Any]]:
+    """Resolve the output format of ``path`` and the ``-f`` ``flag`` with its writer options.
+
+    ``pairs`` are the ``NAME=VALUE`` pairs of the ``-w`` flag, ``None`` when it
+    is absent. They are checked against the format's writer, over the
+    extension's row.
+    """
+    fmt, table = _output_format(path, flag)
+    return fmt, _options(pairs or [], "writer", fmt, _writer_names(fmt), table)
+
+
 def _build_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog=_PROG,
@@ -333,29 +344,19 @@ def _build_parser() -> ArgumentParser:
             "json; default: %(default)s"
         ),
     )
-    parser.add_argument(
-        "-w",
-        "--writer-option",
-        action="append",
-        type=_pair,
-        metavar="NAME=VALUE",
-        help=(
-            "pass an option to the writer, repeatable; none, true and false (any "
-            "case) and integers are typed, anything else is a string; accepted "
-            f"names: {_option_names('serialize_options')}; "
-            f"Graphviz formats: {', '.join(sorted(_GRAPHVIZ_OPTIONS))}"
-        ),
+    _add_option_flag(
+        parser,
+        ("-w", "--writer-option"),
+        "the writer",
+        _writer_names,
+        extra=f"; Graphviz formats: {', '.join(sorted(_GRAPHVIZ_OPTIONS))}",
     )
-    parser.add_argument(
-        "-r",
-        "--reader-option",
-        action="append",
-        type=_pair,
-        metavar="NAME=VALUE",
-        help=(
-            "pass an option to the reader, repeatable, typed like -w; accepted "
-            f"names: {_option_names('deserialize_options', _UNTYPABLE)}"
-        ),
+    _add_option_flag(
+        parser,
+        ("-r", "--reader-option"),
+        "the reader",
+        _reader_names,
+        typing=", typed like -w",
     )
     parser.add_argument(
         "--color",
@@ -382,21 +383,11 @@ def _build_parser() -> ArgumentParser:
 def _convert(argv: list[str] | None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    input_format, reader_table = _input_format(args.infile, args.input_format)
-    output_format, writer_table = _output_format(args.outfile, args.format)
-    reader_options = _options(
-        args.reader_option or [],
-        "reader",
-        input_format,
-        _reader_names(input_format),
-        reader_table,
+    input_format, reader_options = _reader_options(
+        args.infile, args.input_format, args.reader_option
     )
-    writer_options = _options(
-        args.writer_option or [],
-        "writer",
-        output_format,
-        _writer_names(output_format),
-        writer_table,
+    output_format, writer_options = _writer_options(
+        args.outfile, args.format, args.writer_option
     )
     color = _use_color(args.color, args.outfile)
     with contextlib.ExitStack() as streams:
