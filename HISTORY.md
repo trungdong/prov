@@ -487,9 +487,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `pygmentize`, Sphinx, MkDocs, Pelican and the other Pygments-based tools that load
   plugins highlight a `provn` code block once `prov` is installed. The `pygments` extra
   installs Pygments for an environment that has none ([#628](https://github.com/trungdong/prov/issues/628))
-- `prov-convert` and `prov-compare` detect formats by default. They read the input from its
-  extension or else its content, and `prov-convert` writes the output by its extension or
-  else as PROV-JSON ([#737](https://github.com/trungdong/prov/issues/737))
+- `prov-convert` and `prov-compare` detect formats from the extension, else the content,
+  and `prov-convert` writes the format its output extension names, else PROV-JSON. `-w`
+  and `-r` pass `NAME=VALUE` options to the writer and reader
+  ([#667](https://github.com/trungdong/prov/issues/667))
 
 ### Fixes
 

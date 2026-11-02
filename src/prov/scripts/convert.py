@@ -14,7 +14,12 @@ from prov.scripts import (
     _format_names,
     _input_format,
     _open_binary,
+    _option_names,
+    _options,
+    _pair,
     _read,
+    _reader_names,
+    _registered,
     _run,
 )
 
@@ -59,6 +64,18 @@ GRAPHVIZ_SUPPORTED_FORMATS = {
 to the formats registered in :class:`~prov.serializers.Registry`."""
 
 
+_GRAPHVIZ_OPTIONS = frozenset(
+    {
+        "show_nary",
+        "use_labels",
+        "direction",
+        "show_element_attributes",
+        "show_relation_attributes",
+    }
+)
+"""The keywords of :func:`~prov.dot.prov_to_dot` that a Graphviz output format takes."""
+
+
 class CLIError(Exception):
     """A fatal error that :func:`main` reports as one ``prov-convert: error:`` line."""
 
@@ -81,7 +98,7 @@ def convert_file(
     ``infile`` is read in ``input_format`` (default PROV-JSON; ``"auto"``
     detects the format from the content). A name in
     :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
-    :func:`~prov.dot.prov_to_dot` and Graphviz, and any other
+    :func:`~prov.dot.prov_to_dot` (with ``writer_options``) and Graphviz, and any other
     ``output_format`` is written by
     :meth:`~prov.model.ProvDocument.serialize`.
 
@@ -96,7 +113,8 @@ def convert_file(
         input_format: Source format name, any registered serializer format, or
             ``"auto"`` to detect it from the content.
         reader_options: Keyword options for the input format's reader.
-        writer_options: Keyword options for the output format's writer.
+        writer_options: Keyword options for the output format's writer, or for
+            :func:`~prov.dot.prov_to_dot` with a Graphviz format.
 
     Raises:
         CLIError: If ``input_format`` is not a registered serializer format,
@@ -112,7 +130,7 @@ def convert_file(
     if output_format in GRAPHVIZ_SUPPORTED_FORMATS:
         from prov.dot import prov_to_dot
 
-        dot = prov_to_dot(prov_doc)
+        dot = prov_to_dot(prov_doc, **(writer_options or {}))
         # pydot's stub says create() returns `str`, but its own docstring
         # says (and it actually does, for binary Graphviz formats) return
         # `bytes`; this is an inaccuracy in pydot's stub, not a bug here.
@@ -139,6 +157,14 @@ def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
 
 
+def _writer_names(fmt: str) -> frozenset[str] | None:
+    """Return the options the ``fmt`` writer declares, or ``None`` if it is not registered."""
+    if fmt in GRAPHVIZ_SUPPORTED_FORMATS:
+        return _GRAPHVIZ_OPTIONS
+    cls = _registered().get(fmt)
+    return None if cls is None else cls.serialize_options
+
+
 def _build_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog=_PROG,
@@ -148,6 +174,8 @@ def _build_parser() -> ArgumentParser:
   prov-convert doc.provn doc.xml
   prov-convert doc.json doc.svg
   prov-convert -f jsonld < doc.json > doc.jsonld
+  prov-convert -f provn -w width=none doc.json doc.provn
+  prov-convert -i provn -r profile=lenient doc.provn doc.json
 """,
         formatter_class=RawDescriptionHelpFormatter,
     )
@@ -171,6 +199,30 @@ def _build_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "-w",
+        "--writer-option",
+        action="append",
+        type=_pair,
+        metavar="NAME=VALUE",
+        help=(
+            "pass an option to the writer, repeatable; none, true and false (any "
+            "case) and integers are typed, anything else is a string; accepted "
+            f"names: {_option_names('serialize_options')}; "
+            f"Graphviz formats: {', '.join(sorted(_GRAPHVIZ_OPTIONS))}"
+        ),
+    )
+    parser.add_argument(
+        "-r",
+        "--reader-option",
+        action="append",
+        type=_pair,
+        metavar="NAME=VALUE",
+        help=(
+            "pass an option to the reader, repeatable, typed like -w; accepted "
+            f"names: {_option_names('deserialize_options')}"
+        ),
+    )
+    parser.add_argument(
         "infile", nargs="?", default="-", help="input file (default: stdin)"
     )
     parser.add_argument(
@@ -185,13 +237,31 @@ def _build_parser() -> ArgumentParser:
 def _convert(argv: list[str] | None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    input_format, reader_table = _input_format(args.infile, args.input_format)
+    output_format, writer_table = _output_format(args.outfile, args.format)
+    reader_options = {
+        **reader_table,
+        **_options(
+            args.reader_option or [],
+            "reader",
+            input_format,
+            _reader_names(input_format),
+        ),
+    }
+    writer_options = {
+        **writer_table,
+        **_options(
+            args.writer_option or [],
+            "writer",
+            output_format,
+            _writer_names(output_format),
+        ),
+    }
     with contextlib.ExitStack() as streams:
         infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))
         outfile = streams.enter_context(
             _open_binary(parser, args.outfile, "wb", "stdout")
         )
-        input_format, reader_options = _input_format(args.infile, args.input_format)
-        output_format, writer_options = _output_format(args.outfile, args.format)
         convert_file(
             infile,
             outfile,
@@ -207,8 +277,10 @@ def _convert(argv: list[str] | None) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run the ``prov-convert`` command-line tool.
 
-    Parses ``-f/--format``, ``-i/--input-format``, an optional input file
-    (default stdin), and an optional output file (default stdout), then
+    Parses ``-f/--format``, ``-i/--input-format``, the repeatable
+    ``-w/--writer-option`` and ``-r/--reader-option`` (``NAME=VALUE``), an
+    optional input file (default stdin), and an optional output file (default
+    stdout), then
     converts between them via :func:`convert_file`. Files are opened after
     parsing; the standard streams are used for ``-`` and are not closed.
 

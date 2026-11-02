@@ -16,15 +16,17 @@ import contextlib
 import io
 import shutil
 import sys
-from typing import NoReturn
+import warnings
+from typing import NoReturn, cast
 
 import pytest
 
 import prov
 from prov.model import ProvDocument
-from prov.scripts import _format_names, _run
+from prov.scripts import _format_names, _pair, _run, _typed
 from prov.scripts.compare import main as compare_main
 from prov.scripts.convert import (
+    _GRAPHVIZ_OPTIONS,
     GRAPHVIZ_SUPPORTED_FORMATS,
     CLIError,
     _output_format,
@@ -79,6 +81,11 @@ STDIN_STREAMS = {
 
 EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
 TURTLE = {"rdf_format": "turtle"}
+HAS_DOT = shutil.which("dot") is not None
+# The strict profile refuses it and the lenient profile skips it with a warning.
+UNKNOWN_STATEMENT = (
+    "document\nprefix ex <http://example.org/>\nentity(ex:e2)\nfoo(ex:e1)\nendDocument"
+)
 
 
 def _write(path, fmt: str, **options) -> None:
@@ -87,6 +94,27 @@ def _write(path, fmt: str, **options) -> None:
 
 def _read_back(path, fmt: str, **options) -> ProvDocument:
     return ProvDocument.deserialize(str(path), format=fmt, **options)
+
+
+def _options_document() -> ProvDocument:
+    """A document on which every writer option changes the output."""
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e1", {"prov:label": "Report", "ex:note": "x" * 80})
+    doc.entity("ex:e2")
+    doc.alternateOf("ex:e1", "ex:e2").add_attributes({"ex:why": "x"})
+    return doc
+
+
+def _written(doc: ProvDocument, fmt: str, **options) -> bytes:
+    """The bytes the library writes for ``doc`` with ``options``."""
+    if fmt == "dot":
+        from prov.dot import prov_to_dot
+
+        return cast(bytes, prov_to_dot(doc, **options).create(format="dot"))
+    buffer = io.BytesIO()
+    doc.serialize(buffer, format=fmt, **options)
+    return buffer.getvalue()
 
 
 # prov-convert.
@@ -513,6 +541,268 @@ def test_output_format_resolution(path, flag, expected) -> None:
     assert _output_format(path, flag) == expected
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("none", None),
+        ("None", None),
+        ("NONE", None),
+        ("true", True),
+        ("TRUE", True),
+        ("False", False),
+        ("80", 80),
+        ("-1", -1),
+        ("+5", 5),
+        ("007", 7),
+        ("trig", "trig"),
+        ("", ""),
+        ("1.5", "1.5"),
+        ("1_0", "1_0"),
+        ("\u0663", "\u0663"),
+        ("5\n", "5\n"),
+        (" 5", " 5"),
+    ],
+)
+def test_option_values_are_typed(value, expected) -> None:
+    typed = _typed(value)
+    assert typed == expected
+    assert type(typed) is type(expected)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("direction=a=b", ("direction", "a=b")), ("width=", ("width", ""))],
+)
+def test_an_option_splits_at_the_first_equals(text, expected) -> None:
+    assert _pair(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("main", "flags"),
+    [
+        (convert_main, ["-w", "width"]),
+        (convert_main, ["-w", "=1"]),
+        (convert_main, ["--reader-option", "profile"]),
+        (compare_main, ["-r", "profile"]),
+        (compare_main, ["-R", "=1"]),
+    ],
+)
+def test_an_option_without_a_name_or_equals_is_a_usage_error(
+    main, flags, infile, capsys
+) -> None:
+    with pytest.raises(SystemExit) as ctx:
+        main([*flags, str(infile), str(infile)])
+    assert ctx.value.code == 2
+    assert "is not NAME=VALUE" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("flags", "fmt", "options"),
+    [
+        pytest.param(
+            ["-f", "provn", "-w", "width=none"], "provn", {"width": None}, id="none"
+        ),
+        pytest.param(
+            ["-f", "provn", "-w", "width=40", "-w", "width=none"],
+            "provn",
+            {"width": None},
+            id="last-wins",
+        ),
+        pytest.param(
+            ["-f", "provn", "-w", "strict=true"], "provn", {"strict": True}, id="strict"
+        ),
+        pytest.param(
+            ["-f", "json", "-w", "indent=2"], "json", {"indent": 2}, id="json"
+        ),
+        pytest.param(
+            ["-f", "jsonld", "-w", "context=embed"],
+            "jsonld",
+            {"context": "embed"},
+            id="jsonld",
+        ),
+        pytest.param(
+            ["-f", "xml", "-w", "force_types=true"],
+            "xml",
+            {"force_types": True},
+            id="xml",
+        ),
+        pytest.param(
+            ["-f", "dot", "-w", "use_labels=true"],
+            "dot",
+            {"use_labels": True},
+            id="dot",
+            marks=pytest.mark.skipif(not HAS_DOT, reason="graphviz not installed"),
+        ),
+    ],
+)
+def test_writer_options_reach_the_writer(tmp_path, flags, fmt, options) -> None:
+    if fmt in EXTRAS:
+        pytest.importorskip(EXTRAS[fmt])
+    source = tmp_path / "doc.json"
+    target = tmp_path / "out.dat"
+    _options_document().serialize(str(source), format="json")
+    doc = _read_back(source, "json")
+    with warnings.catch_warnings():
+        # The strict profile warns for each statement it drops.
+        warnings.simplefilter("ignore")
+        assert convert_main([*flags, str(source), str(target)]) == 0
+        assert target.read_bytes() == _written(doc, fmt, **options)
+        # The option changes the output, so the row pins more than the default.
+        assert target.read_bytes() != _written(doc, fmt)
+
+
+def test_the_wide_provn_statement_is_one_line_under_width_none(tmp_path) -> None:
+    source = tmp_path / "doc.json"
+    target = tmp_path / "out.provn"
+    _options_document().serialize(str(source), format="json")
+    assert convert_main(["-w", "width=none", str(source), str(target)]) == 0
+    assert any(
+        "e1" in line and "ex:note" in line for line in target.read_text().splitlines()
+    )
+    assert convert_main([str(source), str(target)]) == 0
+    assert not any(
+        "e1" in line and "ex:note" in line for line in target.read_text().splitlines()
+    )
+
+
+def test_rdf_format_names_the_turtle_writer_and_reader(tmp_path) -> None:
+    pytest.importorskip("rdflib")
+    source = tmp_path / "doc.json"
+    turtle = tmp_path / "out.dat"
+    back = tmp_path / "back.json"
+    _write(source, "json")
+    flags = ["-f", "rdf", "-w", "rdf_format=turtle"]
+    assert convert_main([*flags, str(source), str(turtle)]) == 0
+    assert _read_back(turtle, "rdf", **TURTLE) == primer_example()
+    # The extension is unknown, so -i names the format and -r its syntax.
+    flags = ["-i", "rdf", "-r", "rdf_format=turtle"]
+    assert convert_main([*flags, str(turtle), str(back)]) == 0
+    assert _read_back(back, "json") == primer_example()
+
+
+@pytest.mark.parametrize(("profile", "code"), [("strict", 2), ("lenient", 0)])
+def test_reader_options_reach_the_reader(tmp_path, capsys, profile, code) -> None:
+    source = tmp_path / "doc.provn"
+    target = tmp_path / "out.json"
+    source.write_text(UNKNOWN_STATEMENT)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert (
+            convert_main(["-r", f"profile={profile}", str(source), str(target)]) == code
+        )
+    assert capsys.readouterr().err.startswith("prov-convert: error: ") == bool(code)
+
+
+JSON_READER_NAMES = (
+    "object_hook, object_pairs_hook, parse_constant, parse_float, parse_int"
+)
+RDF_READER_NAMES = "predicate_mapper, rdf_format, relation_mapper"
+
+
+def _writer_sentence(fmt: str, name: str, accepted: str) -> str:
+    return f"the {fmt!r} writer accepts no option {name!r}; it accepts: {accepted}"
+
+
+def _reader_sentence(fmt: str, name: str, accepted: str) -> str:
+    return f"the {fmt!r} reader accepts no option {name!r}; it accepts: {accepted}"
+
+
+@pytest.mark.parametrize(
+    ("flags", "target_name", "message", "extras"),
+    [
+        pytest.param(
+            ["-f", "provn", "-w", "wdith=1"],
+            "out.provn",
+            _writer_sentence("provn", "wdith", "strict, width"),
+            (),
+            id="provn-writer",
+        ),
+        pytest.param(
+            ["-f", "svg", "-w", "labels=true"],
+            "out.svg",
+            _writer_sentence(
+                "svg",
+                "labels",
+                "direction, show_element_attributes, show_nary, "
+                "show_relation_attributes, use_labels",
+            ),
+            (),
+            id="graphviz-writer",
+        ),
+        pytest.param(
+            ["-w", "width=1"],
+            "out.ttl",
+            _writer_sentence("rdf", "width", "rdf_format"),
+            ("rdflib",),
+            id="the-extensions-format",
+        ),
+        pytest.param(
+            ["-i", "json", "-r", "profile=x"],
+            "out.dat",
+            _reader_sentence("json", "profile", JSON_READER_NAMES),
+            (),
+            id="json-reader",
+        ),
+        pytest.param(
+            ["-i", "xml", "-r", "profile=x"],
+            "out.dat",
+            _reader_sentence("xml", "profile", "none"),
+            ("lxml",),
+            id="xml-reader",
+        ),
+    ],
+)
+def test_an_undeclared_option_exits_2_before_the_output_is_opened(
+    infile, tmp_path, capsys, flags, target_name, message, extras
+) -> None:
+    for extra in extras:
+        pytest.importorskip(extra)
+    target = tmp_path / target_name
+    target.write_bytes(b"keep")
+    assert convert_main([*flags, str(infile), str(target)]) == 2
+    assert capsys.readouterr().err == f"prov-convert: error: {message}\n"
+    assert target.read_bytes() == b"keep"
+
+
+def test_an_unavailable_format_keeps_the_librarys_error(
+    infile, tmp_path, capsys
+) -> None:
+    target = tmp_path / "out.dat"
+    assert convert_main(["-f", "bogus", "-w", "x=1", str(infile), str(target)]) == 2
+    assert capsys.readouterr().err == (
+        'prov-convert: error: No serializer available for the format "bogus"\n'
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "code"), [("profile", 0), ("porfile", 2)], ids=["member", "typo"]
+)
+def test_a_reader_option_is_checked_against_every_reader_under_detection(
+    monkeypatch, capsys, name, code
+) -> None:
+    pytest.importorskip("rdflib")
+    monkeypatch.setattr(
+        sys, "stdin", STDIN_STREAMS["pipe-bytes"](UNKNOWN_STATEMENT.encode())
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert convert_main(["-r", f"{name}=lenient"]) == code
+    err = capsys.readouterr().err
+    if code:
+        union = f"{JSON_READER_NAMES}, predicate_mapper, profile, rdf_format, relation_mapper"
+        sentence = _reader_sentence("auto", name, union)
+        assert err == f"prov-convert: error: {sentence}\n"
+    else:
+        assert err == ""
+
+
+def test_a_reader_rejects_a_value_it_cannot_use(infile, tmp_path, capsys) -> None:
+    flags = ["-i", "json", "-r", "object_hook=x"]
+    assert convert_main([*flags, str(infile), str(tmp_path / "out.json")]) == 2
+    err = capsys.readouterr().err
+    assert err == "prov-convert: error: 'str' object is not callable\n"
+
+
 # prov-compare.
 
 
@@ -670,6 +960,25 @@ def test_compare_a_flag_replaces_the_extension(provn_and_xml, capsys) -> None:
     assert capsys.readouterr().err.startswith("prov-compare: error: ")
 
 
+def test_compare_passes_each_file_its_own_reader_options(tmp_path, capsys) -> None:
+    pytest.importorskip("rdflib")
+    provn_file = tmp_path / "a.provn"
+    turtle_file = tmp_path / "b.dat"
+    _write(provn_file, "provn")
+    _write(turtle_file, "rdf", **TURTLE)
+    files = [str(provn_file), str(turtle_file)]
+    flags = ["-r", "profile=lenient", "-F", "rdf", "-R", "rdf_format=turtle"]
+    assert compare_main([*flags, *files]) == 0
+    # Each name is checked against its own file's format.
+    assert compare_main(["-F", "rdf", "-R", "porfile=x", *files]) == 2
+    sentence = _reader_sentence("rdf", "porfile", RDF_READER_NAMES)
+    assert capsys.readouterr().err == f"prov-compare: error: {sentence}\n"
+    assert compare_main(["-r", "rdf_format=x", "-F", "rdf", *files]) == 2
+    assert (
+        "the 'provn' reader accepts no option 'rdf_format'" in capsys.readouterr().err
+    )
+
+
 # Both tools.
 
 
@@ -701,8 +1010,19 @@ def test_help_is_one_description_with_examples(main) -> None:
     assert "Copyright" not in out
     assert "USAGE" not in out
     assert "examples:" in out
-    assert _format_names() in " ".join(out.split())
+    flat = " ".join(out.split())
+    assert _format_names() in flat
     assert ("Graphviz" in out) == (main is convert_main)
+    # Every declared name of every format is listed; a format with none is not.
+    assert Registry.serializers is not None
+    for fmt, cls in Registry.serializers.items():
+        declared = [cls.deserialize_options]
+        if main is convert_main:
+            declared.append(cls.serialize_options)
+        for names in filter(None, declared):
+            assert f"{fmt}: {', '.join(sorted(names))}" in flat
+    if main is convert_main:
+        assert f"Graphviz formats: {', '.join(sorted(_GRAPHVIZ_OPTIONS))}" in flat
 
 
 def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:

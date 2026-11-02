@@ -1,14 +1,15 @@
 import contextlib
 import io
 import os
+import re
 import sys
-from argparse import ArgumentParser
-from collections.abc import Callable, Mapping
+from argparse import ArgumentParser, ArgumentTypeError
+from collections.abc import Callable, Mapping, Sequence
 from typing import IO, Any, cast
 
 import prov
 from prov.model import ProvDocument
-from prov.serializers import Registry
+from prov.serializers import Registry, Serializer
 
 
 def _run(prog: str, action: Callable[[], int]) -> int:
@@ -31,11 +32,16 @@ def _run(prog: str, action: Callable[[], int]) -> int:
         return 2
 
 
-def _format_names() -> str:
-    """Name the registered serializer formats, e.g. ``json, rdf, provn, xml or jsonld``."""
+def _registered() -> Mapping[str, type[Serializer]]:
+    """Return the registered serializer classes by format name."""
     if Registry.serializers is None:
         Registry.load_serializers()
-    names = list(Registry.serializers or ())
+    return Registry.serializers or {}
+
+
+def _format_names() -> str:
+    """Name the registered serializer formats, e.g. ``json, rdf, provn, xml or jsonld``."""
+    names = list(_registered())
     return f"{', '.join(names[:-1])} or {names[-1]}"
 
 
@@ -65,6 +71,84 @@ def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
         return flag, {}
     row = _EXTENSIONS.get(os.path.splitext(path)[1].lower())
     return ("auto", {}) if row is None else (row[0], dict(row[1]))
+
+
+def _pair(text: str) -> tuple[str, str]:
+    """Split ``NAME=VALUE`` at the first ``=``, as the argparse ``type`` of an option flag.
+
+    A flag without ``=`` or with an empty name is an ``ArgumentTypeError``,
+    since no keyword is named ``""``.
+    """
+    name, equals, value = text.partition("=")
+    if not equals or not name:
+        raise ArgumentTypeError(f"{text!r} is not NAME=VALUE")
+    return name, value
+
+
+_KEYWORDS = {"none": None, "true": True, "false": False}
+_INTEGER = re.compile(r"[+-]?[0-9]+", re.ASCII)
+
+
+def _typed(value: str) -> Any:
+    """Type an option value.
+
+    ``none``, ``true`` and ``false`` in any case are ``None``, ``True`` and
+    ``False``, an optionally signed run of ASCII digits is an ``int``, and
+    anything else is the string as given.
+    """
+    word = value.lower()
+    if word in _KEYWORDS:
+        return _KEYWORDS[word]
+    return int(value) if _INTEGER.fullmatch(value) else value
+
+
+def _options(
+    pairs: Sequence[tuple[str, str]],
+    role: str,
+    fmt: str,
+    declared: frozenset[str] | None,
+) -> dict[str, Any]:
+    """Type ``pairs`` into keyword options for the ``fmt`` ``role`` (``writer`` or ``reader``).
+
+    A later pair replaces an earlier one of the same name. A name outside
+    ``declared`` is a ``ValueError`` in ``prov.read()``'s sentence. ``None``
+    for ``declared`` skips the check, which leaves an unavailable format to the
+    library's own error.
+    """
+    if declared is not None:
+        unknown = sorted({name for name, _ in pairs} - declared)
+        if unknown:
+            accepted = ", ".join(sorted(declared)) or "none"
+            raise ValueError(
+                f"the {fmt!r} {role} accepts no option {unknown[0]!r}; "
+                f"it accepts: {accepted}"
+            )
+    return {name: _typed(value) for name, value in pairs}
+
+
+def _reader_names(fmt: str) -> frozenset[str] | None:
+    """Return the options the ``fmt`` reader declares.
+
+    ``auto`` returns the union over every registered reader, and a format
+    that is not registered returns ``None``.
+    """
+    classes = _registered()
+    if fmt == "auto":
+        return frozenset().union(*(cls.deserialize_options for cls in classes.values()))
+    cls = classes.get(fmt)
+    return None if cls is None else cls.deserialize_options
+
+
+def _option_names(attr: str) -> str:
+    """List the names each registered format declares in ``attr``, for ``--help``.
+
+    A format that declares none is left out.
+    """
+    return "; ".join(
+        f"{fmt}: {', '.join(sorted(names))}"
+        for fmt, cls in sorted(_registered().items())
+        if (names := getattr(cls, attr))
+    )
 
 
 def _read(stream: IO[Any], fmt: str, options: Mapping[str, Any]) -> ProvDocument:
