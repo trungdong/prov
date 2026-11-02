@@ -5,7 +5,7 @@ import re
 import sys
 from argparse import ArgumentParser, ArgumentTypeError
 from collections.abc import Callable, Mapping, Sequence
-from typing import IO, Any, cast
+from typing import IO, Any
 
 import prov
 from prov.model import ProvDocument
@@ -225,8 +225,7 @@ def _read(stream: IO[Any], fmt: str, options: Mapping[str, Any]) -> ProvDocument
                 if isinstance(content, bytes)
                 else io.StringIO(content)
             )
-    # prov.read() is annotated "| None", but every path returns a document.
-    return cast(ProvDocument, prov.read(stream, None if auto else fmt, **options))
+    return prov.read(stream, None if auto else fmt, **options)
 
 
 def _open_binary(
