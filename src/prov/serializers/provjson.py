@@ -93,6 +93,9 @@ class ProvJSONSerializer(Serializer):
     ``object_hook`` and ``object_pairs_hook`` receive each object after the
     check for repeated keys."""
 
+    serialize_options = frozenset({"indent", "sort_keys", "ensure_ascii"})
+    """The :func:`json.dump` keywords the command line may name."""
+
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-JSON <https://openprovenance.org/prov-json/>`_.
 

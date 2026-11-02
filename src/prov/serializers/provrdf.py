@@ -439,6 +439,9 @@ class ProvRDFSerializer(Serializer):
         {"rdf_format", "relation_mapper", "predicate_mapper"}
     )
 
+    serialize_options = frozenset({"rdf_format"})
+    """The :meth:`serialize` keywords the command line may name."""
+
     # The (prefix, IRI) bindings of the graph being read that
     # ``decode_document`` left unregistered because rdflib adds them to every
     # graph.
