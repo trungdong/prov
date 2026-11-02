@@ -2108,6 +2108,43 @@ def test_non_finite_doubles_are_written_in_xsd_spelling(rdf_format) -> None:
     assert math.isnan(values["q"])
 
 
+@pytest.mark.parametrize(
+    "rdf_format",
+    [
+        "xml",
+        "turtle",
+        "trig",
+        "nquads",
+        "nt",
+        "ntriples",
+        "nt11",
+        "application/n-triples",
+    ],
+)
+def test_the_default_encoding_changes_no_byte_and_no_n_triples_warns(
+    rdf_format,
+) -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    e1 = document.entity("ex:e1", {"ex:name": "alpha", "ex:count": 3})
+    e2 = document.entity("ex:e2", {"ex:name": "beta", "ex:count": 4})
+    document.wasDerivedFrom(e2, e1)
+
+    def written(**kwargs) -> bytes:
+        buf = BytesIO()
+        document.serialize(buf, format="rdf", rdf_format=rdf_format, **kwargs)
+        return buf.getvalue()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        default = written()
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
+    # `encoding=None` is the call rdflib received before the writer set a default.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert default == written(encoding=None)
+
+
 _DEFAULT_IRI_PREAMBLE = """\
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix ex: <http://e.org/> .

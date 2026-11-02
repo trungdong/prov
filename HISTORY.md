@@ -621,6 +621,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A refused `ProvDocument.add_bundle()` leaves the bundle's document link, identifier and
   namespaces as they were, where 3.2.3 linked the bundle, set its identifier and could
   register the identifier's namespace ([#726](https://github.com/trungdong/prov/issues/726))
+- Writing N-Triples, as `rdf_format="nt"` or `prov-convert` to a `.nt` file, prints no
+  rdflib encoding warning, where 3.2.3 printed `UserWarning: NTSerializer always uses UTF-8
+  encoding` ([#742](https://github.com/trungdong/prov/issues/742))
 
 ### Project
 

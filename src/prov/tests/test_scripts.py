@@ -733,6 +733,16 @@ def test_rdf_format_names_the_turtle_writer_and_reader(tmp_path) -> None:
     assert _read_back(back, "json") == primer_example()
 
 
+def test_convert_to_n_triples_prints_no_rdflib_warning(infile, tmp_path) -> None:
+    pytest.importorskip("rdflib")
+    outfile = tmp_path / "out.nt"
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert convert_main([str(infile), str(outfile)]) == 0
+    assert outfile.stat().st_size > 0
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
+
+
 @pytest.mark.parametrize(
     ("text", "profile", "plain_code", "code", "errors"),
     [(BARE_MENTION, "strict", 0, 2, 1), (UNKNOWN_STATEMENT, "lenient", 2, 0, 0)],
