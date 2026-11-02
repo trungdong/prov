@@ -10,6 +10,7 @@ non-serialising ``model`` target.
 import io
 import os
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 from hypothesis import settings
@@ -157,6 +158,8 @@ def pytest_assertrepr_compare(
 
 #  Helpers for the tests of the checks at assertion.
 EX_URI = "http://example.org/"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+"""The repository root, for tests that read files outside the package."""
 
 
 def default_namespace(uri: str) -> Namespace:

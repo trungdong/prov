@@ -167,18 +167,46 @@ def test_empty_language_tag_raises() -> None:
         Literal("hi", langtag="")
 
 
-@pytest.mark.parametrize("tag", ["", "en_US"])
-def test_unpickled_literal_is_checked_too(tag: str) -> None:
-    # A pickle from an earlier release may hold such a tag; loading it runs
-    # the same check, so no document holds a tag the writers cannot spell.
-    literal = Literal.__new__(Literal)
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"_langtag": ""}, "'hi'"),
+        ({"_langtag": "en_US"}, "'hi'"),
+        (
+            {"_datatype": "ex:type", "_langtag": None},
+            re.escape("the datatype 'ex:type' of 'hi' is not a QualifiedName"),
+        ),
+    ],
+    ids=["empty tag", "bad tag", "bad datatype"],
+)
+def test_unpickled_literal_is_checked_too(change: dict[str, Any], message: str) -> None:
+    # A pickle from an earlier release may hold a tag or a datatype the
+    # constructor refuses; loading it runs the same checks, so no document
+    # holds a literal the writers cannot spell.
     state = {
         "_value": "hi",
         "_datatype": PROV_INTERNATIONALIZEDSTRING,
-        "_langtag": tag,
+        "_langtag": "en",
+        **change,
     }
-    with pytest.raises(ProvValueError, match="'hi'"):
-        literal.__setstate__(state)
+    with pytest.raises(ProvValueError, match=message):
+        Literal.__new__(Literal).__setstate__(state)
+
+
+@pytest.mark.parametrize("tag", [None, "en"])
+@pytest.mark.parametrize(
+    "datatype",
+    ["ex:type", object(), Identifier("http://example.org/t")],
+    ids=["str", "object", "identifier"],
+)
+def test_datatype_that_is_not_a_qualified_name_raises(
+    datatype: Any, tag: str | None
+) -> None:
+    # #705: every writer needs the qualified form, so the refusal comes where
+    # the literal is built, language tag or not.
+    message = f"the datatype {datatype!r} of 'x' is not a QualifiedName"
+    with pytest.raises(ProvValueError, match=re.escape(message)):
+        Literal("x", datatype, tag)
 
 
 @pytest.mark.parametrize(

@@ -6,13 +6,12 @@ skip outside a source checkout.
 
 import json
 import re
-from pathlib import Path
 
 import pytest
 
 import prov
+from prov.tests.conftest import REPO_ROOT
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
 CITATION_FILE = REPO_ROOT / "CITATION.cff"
 ZENODO_FILE = REPO_ROOT / ".zenodo.json"
 

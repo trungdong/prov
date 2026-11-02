@@ -13,6 +13,7 @@ from typing import assert_type
 
 import pytest
 
+from prov import read
 from prov.model import (
     NamespaceManager,
     ProvActivity,
@@ -25,6 +26,7 @@ from prov.model import (
     QualifiedName,
     StreamOrPath,
 )
+from prov.tests.conftest import ex_document
 from prov.tests.examples import primer_example
 
 
@@ -97,6 +99,15 @@ def test_serialize_returns_str_without_a_destination_and_none_with_one(
     result = document.serialize(_no_destination(), format="provn")
     assert_type(result, str | None)
     assert result == text
+
+
+def test_read_returns_a_document() -> None:
+    document = ex_document()
+    document.entity("ex:e")
+    loaded = read(io.StringIO(document.serialize(format="json")), format="json")
+    assert_type(loaded, ProvDocument)
+    assert isinstance(loaded, ProvDocument)
+    assert loaded == document
 
 
 def test_element_identifier_is_a_qualified_name_and_a_relation_may_lack_one() -> None:

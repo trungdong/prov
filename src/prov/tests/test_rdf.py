@@ -32,7 +32,7 @@ from prov.serializers.provrdf import (
     _DecodeState,
     literal_rdf_representation,
 )
-from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
+from prov.tests.conftest import add_ordered_namespaces, ex_document, roundtrip_document
 
 logger = logging.getLogger(__name__)
 
@@ -48,59 +48,66 @@ def _as_triple_graph(g):
     return flat
 
 
+def _sorted_nt_lines(graph):
+    return sorted(
+        line
+        for line in graph.serialize(format="nt", encoding="utf-8").splitlines()
+        if line.strip()
+    )
+
+
+def _statement_of(nt_line):
+    return next(
+        iter(rl.Dataset(default_union=True).parse(BytesIO(nt_line), format="nt"))
+    )
+
+
+def _statements_equal(first, second):
+    try:
+        return all(first[i].eq(second[i]) for i in range(3))
+    except TypeError:
+        return False
+
+
+def _pair_equal_lines(g1, g2):
+    """Pair each line of ``g1`` with the first unused line of ``g2`` it equals.
+
+    Returns the paired lines of ``g1``, the unpaired lines of ``g1`` and the
+    unpaired lines of ``g2``.
+    """
+    stmts2 = [_statement_of(line) for line in g2]
+    unused2 = list(range(len(g2)))
+    matched, rest1 = [], []
+    for line in g1:
+        stmt = _statement_of(line)
+        for pos, idx2 in enumerate(unused2):
+            if _statements_equal(stmt, stmts2[idx2]):
+                del unused2[pos]
+                matched.append(line)
+                break
+        else:
+            rest1.append(line)
+    return matched, rest1, [g2[idx2] for idx2 in unused2]
+
+
+def _parse_lines(graph, lines):
+    for line in lines:
+        graph.parse(BytesIO(line), format="nt")
+    return graph
+
+
 def find_diff(g_rdf, g0_rdf):
-    graphs_equal = True
     in_both, in_first, in_second = graph_diff(
         _as_triple_graph(g_rdf), _as_triple_graph(g0_rdf)
     )
-    g1 = sorted(
-        line
-        for line in in_first.serialize(format="nt", encoding="utf-8").splitlines()
-        if line.strip()
-    )
-    g2 = sorted(
-        line
-        for line in in_second.serialize(format="nt", encoding="utf-8").splitlines()
-        if line.strip()
-    )
     # Compare literals
-    if len(g1) != len(g2):
-        graphs_equal = False
-    matching_indices = [[], []]
-    for idx, g1_line in enumerate(g1):
-        g1_stmt = next(
-            iter(rl.Dataset(default_union=True).parse(BytesIO(g1_line), format="nt"))
-        )
-        match_found = False
-        for idx2, g2_line in enumerate(g2):
-            if idx2 in matching_indices[1]:
-                continue
-            g2_stmt = next(
-                iter(
-                    rl.Dataset(default_union=True).parse(BytesIO(g2_line), format="nt")
-                )
-            )
-            try:
-                all_match = all(g1_stmt[i].eq(g2_stmt[i]) for i in range(3))
-            except TypeError:
-                all_match = False
-            if all_match:
-                matching_indices[0].append(idx)
-                matching_indices[1].append(idx2)
-                match_found = True
-                break
-        if not match_found:
-            graphs_equal = False
-    in_first2 = rl.Dataset(default_union=True)
-    for idx, g1_line in enumerate(g1):
-        if idx in matching_indices[0]:
-            in_both.parse(BytesIO(g1_line), format="nt")
-        else:
-            in_first2.parse(BytesIO(g1_line), format="nt")
-    in_second2 = rl.Dataset(default_union=True)
-    for idx, g2_line in enumerate(g2):
-        if idx not in matching_indices[1]:
-            in_second2.parse(BytesIO(g2_line), format="nt")
+    matched, rest1, rest2 = _pair_equal_lines(
+        _sorted_nt_lines(in_first), _sorted_nt_lines(in_second)
+    )
+    graphs_equal = not rest1 and not rest2
+    _parse_lines(in_both, matched)
+    in_first2 = _parse_lines(rl.Dataset(default_union=True), rest1)
+    in_second2 = _parse_lines(rl.Dataset(default_union=True), rest2)
     return graphs_equal, in_both, in_first2, in_second2
 
 
@@ -2106,6 +2113,42 @@ def test_non_finite_doubles_are_written_in_xsd_spelling(rdf_format) -> None:
     assert math.isinf(values["p"]) and values["p"] > 0
     assert math.isinf(values["n"]) and values["n"] < 0
     assert math.isnan(values["q"])
+
+
+@pytest.mark.parametrize(
+    "rdf_format",
+    [
+        "xml",
+        "turtle",
+        "trig",
+        "nquads",
+        "nt",
+        "ntriples",
+        "nt11",
+        "application/n-triples",
+    ],
+)
+def test_the_default_encoding_changes_no_byte_and_no_n_triples_warns(
+    rdf_format,
+) -> None:
+    document = ex_document()
+    e1 = document.entity("ex:e1", {"ex:name": "alpha", "ex:count": 3})
+    e2 = document.entity("ex:e2", {"ex:name": "beta", "ex:count": 4})
+    document.wasDerivedFrom(e2, e1)
+
+    def written(**kwargs) -> bytes:
+        buf = BytesIO()
+        document.serialize(buf, format="rdf", rdf_format=rdf_format, **kwargs)
+        return buf.getvalue()
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        default = written()
+    assert not [w for w in caught if issubclass(w.category, UserWarning)]
+    # `encoding=None` is the call rdflib received before the writer set a default.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert default == written(encoding=None)
 
 
 _DEFAULT_IRI_PREAMBLE = """\

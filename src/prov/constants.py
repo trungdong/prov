@@ -231,8 +231,11 @@ PROV_ATTRIBUTE_LITERALS = {PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIM
 # Set of formal attributes of PROV records
 PROV_ATTRIBUTES = PROV_ATTRIBUTE_QNAMES | PROV_ATTRIBUTE_LITERALS
 """All formal attributes of PROV records, QualifiedName- and literal-valued."""
-PROV_RECORD_ATTRIBUTES = [(attr, str(attr)) for attr in PROV_ATTRIBUTES]
-"""``(QualifiedName, str)`` pairs for every entry in :data:`PROV_ATTRIBUTES`."""
+PROV_RECORD_ATTRIBUTES = [
+    (attr, str(attr)) for attr in sorted(PROV_ATTRIBUTES, key=str)
+]
+"""``(QualifiedName, str)`` pairs for every entry in :data:`PROV_ATTRIBUTES`, sorted
+by the string form."""
 
 PROV_RECORD_IDS_MAP = {
     PROV_N_MAP[rec_type_id]: rec_type_id for rec_type_id in PROV_N_MAP

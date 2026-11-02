@@ -25,21 +25,16 @@ from prov.serializers.provjsonld import (
 
 from .conftest import (
     BLANK_PREFIX,
+    EX_URI,
     HTTP_PREFIX,
     NO_PREFIX,
     UNDECLARED_PREFIX,
+    ex_document,
     unresolved_sentence,
 )
 from .jsonld_statements import statement_dict, statement_of, usage_with
 
-EX_URI = "http://example.org/"
 FIXTURE_DIR = Path(__file__).parent / "jsonld"
-
-
-def _new_doc() -> ProvDocument:
-    doc = ProvDocument()
-    doc.add_namespace("ex", EX_URI)
-    return doc
 
 
 def _dump(doc: ProvDocument, **kwargs) -> dict:
@@ -47,7 +42,7 @@ def _dump(doc: ProvDocument, **kwargs) -> dict:
 
 
 def test_serialize_basic_shape() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity("ex:e1")
     doc.activity("ex:a1", "2011-11-16T16:05:00", "2011-11-16T16:06:00")
     doc.wasGeneratedBy("ex:e1", "ex:a1", time="2011-11-16T16:05:30")
@@ -66,7 +61,7 @@ def test_serialize_basic_shape() -> None:
 
 
 def test_serialize_special_and_extra_attributes() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity(
         "ex:e1",
         (
@@ -91,7 +86,7 @@ def test_serialize_qualified_name_as_node_reference(key: str, term: str) -> None
     # Schema 2026-10-14 (openprov/prov-jsonld#7) makes a qualified name under any
     # term outside ID_TYPED_TERMS a node reference, as ProvToolbox 2.2.5 writes
     # it. A JSON-LD processor reads it as the IRI, matching PROV-O.
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity("ex:e1", ((key, doc.valid_qualified_name("ex:thing")),))
     (stmt,) = _dump(doc)["@graph"]
     assert stmt[term] == [{"@id": "ex:thing"}]
@@ -101,7 +96,7 @@ def test_serialize_qualified_name_as_node_reference(key: str, term: str) -> None
 def test_serialize_qualified_name_under_id_typed_term_stays_a_bare_string(
     term: str,
 ) -> None:
-    doc = _new_doc()
+    doc = ex_document()
     value = doc.valid_qualified_name("ex:Sort")
     if term == "role":
         doc.usage("ex:a1", "ex:e1", other_attributes={"prov:role": value})
@@ -135,7 +130,7 @@ def test_roundtrip_qualified_name_value(context: str, default_namespace: bool) -
 
 
 def test_serialize_bundle_nesting() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     bundle = doc.bundle("ex:b1")
     bundle.entity("ex:e2")
     container = _dump(doc)
@@ -162,7 +157,7 @@ def test_serialize_default_namespace_as_vocab() -> None:
 
 
 def test_serialize_no_default_namespace_omits_base() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity("ex:e1")
     container = _dump(doc)
     assert "@base" not in container["@context"][0]
@@ -212,7 +207,7 @@ def test_serialize_default_namespace_attribute_colliding_with_formal_attribute()
 
 
 def test_serialize_context_embed() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity("ex:e1")
     container = _dump(doc, context="embed")
     embedded = container["@context"][1]
@@ -221,14 +216,14 @@ def test_serialize_context_embed() -> None:
 
 
 def test_serialize_context_bad_option() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity("ex:e1")
     with pytest.raises(ValueError, match="context"):
         doc.serialize(format="jsonld", context="nonsense")
 
 
 def test_serialize_mention_raises() -> None:
-    doc = _new_doc()
+    doc = ex_document()
     doc.mention("ex:e2", "ex:e1", "ex:b")
     with pytest.raises(ProvJSONLDException, match=r"[Mm]ention"):
         doc.serialize(format="jsonld")
@@ -254,7 +249,7 @@ def test_deserialize_accepts_provtoolbox_prefixed_terms() -> None:
         }
     )
     doc = ProvDocument.deserialize(content=text, format="jsonld")
-    expected = _new_doc()
+    expected = ex_document()
     expected.entity(
         "ex:e1",
         (("prov:type", expected.valid_qualified_name("prov:Collection")),),
@@ -279,7 +274,7 @@ def test_deserialize_mixed_context_registers_namespace_prefixes() -> None:
         }
     )
     doc = ProvDocument.deserialize(content=text, format="jsonld")
-    expected = _new_doc()
+    expected = ex_document()
     expected.entity("ex:e1")
     assert doc == expected
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
@@ -359,7 +354,7 @@ def test_deserialize_context_with_version_registers_namespace_prefixes() -> None
         }
     )
     doc = ProvDocument.deserialize(content=text, format="jsonld")
-    expected = _new_doc()
+    expected = ex_document()
     expected.entity("ex:e1")
     assert doc == expected
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
@@ -386,7 +381,7 @@ def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixe
         }
     )
     doc = ProvDocument.deserialize(content=text, format="jsonld")
-    expected = _new_doc()
+    expected = ex_document()
     expected.entity("ex:e1")
     assert doc == expected
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
@@ -400,7 +395,7 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
     # or its own prov/xsd/rdfs/rdf prefix strings would get registered on
     # the bundle, changing what deserialize() produces (see the docstring of
     # _is_embedded_submission_context).
-    doc = _new_doc()
+    doc = ex_document()
     doc.entity("ex:e1")
     doc.activity("ex:a1", "2011-11-16T16:05:00")
     doc.wasGeneratedBy("ex:e1", "ex:a1")
@@ -539,7 +534,7 @@ def test_deserialize_membership_entity_array_gives_one_record_per_member(
     doc = ProvDocument.deserialize(
         content=_membership_payload(entities), format="jsonld"
     )
-    expected = _new_doc()
+    expected = ex_document()
     expected.entity("ex:c")
     expected.hadMember("ex:c", "ex:e1")
     expected.hadMember("ex:c", "ex:e2")
@@ -552,7 +547,7 @@ def test_deserialize_membership_single_element_array() -> None:
     doc = ProvDocument.deserialize(
         content=_membership_payload(["ex:e1"]), format="jsonld"
     )
-    expected = _new_doc()
+    expected = ex_document()
     expected.entity("ex:c")
     expected.hadMember("ex:c", "ex:e1")
     assert doc == expected
@@ -688,7 +683,7 @@ FOAF_URI = "http://xmlns.com/foaf/0.1/"
 
 def _arthur_document(past_project) -> ProvDocument:
     """Build the document the ProvToolbox ``prov-jsonld-7`` fixtures decode to."""
-    doc = _new_doc()
+    doc = ex_document()
     doc.add_namespace("foaf", FOAF_URI)
     doc.entity("ex:shed")
     doc.agent("ex:arthur", (("foaf:pastProject", past_project),))
@@ -709,7 +704,7 @@ def test_interop_provtoolbox_string_with_colon() -> None:
     doc = prov.read(
         FIXTURE_DIR / "provtoolbox-string-with-colon.jsonld", format="jsonld"
     )
-    expected = _new_doc()
+    expected = ex_document()
     expected.activity("ex:meeting", other_attributes={"ex:note": "Meeting at 10:30"})
     assert doc == expected
 

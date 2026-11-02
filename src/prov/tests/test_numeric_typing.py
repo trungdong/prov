@@ -11,21 +11,16 @@ import pytest
 
 from prov.constants import XSD_INT, XSD_LONG
 from prov.model import Literal, ProvDocument
+from prov.tests.conftest import ex_document
 
 INT32_MAX = 2**31 - 1
 INT64_MAX = 2**63 - 1
 
 
-def _doc():
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
-
-
 def test_in_range_xsd_long_literal_stays_a_literal() -> None:
     # #235: the asserted datatype is part of the value; xsd:long for a value
     # whose canonical datatype is xsd:int must not be collapsed.
-    entity = _doc().entity("ex:e1", {"ex:attr": Literal("42", XSD_LONG)})
+    entity = ex_document().entity("ex:e1", {"ex:attr": Literal("42", XSD_LONG)})
     ((_, value),) = entity.extra_attributes
     assert value == Literal("42", XSD_LONG)
 
@@ -33,20 +28,22 @@ def test_in_range_xsd_long_literal_stays_a_literal() -> None:
 def test_out_of_int32_xsd_long_literal_collapses_losslessly() -> None:
     # canonical datatype of 123456789000 IS xsd:long, so collapsing to a
     # plain int loses nothing: re-serialization asserts xsd:long again.
-    entity = _doc().entity("ex:e1", {"ex:attr": Literal("123456789000", XSD_LONG)})
+    entity = ex_document().entity(
+        "ex:e1", {"ex:attr": Literal("123456789000", XSD_LONG)}
+    )
     ((_, value),) = entity.extra_attributes
     assert value == 123456789000
 
 
 def test_plain_int_in_range_unchanged() -> None:
-    entity = _doc().entity("ex:e1", {"ex:attr": 42})
+    entity = ex_document().entity("ex:e1", {"ex:attr": 42})
     ((_, value),) = entity.extra_attributes
     assert value == 42 and type(value) is int
 
 
 def test_explicit_xsd_int_literal_in_range_still_collapses() -> None:
     # collapse remains lossless for xsd:int in range: today's behaviour kept.
-    entity = _doc().entity("ex:e1", {"ex:attr": Literal("42", XSD_INT)})
+    entity = ex_document().entity("ex:e1", {"ex:attr": Literal("42", XSD_INT)})
     ((_, value),) = entity.extra_attributes
     assert value == 42
 
@@ -54,7 +51,7 @@ def test_explicit_xsd_int_literal_in_range_still_collapses() -> None:
 def test_provn_int_magnitude_ladder() -> None:
     # #249: bare INT_LITERAL is xsd:int sugar, so out-of-int32 values must
     # carry an explicit in-range datatype.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:small", {"ex:v": 5})
     document.entity("ex:big", {"ex:v": INT32_MAX + 1})
     document.entity("ex:huge", {"ex:v": INT64_MAX + 1})
@@ -66,7 +63,7 @@ def test_provn_int_magnitude_ladder() -> None:
 
 def test_provn_float_full_precision_double() -> None:
     # #251: floats are xsd:double at full repr precision, matching JSON/XML/RDF.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:v": 0.123456789})
     provn = document.get_provn()
     assert '"0.123456789" %% xsd:double' in provn
@@ -74,7 +71,7 @@ def test_provn_float_full_precision_double() -> None:
 
 
 def test_literal_built_with_int_value_equals_json_roundtrip() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:attr": Literal(42, XSD_LONG)})
     roundtripped = ProvDocument.deserialize(
         content=document.serialize(format="json"), format="json"
@@ -94,14 +91,14 @@ BOUNDARY_INTS = [
 
 @pytest.mark.parametrize("value", BOUNDARY_INTS)
 def test_int_boundaries_roundtrip(value, roundtrip) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:v": value})
     roundtrip(document)
 
 
 def test_json_dollar_is_always_a_string() -> None:
     # #246: the submission's typedLiteral schema requires a string "$".
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:i": 100, "ex:f": 0.5, "ex:big": INT32_MAX + 1})
     container = json.loads(document.serialize(format="json"))
     attrs = container["entity"]["ex:e1"]

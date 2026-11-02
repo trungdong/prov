@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from prov.constants import PROV
-from prov.identifier import Namespace, QualifiedName
+from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
     Literal,
     NamespaceManager,
@@ -23,7 +23,7 @@ from prov.model import (
 
 from . import examples
 from .attribute_values import document as attribute_values_document
-from .conftest import Roundtrip, default_namespace, ex_document
+from .conftest import EX_URI, Roundtrip, default_namespace, ex_document
 from .test_provn_corpus import (
     CORPUS,
     EXCLUDED_PROVTOOLBOX_DOCUMENTS,
@@ -264,36 +264,92 @@ def test_every_bundle_reads_its_document_through_its_namespace_parent(
 
 
 @pytest.mark.parametrize(
-    ("own", "failing", "error", "match"),
+    ("held_id", "own", "failing", "error", "match"),
     [
-        (False, "zz:x", ProvExceptionInvalidQualifiedName, None),
-        (False, "ex:a", ProvException, "already exists"),
-        (True, "ex:a", ProvException, "already exists"),
+        ("ex:a", False, "zz:x", ProvExceptionInvalidQualifiedName, None),
+        ("ex:a", False, "ex:a", ProvException, "already exists"),
+        ("ex:a", True, "ex:a", ProvException, "already exists"),
+        ("ex:a", False, Namespace("alt", EX_URI)["a"], ProvException, "already exists"),
+        (
+            "ex:a",
+            False,
+            Identifier("http://zz.example/x"),
+            ProvExceptionInvalidQualifiedName,
+            None,
+        ),
+        (
+            Namespace("zz", "http://zz.example/")["b"],
+            False,
+            default_namespace("http://zz.example/")["b"],
+            ProvException,
+            "already exists",
+        ),
     ],
-    ids=["unresolvable", "collision", "own document"],
+    ids=[
+        "unresolvable",
+        "collision",
+        "own document",
+        "collision by IRI",
+        "identifier no namespace compacts",
+        "held IRI in an undeclared default namespace",
+    ],
 )
 def test_a_refused_bundle_keeps_its_identifier_and_no_link_to_the_document(
+    held_id: str | QualifiedName,
     own: bool,
-    failing: str,
+    failing: str | Identifier,
     error: type[ProvException],
     match: str | None,
 ) -> None:
     d1 = ex_document()
     d2 = ex_document()
-    held = d1.bundle("ex:a")
+    held = ProvBundle()
+    d1.add_bundle(held, held_id)
+    held_identifier = held.identifier
     bundle = held if own else ProvBundle()
     bundles = list(d1.bundles)
+    bundle_namespaces = list(bundle.get_registered_namespaces())
+    document_namespaces = list(d1.get_registered_namespaces())
 
     with pytest.raises(error, match=match):
         d1.add_bundle(bundle, failing)
 
     assert bundle._namespaces.parent is (d1._namespaces if own else None)
-    assert bundle.identifier == (d1.valid_qualified_name("ex:a") if own else None)
+    assert bundle.identifier == (held_identifier if own else None)
     assert list(d1.bundles) == bundles
+    assert list(bundle.get_registered_namespaces()) == bundle_namespaces
+    assert list(d1.get_registered_namespaces()) == document_namespaces
     if not own:
         d2.add_bundle(bundle, "ex:b")
         assert bundle._namespaces.parent is d2._namespaces
         assert list(d2.bundles) == [bundle]
+
+
+@pytest.mark.parametrize(
+    ("declared", "identifier"),
+    [
+        (None, Namespace("zz", "http://zz.example/")["b"]),
+        ("bb", "bb:x"),
+    ],
+    ids=["foreign QualifiedName", "prefix only the bundle declares"],
+)
+def test_an_added_bundle_registers_its_identifier_namespace_on_the_bundle_only(
+    declared: str | None,
+    identifier: str | QualifiedName,
+) -> None:
+    document = ex_document()
+    bundle = ProvBundle()
+    if declared:
+        bundle.add_namespace(declared, f"http://{declared}.example/")
+    document_namespaces = list(document.get_registered_namespaces())
+
+    document.add_bundle(bundle, identifier)
+
+    assert str(bundle.identifier) == str(identifier)
+    assert [n.prefix for n in bundle.get_registered_namespaces()] == [
+        str(identifier).split(":")[0]
+    ]
+    assert list(document.get_registered_namespaces()) == document_namespaces
 
 
 def test_update_into_a_document_without_a_default_is_rejected() -> None:

@@ -19,14 +19,19 @@ Three different questions are answered here:
 import importlib
 import importlib.util
 import io
+import json
+import os
+import subprocess  # nosec B404
+import sys
 import tomllib
-from pathlib import Path
 
 import pytest
 
 import prov.model
 import prov.serializers
+from prov.constants import PROV_ATTRIBUTES
 from prov.model import ProvDocument
+from prov.tests.conftest import REPO_ROOT
 from prov.tests.examples import primer_example
 
 PUBLIC_API = {
@@ -78,7 +83,6 @@ PUBLIC_API = {
         "XSD",
         "XSI",
         "parse_xsd_datetime",
-        "sorted_attributes",
     ],
     "prov.identifier": ["Identifier", "QualifiedName", "Namespace"],
     "prov.constants": [
@@ -356,6 +360,27 @@ def test_names_importable() -> None:
     assert unlisted == [], f"__all__ names missing from PUBLIC_API: {unlisted}"
 
 
+@pytest.mark.parametrize("seed", ["1", "2"])
+def test_attribute_constants_keep_one_order_under_every_hash_seed(seed: str) -> None:
+    code = (
+        "import json\n"
+        "from prov.constants import PROV_ID_ATTRIBUTES_MAP, PROV_RECORD_ATTRIBUTES\n"
+        "print(json.dumps([\n"
+        "    [s for _, s in PROV_RECORD_ATTRIBUTES],\n"
+        "    list(PROV_ID_ATTRIBUTES_MAP.values()),\n"
+        "]))\n"
+    )
+    child = subprocess.run(  # nosec B603 - nosemgrep
+        [sys.executable, "-P", "-c", code],
+        env={**os.environ, "PYTHONHASHSEED": seed},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    expected = sorted(str(attr) for attr in PROV_ATTRIBUTES)
+    assert json.loads(child.stdout) == [expected, expected]
+
+
 def test_serializer_registry_formats() -> None:
     for fmt in ("json", "xml", "rdf", "provn", "jsonld"):
         # get() raises DoNotExist for unknown formats
@@ -403,7 +428,7 @@ in ``pyproject.toml`` in the same commit; a new module never joins.
 
 
 def test_mypy_override_list_only_shrinks() -> None:
-    pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    pyproject = REPO_ROOT / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("pyproject.toml is not part of the installed package")
     overrides = tomllib.loads(pyproject.read_text())["tool"]["mypy"]["overrides"]

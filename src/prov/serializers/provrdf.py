@@ -473,7 +473,9 @@ class ProvRDFSerializer(Serializer):
                 used when building the relation predicates; defaults to
                 :data:`~prov.constants.PROV_N_MAP`.
             **kwargs: Extra keyword arguments passed through to rdflib's
-                ``Graph.serialize()``.
+                ``Graph.serialize()``. rdflib is asked for UTF-8, and a text
+                stream receives that output decoded as UTF-8, so do not pass
+                another ``encoding`` with a text stream.
 
         Raises:
             ProvRDFException: If ``self.document`` is ``None``.
@@ -482,16 +484,13 @@ class ProvRDFSerializer(Serializer):
             raise ProvRDFException("No document to serialize.")
 
         container = self.encode_document(self.document, PROV_N_MAP=PROV_N_MAP)
-        newargs = kwargs.copy()
-        newargs["format"] = rdf_format
+        newargs = {"encoding": "utf-8", **kwargs, "format": rdf_format}
 
         buf = io.BytesIO()
         try:
             container.serialize(buf, **newargs)
             buf.seek(0, 0)
-            # Right now this is a bytestream. If the object to stream to is
-            # a text object is must be decoded. We assume utf-8 here which
-            # should be fine for almost every case.
+            # The buffer holds rdflib's UTF-8 bytes, decoded for a text stream.
             if _is_text_stream(stream):
                 stream.write(buf.read().decode("utf-8"))
             else:

@@ -219,7 +219,7 @@ def read(
     source: StreamOrPath,
     format: str | None = None,
     **kwargs: Any,
-) -> ProvDocument | None:
+) -> ProvDocument:
     """Read a :class:`~prov.model.ProvDocument` from a file, path, or string.
 
     A ``str``/``bytes`` source naming an existing file is read from that

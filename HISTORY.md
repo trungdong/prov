@@ -480,6 +480,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `prov.scripts.convert.CLIError` lacks the `E:` prefix in its `str()` or `.msg` and holds the
   library's message. `prov.scripts.compare.CLIError` and the `__version__` of both modules
   are gone ([#737](https://github.com/trungdong/prov/issues/737))
+- A `Literal` whose datatype is not a `QualifiedName` (or `None`) raises `ProvValueError`
+  where it is built or unpickled, so pass the resolved name, where 3.2.3 accepted any
+  object ([#705](https://github.com/trungdong/prov/issues/705))
 
 ### Additions
 
@@ -615,6 +618,17 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `prov_to_dot()` and `plot()` with `use_labels=True` draw an element that has no
   `prov:label` with its identifier once, where 3.2.3 drew the identifier twice, as the
   node text and again beneath it ([#695](https://github.com/trungdong/prov/issues/695))
+- A refused `ProvDocument.add_bundle()` leaves the bundle's document link, identifier and
+  namespaces as they were, where 3.2.3 left the bundle linked and could set its identifier
+  and register its namespace ([#726](https://github.com/trungdong/prov/issues/726))
+- Writing N-Triples, as `rdf_format="nt"` or `prov-convert` to a `.nt` file, prints no
+  rdflib encoding warning, where 3.2.3 printed `UserWarning: NTSerializer always uses UTF-8
+  encoding` ([#742](https://github.com/trungdong/prov/issues/742))
+- `prov-convert` reads its input before it opens the output file, so an input that fails to
+  parse leaves an existing output file as it was, where 3.2.3 emptied it
+  ([#742](https://github.com/trungdong/prov/issues/742))
+- `prov.read()` is annotated as returning a `ProvDocument`, where 3.2.3 said
+  `ProvDocument | None` ([#742](https://github.com/trungdong/prov/issues/742))
 
 ### Project
 
@@ -711,6 +725,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   then fail to find it. A subclass may still set attributes of its own; one that set a
   base field in its own `__init__` calls the base class's `__init__` instead
   ([#444](https://github.com/trungdong/prov/issues/444))
+- `sorted_attributes` is no longer part of the public API; it stays importable
+  ([#742](https://github.com/trungdong/prov/issues/742))
 
 ## 3.2.3 (2026-10-19)
 
