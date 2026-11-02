@@ -35,7 +35,9 @@ A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager, and o
 factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
 {py:class}`~prov.model.ProvDocument` is a bundle that can also contain named bundles, and
 is the unit that serializes. Records are created through the bundle so that identifiers
-resolve against its namespaces. The bundle records every namespace a record mentions.
+resolve against its namespaces. A bundle declares only the namespaces it binds itself. A
+name in the document's namespaces resolves through the document, and a name built from a
+`Namespace` that nothing declared is registered on the bundle.
 
 Two transformations leave the original untouched. {py:meth}`~prov.model.ProvDocument.unified`
 merges records that share an identifier under the PROV-CONSTRAINTS rules and returns a new
@@ -65,11 +67,8 @@ naming the extra to install when the format is one of the optional ones.
 ## Extras
 
 The core package has no runtime dependencies. `rdflib` sits behind the `rdf` extra, `lxml`
-behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, and
-`matplotlib`, `pydot` and `networkx` behind `plot`, and `pygments` behind `pygments` (see
+behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, `matplotlib`,
+`pydot` and `networkx` behind `plot`, and `pygments` behind `pygments` (see
 {doc}`../installation`). `prov.graph`, `prov.dot` and `prov.pygments` raise
 `ModuleNotFoundError` naming the extra when imported without it. `prov.pygments` imports
-nothing from `prov` and nothing but Pygments and the standard library, because Pygments
-imports it on every plugin scan and a plugin that raises breaks every lookup that reaches
-the plugins. A scan therefore costs only the `prov/__init__` floor, and anything added to
-`prov/__init__.py` is paid by every plugin scan in every environment with prov installed.
+nothing from `prov`, and {doc}`../development` gives the reason.

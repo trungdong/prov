@@ -85,12 +85,12 @@ attributes, following the key constraints of the W3C specification. Position by 
 
 The records' remaining ("extra") attributes are unioned onto the merged record, as a set,
 so identical values are deduplicated and distinct values all accumulate. Records with a
-unique identifier, and records with no identifier, are not merged, and neither are
+unique identifier, and records with no identifier, are not merged. Neither are
 `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records that share one,
-since PROV-DM and PROV-Links give these four relations no identifier. After the merge,
-`unified()` keeps each record once. A record equal to an earlier one, by the library's
-`==`, is dropped and the earlier one keeps its position. Two anonymous `used` statements
-that differ in one attribute are two statements and both stay.
+since PROV-DM and PROV-Links give these four relations no identifier, but a duplicate is
+still dropped. After the merge, `unified()` keeps each record once. A record equal to an
+earlier one (see {ref}`equality`) is dropped and the earlier one keeps its position. Two
+anonymous `used` statements that differ in one attribute are two statements and both stay.
 
 ### Worked example
 
@@ -138,8 +138,7 @@ endDocument
 Asserting records never checks for one, by design, because PROV statements are asserted
 incomplete, one piece at a time, and a later `unified()` call, if any, reconciles them.
 The parties of `hadMember`, `alternateOf`, `specializationOf` and `mentionOf` are an
-exception, since the model refuses those four relations without them
-([#710](https://github.com/trungdong/prov/issues/710)).
+exception, since the model refuses those four relations without them.
 
 {py:meth}`ProvDocument.unified() <prov.model.ProvDocument.unified>` applies this to the
 document's top-level records and, independently, to each bundle. Nothing merges across a

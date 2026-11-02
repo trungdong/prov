@@ -37,6 +37,14 @@ The PROV-N reader and writer set the pattern for any new serializer.
   writer keywords the command line may name in `serialize_options`, and the CLI checks
   `-w` names against it.
 
+## The `prov.pygments` module
+
+`prov.pygments` imports nothing from `prov` and nothing but Pygments and the standard
+library. Pygments imports it on every plugin scan, and a plugin that raises breaks every
+lookup that reaches the plugins. A scan therefore costs only the `prov/__init__` floor.
+Anything added to `prov/__init__.py` is paid by every plugin scan in every environment with
+`prov` installed.
+
 ## Tests
 
 The test suite lives at `src/prov/tests/`. The sdist holds it and the wheel does not. Shared

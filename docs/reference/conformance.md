@@ -18,11 +18,12 @@ Summary:
   it holds; ✓ C1 means it holds except in the case caveat C1 describes; ✗ C2 means the
   format cannot represent the concept.
 - The PROV-N column shows the keyword `get_provn()` writes. Every row round-trips through
-  PROV-N under the `default` profile, and under `strict` when written with `strict=True`.
-- `prov` enforces no structural constraint at assertion time ([#257](https://github.com/trungdong/prov/issues/257)),
-  except that `hadMember`, `alternateOf`, `specializationOf` and `mentionOf` require their
-  parties ([#710](https://github.com/trungdong/prov/issues/710)); general validation is
-  [#62](https://github.com/trungdong/prov/issues/62). Merge-time conformance,
+  PROV-N under the `default` profile, and under `strict` when written with `strict=True`,
+  except that a strict write drops the identifier and attribute block of a `hadMember`,
+  `alternateOf` or `specializationOf` ({doc}`../howto/provn`).
+- `prov` enforces no structural constraint at assertion time, except that `hadMember`,
+  `alternateOf`, `specializationOf` and `mentionOf` require their parties; general
+  validation is [#62](https://github.com/trungdong/prov/issues/62). Merge-time conformance,
   PROV-CONSTRAINTS unification, is `unified()`'s job and is described in
   {doc}`../explanation/unification-flattening`.
 
@@ -34,7 +35,7 @@ Summary:
 | Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ | ✓ |
 | Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ C1 | ✓ |
 | Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ C1 | ✓ |
-| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ | ✓ |
+| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ C1 | ✓ |
 | Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ C1 | ✓ |
 | End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ C1 | ✓ |
 | Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ C1 | ✓ |
@@ -48,10 +49,10 @@ with the record itself as subject.
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Derivation §5.2.1 | {py:class}`~prov.model.ProvDerivation` | `derivation()` / `wasDerivedFrom()` | `wasDerivedFrom` | ✓ | ✓ | ✓ | ✓ |
-| Revision §5.2.2 | {py:class}`~prov.model.ProvDerivation` + `prov:Revision` type | `revision()` / `wasRevisionOf()` | `wasDerivedFrom` with `[prov:type='prov:Revision']` | ✓ | ✓ | ✓ | ✓ |
-| Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` with `[prov:type='prov:Quotation']` | ✓ | ✓ | ✓ | ✓ |
-| Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` with `[prov:type='prov:PrimarySource']` | ✓ | ✓ | ✓ | ✓ |
+| Derivation §5.2.1 | {py:class}`~prov.model.ProvDerivation` | `derivation()` / `wasDerivedFrom()` | `wasDerivedFrom` | ✓ | ✓ | ✓ C1 | ✓ |
+| Revision §5.2.2 | {py:class}`~prov.model.ProvDerivation` + `prov:Revision` type | `revision()` / `wasRevisionOf()` | `wasDerivedFrom` with `[prov:type='prov:Revision']` | ✓ | ✓ | ✓ C1 | ✓ |
+| Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` with `[prov:type='prov:Quotation']` | ✓ | ✓ | ✓ C1 | ✓ |
+| Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` with `[prov:type='prov:PrimarySource']` | ✓ | ✓ | ✓ C1 | ✓ |
 
 The three subtypes share one class and differ only in `prov:type`, which is how PROV-N
 expresses them: the grammar has no `wasRevisionOf` keyword.
@@ -62,11 +63,11 @@ expresses them: the grammar has no `wasRevisionOf` keyword.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ | ✓ |
 | Person / Organization / SoftwareAgent §5.3.1 | `prov:type` on {py:class}`~prov.model.ProvAgent` | none, see "Not implemented" | `agent` with `[prov:type='prov:Person']` and so on | ✓ | ✓ | ✓ | ✓ |
-| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ | ✓ |
-| Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ | ✓ |
+| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ C1 | ✓ |
+| Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ C1 | ✓ |
 | Plan §5.3.3 | the entity named by `association(plan=...)` | none | none; the plan is the association's third argument | ✓ | ✓ | ✓ | ✓ |
-| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ | ✓ |
-| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ | ✓ |
+| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ C1 | ✓ |
+| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ C1 | ✓ |
 
 ## Component 4: Bundles
 
@@ -79,8 +80,7 @@ Only a {py:class}`~prov.model.ProvDocument` may contain named bundles. A bundle 
 is resolved in the bundle's own scope (PROV-N section 3.4.1), so a declaration on the bundle
 that would change what its identifier reads as, its own default while the identifier is
 bare in the document's default, or a rebinding of the identifier's prefix, is refused with a
-{py:class}`~prov.model.ProvException`
-([#573](https://github.com/trungdong/prov/issues/573)).
+{py:class}`~prov.model.ProvException`.
 
 ## Component 5: Alternate Entities
 
@@ -112,27 +112,30 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | Boolean | `xsd:boolean`, spelled `true` and `false`; `1` and `0` read as the same value and keep their text | ✓ |
 | Python `int` with no datatype | `xsd:int` when it fits 32 bits, else `xsd:long` when it fits 64, else `xsd:integer`; PROV-N writes `xsd:int` as a bare number | ✓ |
 | Integer with an asserted datatype (`xsd:long`, `xsd:short`, `xsd:unsignedByte`, ...) | the asserted datatype, never collapsed to a narrower one | ✓ |
-| `xsd:decimal` | as given; compared in value space, so `10`, `10.0` and `"10.00"` are one value | ✓ |
+| `xsd:decimal` | as given; `10`, `10.0` and `"10.00"` are one value (see {ref}`equality`) | ✓ |
 | Python `float` | `xsd:double` at full precision | ✓ |
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
 | `xsd:dateTime` | the `xsd:dateTime` lexical form with at most six fractional digits and a year from 1 to 9999; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one, a longer fraction or a year outside the range stays a `Literal`; PROV-O reads a longer fraction truncated (C10) | ✓ C7 C10 |
-| `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` and the `xsd:integer` family compare in value space, so `"1"` and `"01"` as `xsd:int` are one value and a text outside the lexical space or the subtype's range compares as text; an `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond single precision are two values; every other datatype compares as text; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
-| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ C10 |
+| `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given, compared by the rules in {ref}`equality`; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
+| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form listed under {ref}`python-values`; a value of any other type is rejected | ✓ C10 |
 
 ## Permanent limitations
 
 Two constructs cannot round-trip, and no change is planned.
 
-- **C1. Two relations with the same identifier and different `prov:time` (PROV-O, permanent).**
-  PROV-O names a relation by its identifier, so two asserted relations that share one and
-  differ only in time land on one node. Only that construct is affected; decoding
-  third-party RDF shaped this way raises `prov.serializers.provrdf.ProvRDFException`.
-  Minting a synthetic IRI and guessing values on decode were both rejected
-  ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` reports the
-  conflict.
+- **C1. Two relations of one type with the same identifier that differ (PROV-O, permanent).**
+  PROV-O names a relation by its identifier, so two relations that share one write their
+  triples onto one node, and the write succeeds. Reading the node back raises
+  `prov.serializers.provrdf.ProvRDFException` for most differences in a formal attribute
+  after the first, such as `prov:time`. It returns one record where two were written, which
+  compares unequal, when the first formal attribute or an extra attribute differs. A few
+  differences, such as the agents of two associations, read back as two records. Third-party
+  RDF shaped this way reads the same way. Minting a synthetic IRI and guessing values on
+  decode were both rejected ([#217](https://github.com/trungdong/prov/issues/217)).
+  `unified()` merges the two records or raises for a conflict in a formal attribute.
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
   serialising or deserialising a document with a {py:class}`~prov.model.ProvMention` raises
-  `prov.serializers.provjsonld.ProvJSONLDException` ([#248](https://github.com/trungdong/prov/issues/248)).
+  `prov.serializers.provjsonld.ProvJSONLDException`.
 
 ## Format notes
 
@@ -164,7 +167,7 @@ blank `<prov:entity/>` still raises the reader's error.
 ### PROV-N profiles
 
 {doc}`../howto/provn` lists what each of the three profiles, `strict`, `default` and
-`lenient`, accepts.
+`lenient`, accepts, including the `-` rule and the skip of a statement that misses a party.
 
 No profile accepts the keywords `person`, `organization`, `softwareAgent`, `collection`,
 `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` or `hadPrimarySource`. They are
@@ -174,15 +177,10 @@ ProvToolbox's reader rejects them; they raise `ProvNSyntaxError` under `strict` 
 
 The reader also accepts a leading byte order mark, a carriage return as a line end, an
 all-digit local name as an attribute name or datatype, and a `bytearray` stream. A
-prefix declared twice in one scope, a repeated `default`, a declared prefix that is not
-a `PN_PREFIX`, a prefix name that holds an escape, a code point escape with a lowercase
-hex digit, a Unicode whitespace character other than space, tab, CR and LF between
-tokens, a duplicate bundle identifier, and an attribute named after one of the
-statement's own arguments are errors.
-
-`strict` raises at a `-` where the grammar has a plain identifier. `default` and `lenient`
-accept the `-`, except that a `hadMember`, `alternateOf`, `specializationOf` or
-`mentionOf` missing a party is skipped with a `ProvWarning` under both.
+declared prefix that is not a `PN_PREFIX`, a prefix name that holds an escape, a code
+point escape with a lowercase hex digit, a Unicode whitespace character other than space,
+tab, CR and LF between tokens, a duplicate bundle identifier, and an attribute named after
+one of the statement's own arguments are errors.
 
 ### PROV-XML
 
@@ -218,8 +216,8 @@ accept the `-`, except that a `hadMember`, `alternateOf`, `specializationOf` or
   `ProvWarning` and keeps the attribute's other values. A node reference with a key other
   than `@id`, or with an empty `@id`, raises `ProvJSONLDException`. `prov` writes a
   qualified name under any attribute other than `type`, `location` and `role` as a node
-  reference. It still reads an `xsd:QName` or `prov:QUALIFIED_NAME` value object, the form
-  3.2.x wrote, as a qualified name, although a JSON-LD processor reads that as a typed
+  reference. It still reads an `xsd:QName` or `prov:QUALIFIED_NAME` value object as a
+  qualified name, although a JSON-LD processor reads that as a typed
   literal. The schema's `label` production admits only strings, so a qualified name
   under `prov:label` does not validate in either form.
 
@@ -227,7 +225,7 @@ accept the `-`, except that a `hadMember`, `alternateOf`, `specializationOf` or
 
 - An attribute predicate under a namespace declared neither in the document nor in the graph
   gets a minted prefix, with a `ProvWarning`.
-- Two relations sharing an identifier raise, as C1 describes.
+- Two relations of one type sharing an identifier read as C1 describes.
 - A relation whose subject is a blank node reads with no identifier; an element's blank-node
   label resolves in the default namespace.
 - An attribute whose object is a blank node that names no record, such as a
@@ -259,21 +257,19 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
 
 - **C3. PROV-XML escapes attribute names that are not NCNames.** A name may start with a digit
   or contain `' ( ) , : ; [ ] =`; each illegal character is written as `_xHHHH_`, the OpenXML
-  convention, and reversed on read ([#289](https://github.com/trungdong/prov/issues/289)). A third-party name that already looks like
+  convention, and reversed on read. A third-party name that already looks like
   an escape is therefore unescaped.
 - **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, cannot
   be in a local part: `QualifiedName` rejects it when built, from any format or from code,
   since the only PROV-N spelling would be a percent-encoding that reads back as a different
-  IRI ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
+  IRI. PROV-O rejects an IRI containing a space. A namespace prefix
   must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
   `.`). `Namespace` rejects one that is not when it is built, from any format or from code,
-  and `prov` does not rename it ([#668](https://github.com/trungdong/prov/issues/668)).
+  and `prov` does not rename it.
 - **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built;
-  PROV-XML's `xml:lang=""` is rejected on read
-  ([#472](https://github.com/trungdong/prov/issues/472)).
+  PROV-XML's `xml:lang=""` is rejected on read.
 - **C6. Language tag that is not BCP 47.** A tag such as `en_US` is rejected when the
-  `Literal` is built, from any format or from code, so no writer meets one
-  ([#472](https://github.com/trungdong/prov/issues/472)).
+  `Literal` is built, from any format or from code, so no writer meets one.
 - **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
   in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
   the round trip compares equal; the original offset is not preserved.
@@ -281,13 +277,11 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
   parses them, before `prov` sees them, so PROV-O reads these differently from every other
   format: an `xsd:dateTime` fraction beyond six digits is truncated to microseconds, so such
   a time reads as the truncated `datetime` where the other formats reject it as a time of a
-  statement and keep it as a `Literal` as an attribute value
-  ([#514](https://github.com/trungdong/prov/issues/514)); an `xsd:decimal` text in exponent
+  statement and keep it as a `Literal` as an attribute value; an `xsd:decimal` text in exponent
   form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
   reads as rdflib's decimal text and compares as the value `10`; a numeric spelling such as
   `05` or `1e0` reads as the canonical one, which compares equal; and an `xsd:duration` text
-  reads in rdflib's normalised form, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`
-  ([#620](https://github.com/trungdong/prov/issues/620)), and the zero-duration row of the
+  reads in rdflib's normalised form, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`, and the zero-duration row of the
   converted-value round trip is skipped for RDF.
 - **C11. A `NaN` beside a decimal, or a decimal `NaN` beside a number.** rdflib's Turtle, long
   Turtle (`longturtle`), TriG and N3 writers order the values of one predicate by value. An
