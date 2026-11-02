@@ -477,7 +477,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the input format, and `-V`, the one-line error, exit 130 and `main(argv)` changed
   ([how-to](https://prov.readthedocs.io/en/latest/howto/cli.html),
   [#737](https://github.com/trungdong/prov/issues/737))
-- `prov.scripts.convert.CLIError` has no `E: ` prefix in its `str()` or `.msg` and holds the
+- `prov.scripts.convert.CLIError` lacks the `E:` prefix in its `str()` or `.msg` and holds the
   library's message. `prov.scripts.compare.CLIError` and the `__version__` of both modules
   are gone ([#737](https://github.com/trungdong/prov/issues/737))
 

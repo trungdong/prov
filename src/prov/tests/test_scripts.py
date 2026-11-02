@@ -81,12 +81,12 @@ EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
 TURTLE = {"rdf_format": "turtle"}
 
 
-def _write(path, format: str, **options) -> None:
-    primer_example().serialize(str(path), format=format, **options)
+def _write(path, fmt: str, **options) -> None:
+    primer_example().serialize(str(path), format=fmt, **options)
 
 
-def _read_back(path, format: str, **options) -> ProvDocument:
-    return ProvDocument.deserialize(str(path), format=format, **options)
+def _read_back(path, fmt: str, **options) -> ProvDocument:
+    return ProvDocument.deserialize(str(path), format=fmt, **options)
 
 
 # prov-convert.
@@ -470,11 +470,11 @@ def test_convert_detection_errors_exit_2_with_one_line(
 
 
 @pytest.mark.parametrize("stream", STDIN_STREAMS)
-@pytest.mark.parametrize("format", ["json", "provn"])
+@pytest.mark.parametrize("fmt", ["json", "provn"])
 def test_convert_detects_a_document_on_stdin(
-    tmp_path, monkeypatch, stream, format
+    tmp_path, monkeypatch, stream, fmt
 ) -> None:
-    data = primer_example().serialize(format=format).encode()
+    data = primer_example().serialize(format=fmt).encode()
     monkeypatch.setattr(sys, "stdin", STDIN_STREAMS[stream](data))
     target = tmp_path / "out.json"
     assert convert_main(["-", str(target)]) == 0
@@ -590,13 +590,12 @@ def test_closes_both_files_on_error(compare_files, monkeypatch) -> None:
     captured_sources = []
     original_deserialize = ProvDocument.deserialize
 
-    def spy_deserialize(source=None, content=None, format="json", **kwargs):
+    def spy_deserialize(source=None, content=None, **kwargs):
         captured_sources.append(source)
         if len(captured_sources) == 2:
             raise RuntimeError("boom")
-        return original_deserialize(
-            source=source, content=content, format=format, **kwargs
-        )
+        kwargs.setdefault("format", "json")
+        return original_deserialize(source=source, content=content, **kwargs)
 
     monkeypatch.setattr(ProvDocument, "deserialize", staticmethod(spy_deserialize))
     monkeypatch.setattr(sys, "argv", ["prov-compare", str(json_file), str(xml_file)])

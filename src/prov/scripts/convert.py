@@ -132,9 +132,9 @@ def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     extension's row, else a Graphviz format named by the extension, else
     PROV-JSON, which is also the format for standard output.
     """
-    format, options = _input_format(path, flag)
-    if format != "auto":
-        return format, options
+    fmt, options = _input_format(path, flag)
+    if fmt != "auto":
+        return fmt, options
     graphviz = os.path.splitext(path)[1][1:].lower()
     return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
 

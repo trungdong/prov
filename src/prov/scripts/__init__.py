@@ -67,15 +67,15 @@ def _input_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     return ("auto", {}) if row is None else (row[0], dict(row[1]))
 
 
-def _read(stream: IO[Any], format: str, options: Mapping[str, Any]) -> ProvDocument:
-    """Read a document from ``stream`` in ``format``, passing ``options`` to the reader.
+def _read(stream: IO[Any], fmt: str, options: Mapping[str, Any]) -> ProvDocument:
+    """Read a document from ``stream`` in ``fmt``, passing ``options`` to the reader.
 
     ``auto`` detects the format from the content. Detection rewinds the
     stream between candidate readers, so a stream that cannot seek (a pipe, or
     one with no ``seekable`` method) is read into memory first, as ``BytesIO``
     for bytes and ``StringIO`` for text.
     """
-    auto = format.lower() == "auto"
+    auto = fmt.lower() == "auto"
     if auto:
         seekable = getattr(stream, "seekable", None)
         if seekable is None or not seekable():
@@ -86,7 +86,7 @@ def _read(stream: IO[Any], format: str, options: Mapping[str, Any]) -> ProvDocum
                 else io.StringIO(content)
             )
     # prov.read() is annotated "| None", but every path returns a document.
-    return cast(ProvDocument, prov.read(stream, None if auto else format, **options))
+    return cast(ProvDocument, prov.read(stream, None if auto else fmt, **options))
 
 
 def _open_binary(
