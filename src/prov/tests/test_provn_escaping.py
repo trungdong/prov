@@ -12,16 +12,11 @@ from prov.model import (
     ProvWarning,
     encoding_provn_value,
 )
+from prov.tests.conftest import ex_document
 
 METACHARS = "='(),:;[]"
 
 NS = Namespace("ex", "http://example.org/")
-
-
-def _doc() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
 
 
 def _roundtrips(document):
@@ -33,26 +28,26 @@ def _roundtrips(document):
 
 @pytest.mark.parametrize("ch", list(METACHARS))
 def test_metachar_local_parts_are_escaped(ch) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity(f"ex:na{ch}me")
     provn = document.get_provn()
     assert f"ex:na\\{ch}me" in provn
 
 
 def test_issue_repro_escaped_end_to_end() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:weird'name)x,y")
     assert "entity(ex:weird\\'name\\)x\\,y)" in document.get_provn()
 
 
 def test_plain_local_parts_unchanged() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:plain-name_1.x")
     assert "entity(ex:plain-name_1.x)" in document.get_provn()
 
 
 def test_string_literal_backslash_escaped_before_quotes() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:note": 'back\\slash and "quote"'})
     provn = document.get_provn()
     # backslash must be escaped first, giving an unambiguous \\ followed by \"
@@ -60,27 +55,27 @@ def test_string_literal_backslash_escaped_before_quotes() -> None:
 
 
 def test_bundle_identifier_metachar_is_escaped() -> None:
-    document = _doc()
+    document = ex_document()
     bundle = document.bundle("ex:weird'bundle")
     bundle.entity("ex:e1")
     assert "bundle ex:weird\\'bundle" in document.get_provn()
 
 
 def test_bundle_identifier_plain_unchanged() -> None:
-    document = _doc()
+    document = ex_document()
     bundle = document.bundle("ex:plain-bundle")
     bundle.entity("ex:e1")
     assert "bundle ex:plain-bundle" in document.get_provn()
 
 
 def test_attribute_name_metachar_is_escaped() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:weird'key": "value"})
     assert '[ex:weird\\\'key="value"]' in document.get_provn()
 
 
 def test_attribute_name_plain_unchanged() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:plain_key": "value"})
     assert '[ex:plain_key="value"]' in document.get_provn()
 
@@ -96,7 +91,7 @@ def test_attribute_name_plain_unchanged() -> None:
     ],
 )
 def test_dash_and_dot_local_parts(local, written) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity(f"ex:{local}")
     provn = _roundtrips(document)
     assert f"entity(ex:{written})" in provn
@@ -138,7 +133,7 @@ def test_every_local_part_that_can_be_built_is_written_reversibly() -> None:
 
 
 def test_short_string_carriage_return_is_escaped() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:note": "a\rb"})
     provn = _roundtrips(document)
     assert '[ex:note="a\\rb"]' in provn
@@ -146,7 +141,7 @@ def test_short_string_carriage_return_is_escaped() -> None:
 
 def test_crlf_string_stays_triple_quoted() -> None:
     """A CRLF value still takes the triple-quoted path, CR unaffected by the escape fix."""
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:note": "a\r\nb"})
     provn = _roundtrips(document)
     assert '[ex:note="""a\r\nb"""]' in provn
@@ -160,7 +155,7 @@ def test_mention_bare_keyword_no_prefix() -> None:
     ProvToolbox's ANTLR grammar (PROV_N.g:338), so provconvert keeps parsing prov's output.
     This test locks in the current syntax to prevent silent regressions.
     """
-    document = _doc()
+    document = ex_document()
     bundle = document.bundle("ex:bundle1")
     bundle.entity("ex:report1bis")
     bundle.mentionOf("ex:report1bis", "ex:report1", "ex:bundle2")
@@ -177,7 +172,7 @@ def test_mention_bare_keyword_no_prefix() -> None:
 
 
 def _mention_doc():
-    document = _doc()
+    document = ex_document()
     bundle = document.bundle("ex:b")
     bundle.entity("ex:e0")
     document.entity("ex:e1")
@@ -211,7 +206,7 @@ def test_serialize_strict_matches_get_provn_strict() -> None:
 
 
 def test_strict_flag_changes_nothing_without_a_mention() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:k": "v"})
     assert document.get_provn(strict=True) == document.get_provn()
 
@@ -226,14 +221,14 @@ def test_code_point_escapes_round_trip() -> None:
 
 
 def test_any_uri_value_with_quote_and_backslash_round_trips() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e", {"ex:v": Identifier('http://example.org/a"b\\c')})
     assert '"http://example.org/a\\"b\\\\c" %% xsd:anyURI' in _roundtrips(document)
 
 
 @pytest.mark.parametrize("uri", ["http://example.org/a\nb", "http://example.org/a\rb"])
 def test_any_uri_value_with_a_line_break_round_trips(uri) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e", {"ex:v": Identifier(uri)})
     _roundtrips(document)
 
@@ -258,7 +253,7 @@ class _RaisingLiteral(Literal):
 
 
 def test_provn_writer_lets_an_error_in_a_literal_subclass_propagate() -> None:
-    document = _doc()
+    document = ex_document()
     record = document.entity("ex:e", {"ex:v": _RaisingLiteral("x", NS["custom"])})
     assert any(type(v) is _RaisingLiteral for v in record.get_attribute("ex:v"))
     with pytest.raises(AttributeError, match="boom"):

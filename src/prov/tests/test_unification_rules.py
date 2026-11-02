@@ -29,20 +29,15 @@ from prov.model import (
     ProvMembership,
     ProvUnificationError,
 )
+from prov.tests.conftest import ex_document
 
 T1 = datetime.datetime(2011, 11, 16, 16, 0, 0)
 T2 = datetime.datetime(2011, 11, 16, 18, 0, 0)
 
 
-def _doc() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
-
-
 def test_spec_worked_example_merges() -> None:
     # PROV-CONSTRAINTS §6.1 worked example (Constraint 22).
-    document = _doc()
+    document = ex_document()
     document.activity("ex:a", startTime=T1, other_attributes={"ex:x": 1})
     document.activity("ex:a", endTime=T2, other_attributes={"ex:y": 2})
     unified = document.unified()
@@ -55,7 +50,7 @@ def test_spec_worked_example_merges() -> None:
 
 def test_conflicting_concrete_formal_attributes_raise() -> None:
     # Constraint 22: two concrete startTimes cannot unify.
-    document = _doc()
+    document = ex_document()
     document.activity("ex:a", startTime=T1)
     document.activity("ex:a", startTime=T2)
     with pytest.raises(ProvUnificationError) as ctx:
@@ -66,7 +61,7 @@ def test_conflicting_concrete_formal_attributes_raise() -> None:
 
 def test_conflicting_relation_endpoints_raise() -> None:
     # Constraint 23: same-id generations of different entities cannot unify.
-    document = _doc()
+    document = ex_document()
     document.generation("ex:e1", "ex:a1", identifier="ex:gen1")
     document.generation("ex:e2", "ex:a1", identifier="ex:gen1")
     with pytest.raises(ProvUnificationError):
@@ -75,7 +70,7 @@ def test_conflicting_relation_endpoints_raise() -> None:
 
 def test_unification_is_scoped_per_bundle() -> None:
     # §7.2: bundles unify independently; nothing merges across boundaries.
-    document = _doc()
+    document = ex_document()
     document.activity("ex:a", startTime=T1)
     bundle = document.bundle("ex:b1")
     bundle.activity("ex:a", startTime=T2)  # would conflict if scopes leaked
@@ -87,7 +82,7 @@ def test_entity_activity_same_id_raises_either_order() -> None:
     # Constraint 55 (entity-activity-disjoint): the same identifier can
     # never be both an entity and an activity.
     for order in (("entity", "activity"), ("activity", "entity")):
-        document = _doc()
+        document = ex_document()
         for kind in order:
             getattr(document, kind)("ex:thing")
         with pytest.raises(ProvUnificationError) as ctx:
@@ -101,7 +96,7 @@ def test_object_type_and_identified_relation_sharing_id_raises() -> None:
     # identifier with one of the eleven identified relations is impossible --
     # distinct from Constraint 55 (object-vs-object) and Constraint 53
     # (relation-vs-relation).
-    document = _doc()
+    document = ex_document()
     document.entity("ex:x")
     document.generation("ex:e1", "ex:a1", identifier="ex:x")
     with pytest.raises(ProvUnificationError) as ctx:
@@ -112,7 +107,7 @@ def test_object_type_and_identified_relation_sharing_id_raises() -> None:
 
 def test_agent_entity_overlap_is_permitted_and_unmerged() -> None:
     # Constraint 54 does not pair agent with entity: both statements stand.
-    document = _doc()
+    document = ex_document()
     document.agent("ex:x")
     document.entity("ex:x")
     assert len(list(document.unified().get_records())) == 2
@@ -121,7 +116,7 @@ def test_agent_entity_overlap_is_permitted_and_unmerged() -> None:
 def test_distinct_relation_kinds_sharing_id_raise() -> None:
     # Constraint 53: generation and usage are two of the nine pairwise
     # disjoint relations.
-    document = _doc()
+    document = ex_document()
     document.generation("ex:e1", "ex:a1", identifier="ex:r1")
     document.usage("ex:a1", "ex:e1", identifier="ex:r1")
     with pytest.raises(ProvUnificationError) as ctx:
@@ -139,7 +134,7 @@ def test_derivation_and_influence_sharing_id_is_permitted() -> None:
     # of the 53-vs-54 distinction: derivation and influence are both among
     # Constraint 54's eleven identified relations, but neither is an object
     # type, so Constraint 54 does not apply either.
-    document = _doc()
+    document = ex_document()
     document.derivation("ex:e2", "ex:e1", identifier="ex:r1")
     document.influence("ex:e2", "ex:e1", identifier="ex:r1")
     assert len(list(document.unified().get_records())) == 2
@@ -152,7 +147,7 @@ def test_keyless_relation_sharing_id_with_object_type_is_out_of_scope() -> None:
     # share with an entity. The .mention() convenience method always passes
     # identifier=None, but new_record() (and the PROV-JSON deserializer) can
     # still construct a Mention with an explicit, shared identifier.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:thing")
     document.new_record(
         PROV_MENTION,
@@ -416,7 +411,7 @@ def test_expandable_or_matching_formals_unify(statements: list[str]) -> None:
 
 
 def test_conflict_elsewhere_raises_first() -> None:
-    document = _doc()
+    document = ex_document()
     document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
     document.association("ex:a1", agent="ex:ag2", plan="ex:pl1", identifier="ex:assoc1")
     with pytest.raises(ProvUnificationError, match="conflicting"):
@@ -427,7 +422,7 @@ def test_extra_attribute_conflict_raises_first() -> None:
     # The merged record rebuilds its extra attributes, and a second prov:time
     # still raises there; the non-expandable check waits until the merge
     # succeeds.
-    document = _doc()
+    document = ex_document()
     document.association(
         "ex:a1",
         agent="ex:ag1",

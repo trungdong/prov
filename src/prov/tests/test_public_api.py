@@ -24,7 +24,6 @@ import os
 import subprocess
 import sys
 import tomllib
-from pathlib import Path
 
 import pytest
 
@@ -32,6 +31,7 @@ import prov.model
 import prov.serializers
 from prov.constants import PROV_ATTRIBUTES
 from prov.model import ProvDocument
+from prov.tests.conftest import REPO_ROOT
 from prov.tests.examples import primer_example
 
 PUBLIC_API = {
@@ -428,7 +428,7 @@ in ``pyproject.toml`` in the same commit; a new module never joins.
 
 
 def test_mypy_override_list_only_shrinks() -> None:
-    pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    pyproject = REPO_ROOT / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("pyproject.toml is not part of the installed package")
     overrides = tomllib.loads(pyproject.read_text())["tool"]["mypy"]["overrides"]

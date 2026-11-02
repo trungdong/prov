@@ -20,7 +20,6 @@ import shutil
 import subprocess  # nosec B404
 import sys
 import warnings
-from pathlib import Path
 from typing import NoReturn, cast
 
 import pytest
@@ -44,7 +43,7 @@ from prov.scripts.convert import (
     main as convert_main,
 )
 from prov.serializers import Registry
-from prov.tests.conftest import ex_document, unresolved_sentence
+from prov.tests.conftest import REPO_ROOT, ex_document, unresolved_sentence
 from prov.tests.examples import primer_example, w3c_publication_1
 
 
@@ -1362,9 +1361,6 @@ def test_help_is_one_description_with_examples(main, entries) -> None:
     assert ("Graphviz" in out) == (main is convert_main)
     for entry in entries:
         assert f"{entry} -" in flat
-
-
-REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @pytest.mark.parametrize(
