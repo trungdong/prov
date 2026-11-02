@@ -10,11 +10,10 @@ matter for most users:
    `graph_to_prov()`.
 2. **`unified()` raises instead of silently merging.** `ProvBundle.unified()` and
    `ProvDocument.unified()` raise `prov.model.ProvUnificationError` when records sharing an
-   identifier disagree on a formal attribute or have incompatible types. `ProvBundle.unified()`
-   is deprecated, so unify the document instead
-   ({doc}`explanation/unification-flattening`).
-   `prov_to_graph()` calls `unified()` internally, so it can raise too. `prov_to_dot()`
-   catches the error and renders the document without unifying it.
+   identifier disagree on a formal attribute or have incompatible types. `prov_to_graph()`
+   calls `unified()` internally, so it can raise too. `prov_to_dot()` catches the error and
+   renders the document without unifying it. {py:meth}`ProvBundle.unified()
+   <prov.model.ProvBundle.unified>` is deprecated.
 
 Both were signposted from 2.4.0 with a runtime warning, which every later 2.x release also
 carries. **If your test suite ran clean under 2.4.0 or later with

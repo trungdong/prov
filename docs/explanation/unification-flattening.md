@@ -87,10 +87,10 @@ The records' remaining ("extra") attributes are unioned onto the merged record, 
 so identical values are deduplicated and distinct values all accumulate. Records with a
 unique identifier, and records with no identifier, are not merged. Neither are
 `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records that share one,
-since PROV-DM and PROV-Links give these four relations no identifier, but a duplicate is
-still dropped. After the merge, `unified()` keeps each record once. A record equal to an
-earlier one (see {ref}`equality`) is dropped and the earlier one keeps its position. Two
-anonymous `used` statements that differ in one attribute are two statements and both stay.
+since PROV-DM and PROV-Links give these four relations no identifier. After the merge,
+`unified()` keeps each record once: a record equal to an earlier one (see {ref}`equality`)
+is dropped, even one of those four, and the earlier one keeps its position. Two anonymous
+`used` statements that differ in one attribute are two statements and both stay.
 
 ### Worked example
 

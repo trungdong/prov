@@ -20,7 +20,7 @@ Summary:
 - The PROV-N column shows the keyword `get_provn()` writes. Every row round-trips through
   PROV-N under the `default` profile, and under `strict` when written with `strict=True`,
   except that a strict write drops the identifier and attribute block of a `hadMember`,
-  `alternateOf` or `specializationOf` ({doc}`../howto/provn`).
+  `alternateOf` or `specializationOf` that carries either ({doc}`../howto/provn`).
 - `prov` enforces no structural constraint at assertion time, except that `hadMember`,
   `alternateOf`, `specializationOf` and `mentionOf` require their parties; general
   validation is [#62](https://github.com/trungdong/prov/issues/62). Merge-time conformance,
@@ -31,8 +31,8 @@ Summary:
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ | ✓ |
-| Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ | ✓ |
+| Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ C1 | ✓ |
+| Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ C1 | ✓ |
 | Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ C1 | ✓ |
 | Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ C1 | ✓ |
 | Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ C1 | ✓ |
@@ -61,8 +61,8 @@ expresses them: the grammar has no `wasRevisionOf` keyword.
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ | ✓ |
-| Person / Organization / SoftwareAgent §5.3.1 | `prov:type` on {py:class}`~prov.model.ProvAgent` | none, see "Not implemented" | `agent` with `[prov:type='prov:Person']` and so on | ✓ | ✓ | ✓ | ✓ |
+| Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ C1 | ✓ |
+| Person / Organization / SoftwareAgent §5.3.1 | `prov:type` on {py:class}`~prov.model.ProvAgent` | none, see "Not implemented" | `agent` with `[prov:type='prov:Person']` and so on | ✓ | ✓ | ✓ C1 | ✓ |
 | Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ C1 | ✓ |
 | Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ C1 | ✓ |
 | Plan §5.3.3 | the entity named by `association(plan=...)` | none | none; the plan is the association's third argument | ✓ | ✓ | ✓ | ✓ |
@@ -96,8 +96,8 @@ bare in the document's default, or a rebinding of the identifier's prefix, is re
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` with `[prov:type='prov:Collection']` | ✓ | ✓ | ✓ | ✓ |
-| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type | none, see "Not implemented" | `entity` with `[prov:type='prov:EmptyCollection']` | ✓ | ✓ | ✓ | ✓ |
+| Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` with `[prov:type='prov:Collection']` | ✓ | ✓ | ✓ C1 | ✓ |
+| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type | none, see "Not implemented" | `entity` with `[prov:type='prov:EmptyCollection']` | ✓ | ✓ | ✓ C1 | ✓ |
 | Membership §5.6 | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` | `hadMember` | ✓ | ✓ | ✓ | ✓ |
 
 ## Values and datatypes (PROV-DM §5.7)
@@ -123,16 +123,19 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 
 Two constructs cannot round-trip, and no change is planned.
 
-- **C1. Two relations of one type with the same identifier that differ (PROV-O, permanent).**
-  PROV-O names a relation by its identifier, so two relations that share one write their
-  triples onto one node, and the write succeeds. Reading the node back raises
-  `prov.serializers.provrdf.ProvRDFException` for most differences in a formal attribute
-  after the first, such as `prov:time`. It returns one record where two were written, which
-  compares unequal, when the first formal attribute or an extra attribute differs. A few
-  differences, such as the agents of two associations, read back as two records. Third-party
-  RDF shaped this way reads the same way. Minting a synthetic IRI and guessing values on
-  decode were both rejected ([#217](https://github.com/trungdong/prov/issues/217)).
-  `unified()` merges the two records or raises for a conflict in a formal attribute.
+- **C1. Two records with the same identifier that differ (PROV-O, permanent).**
+  PROV-O names a record by its identifier, so two records that share one, of one type or of
+  two, write their triples onto one node, and the write succeeds. Reading the node back
+  returns one record where two were written, which compares unequal, for two elements, for
+  two relations of one type that differ in the first formal attribute or in an extra
+  attribute, and for most pairs of relations of different types. It raises for two
+  relations of one type that differ in most other formal attributes, such as `prov:time`
+  (`prov.serializers.provrdf.ProvRDFException`), and for most pairs of an element and a
+  relation. A few differences, such as the agents of two associations, read back as two
+  records. Third-party RDF shaped this way reads the same way. Minting a synthetic IRI and
+  guessing values on decode were both rejected
+  ([#217](https://github.com/trungdong/prov/issues/217)).
+  `unified()` merges the records or raises for a conflict.
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
   serialising or deserialising a document with a {py:class}`~prov.model.ProvMention` raises
   `prov.serializers.provjsonld.ProvJSONLDException`.
@@ -225,7 +228,7 @@ one of the statement's own arguments are errors.
 
 - An attribute predicate under a namespace declared neither in the document nor in the graph
   gets a minted prefix, with a `ProvWarning`.
-- Two relations of one type sharing an identifier read as C1 describes.
+- Two records sharing an identifier read as C1 describes.
 - A relation whose subject is a blank node reads with no identifier; an element's blank-node
   label resolves in the default namespace.
 - An attribute whose object is a blank node that names no record, such as a
