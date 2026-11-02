@@ -14,6 +14,7 @@ import prov
 from prov import serializers
 from prov.model import ProvDocument
 from prov.scripts import (
+    _UNTYPABLE,
     _format_names,
     _input_format,
     _open_binary,
@@ -22,9 +23,9 @@ from prov.scripts import (
     _pair,
     _read,
     _reader_names,
-    _registered,
     _run,
 )
+from prov.serializers import _is_text_stream
 
 _PROG = "prov-convert"
 
@@ -157,13 +158,30 @@ def convert_file(
     lexer = _lexer_name(output_format, options) if color else None
     if lexer is None:
         _write_document(prov_doc, outfile, output_format, options)
-        return
+    else:
+        _write_colored(prov_doc, outfile, output_format, options, lexer)
+
+
+def _write_colored(
+    prov_doc: ProvDocument,
+    outfile: IO[Any],
+    output_format: str,
+    options: Mapping[str, Any],
+    lexer: str,
+) -> None:
+    """Write ``prov_doc`` to ``outfile`` highlighted with the ``lexer`` lexer.
+
+    The plain bytes are decoded, highlighted and written as ``str`` to a text
+    stream and as UTF-8 bytes to any other. Output that holds a carriage
+    return is written plain.
+    """
     buffer = io.BytesIO()
     _write_document(prov_doc, buffer, output_format, options)
-    data = buffer.getvalue()
-    if b"\r" not in data:
-        data = _highlight(data.decode("utf-8"), lexer).encode("utf-8")
-    outfile.write(data)
+    text = buffer.getvalue().decode("utf-8")
+    if "\r" not in text:
+        text = _highlight(text, lexer)
+    is_text = _is_text_stream(cast(io.IOBase, outfile))
+    outfile.write(text if is_text else text.encode("utf-8"))
 
 
 def _write_document(
@@ -202,14 +220,20 @@ def _lexer_name(fmt: str, writer_options: Mapping[str, Any]) -> str | None:
 def _highlight(text: str, lexer_name: str) -> str:
     """Colour ``text`` with the ``lexer_name`` lexer and Pygments' 16-colour formatter.
 
-    Removing the escape sequences gives ``text`` back, provided it holds no
-    carriage return, which Pygments turns into a line feed.
+    A lexer that cannot be fetched (unknown, or its plugin fails to import)
+    leaves ``text`` plain. Otherwise removing the escape sequences gives ``text``
+    back, provided it holds no carriage return, which Pygments turns into a
+    line feed.
     """
     from pygments import highlight
     from pygments.formatters import TerminalFormatter
     from pygments.lexers import get_lexer_by_name
+    from pygments.util import ClassNotFound
 
-    lexer = get_lexer_by_name(lexer_name, stripnl=False, ensurenl=False)
+    try:
+        lexer = get_lexer_by_name(lexer_name, stripnl=False, ensurenl=False)
+    except (ClassNotFound, ImportError):
+        return text
     return highlight(text, lexer, TerminalFormatter())
 
 
@@ -265,12 +289,14 @@ def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
 
 
-def _writer_names(fmt: str) -> frozenset[str] | None:
-    """Return the options the ``fmt`` writer declares, or ``None`` if it is not registered."""
+def _writer_names(fmt: str) -> frozenset[str]:
+    """Return the options the ``fmt`` writer declares.
+
+    An unregistered or unavailable format raises the library's ``DoNotExist``.
+    """
     if fmt in GRAPHVIZ_SUPPORTED_FORMATS:
         return _GRAPHVIZ_OPTIONS
-    cls = _registered().get(fmt)
-    return None if cls is None else cls.serialize_options
+    return serializers.get(fmt).serialize_options
 
 
 def _build_parser() -> ArgumentParser:
@@ -328,7 +354,7 @@ def _build_parser() -> ArgumentParser:
         metavar="NAME=VALUE",
         help=(
             "pass an option to the reader, repeatable, typed like -w; accepted "
-            f"names: {_option_names('deserialize_options')}"
+            f"names: {_option_names('deserialize_options', _UNTYPABLE)}"
         ),
     )
     parser.add_argument(

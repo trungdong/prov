@@ -7,6 +7,7 @@ from typing import Any
 
 import prov
 from prov.scripts import (
+    _UNTYPABLE,
     _format_names,
     _input_format,
     _open_binary,
@@ -60,7 +61,7 @@ examples:
             help=(
                 f"pass an option to file {number}'s reader, repeatable; none, true "
                 "and false (any case) and integers are typed, anything else is a "
-                f"string; accepted names: {_option_names('deserialize_options')}"
+                f"string; accepted names: {_option_names('deserialize_options', _UNTYPABLE)}"
             ),
         )
     parser.add_argument(

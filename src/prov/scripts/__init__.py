@@ -111,50 +111,64 @@ def _options(
     pairs: Sequence[tuple[str, str]],
     role: str,
     fmt: str,
-    declared: frozenset[str] | None,
+    declared: frozenset[str],
     defaults: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Type ``pairs`` into keyword options for the ``fmt`` ``role`` (``writer`` or ``reader``).
 
     A later pair replaces an earlier one of the same name, and a pair replaces
     a ``defaults`` entry. A name outside ``declared`` is a ``ValueError`` in
-    ``prov.read()``'s sentence, and ``defaults`` are not checked. ``None`` for
-    ``declared`` skips the check, which leaves an unavailable format to the
-    library's own error.
+    ``prov.read()``'s sentence, and ``defaults`` are not checked.
     """
-    if declared is not None:
-        unknown = sorted({name for name, _ in pairs} - declared)
-        if unknown:
-            accepted = ", ".join(sorted(declared)) or "none"
-            raise ValueError(
-                f"the {fmt!r} {role} accepts no option {unknown[0]!r}; "
-                f"it accepts: {accepted}"
-            )
+    unknown = sorted({name for name, _ in pairs} - declared)
+    if unknown:
+        accepted = ", ".join(sorted(declared)) or "none"
+        raise ValueError(
+            f"the {fmt!r} {role} accepts no option {unknown[0]!r}; "
+            f"it accepts: {accepted}"
+        )
     return {**(defaults or {}), **{name: _typed(value) for name, value in pairs}}
 
 
-def _reader_names(fmt: str) -> frozenset[str] | None:
-    """Return the options the ``fmt`` reader declares.
+_UNTYPABLE = frozenset(
+    {
+        "object_hook",
+        "object_pairs_hook",
+        "parse_constant",
+        "parse_float",
+        "parse_int",
+        "relation_mapper",
+        "predicate_mapper",
+    }
+)
+"""Reader options that take a callable or a mapping, which a string cannot supply."""
 
-    ``auto`` returns the union over every registered reader, and a format
-    that is not registered returns ``None``.
+
+def _reader_names(fmt: str) -> frozenset[str]:
+    """Return the reader options the command line may name for ``fmt``.
+
+    These are the options the ``fmt`` reader declares, less the ones a string
+    cannot carry. ``auto`` returns the union over every registered reader. An
+    unregistered or unavailable format raises the library's ``DoNotExist``.
     """
-    classes = _registered()
     if fmt == "auto":
-        return frozenset().union(*(cls.deserialize_options for cls in classes.values()))
-    cls = classes.get(fmt)
-    return None if cls is None else cls.deserialize_options
+        declared = frozenset().union(
+            *(cls.deserialize_options for cls in _registered().values())
+        )
+    else:
+        declared = prov.serializers.get(fmt).deserialize_options
+    return declared - _UNTYPABLE
 
 
-def _option_names(attr: str) -> str:
+def _option_names(attr: str, hidden: frozenset[str] = frozenset()) -> str:
     """List the names each registered format declares in ``attr``, for ``--help``.
 
-    A format that declares none is left out.
+    A name in ``hidden`` is left out, and so is a format that declares no other.
     """
     return "; ".join(
         f"{fmt}: {', '.join(sorted(names))}"
         for fmt, cls in sorted(_registered().items())
-        if (names := getattr(cls, attr))
+        if (names := getattr(cls, attr) - hidden)
     )
 
 

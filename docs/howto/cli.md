@@ -48,14 +48,15 @@ only the names below, and any other name is an error that lists the accepted one
 | Format | `-w` writer options | `-r` reader options |
 | --- | --- | --- |
 | `provn` | `strict`, `width` | `profile` |
-| `json` | `indent`, `sort_keys`, `ensure_ascii` | `object_hook`, `object_pairs_hook`, `parse_constant`, `parse_float`, `parse_int` |
-| `jsonld` | `context`, `indent`, `sort_keys`, `ensure_ascii` | the same as `json` |
-| `rdf` | `rdf_format` | `rdf_format`, `predicate_mapper`, `relation_mapper` |
+| `json` | `indent`, `sort_keys`, `ensure_ascii` | none |
+| `jsonld` | `context`, `indent`, `sort_keys`, `ensure_ascii` | none |
+| `rdf` | `rdf_format` | `rdf_format` |
 | `xml` | `force_types` | none |
 | Graphviz formats | `show_nary`, `use_labels`, `direction`, `show_element_attributes`, `show_relation_attributes` | |
 
-The JSON readers' names take Python callables and the RDF reader's two mappers take
-dictionaries, so the command line cannot supply them.
+Only `profile` (PROV-N) and `rdf_format` (RDF) are reachable with `-r`. The JSON readers
+take Python callables and the RDF reader's two mappers take dictionaries, which a command-line
+string cannot supply, so the command line does not accept those names.
 
 ### Examples
 

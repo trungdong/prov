@@ -845,8 +845,10 @@ class ProvJSONLDSerializer(Serializer):
     name."""
 
     def serialize(self, stream: io.IOBase, context: str = "url", **args: Any) -> None:
-        """Serialize ``self.document`` to
-        `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_.
+        """Serialize ``self.document`` to PROV-JSONLD.
+
+        The output follows the `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_
+        submission.
 
         Args:
             stream: Stream to write the output to. Text streams receive the

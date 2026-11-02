@@ -13,6 +13,7 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 """
 
 import contextlib
+import inspect
 import io
 import json
 import re
@@ -23,10 +24,11 @@ import warnings
 from typing import NoReturn, cast
 
 import pytest
+from pygments.util import ClassNotFound
 
 import prov
 from prov.model import ProvDocument
-from prov.scripts import _format_names, _pair, _run, _typed
+from prov.scripts import _UNTYPABLE, _format_names, _pair, _run, _typed
 from prov.scripts.compare import main as compare_main
 from prov.scripts.convert import (
     _GRAPHVIZ_OPTIONS,
@@ -85,9 +87,14 @@ STDIN_STREAMS = {
 EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
 TURTLE = {"rdf_format": "turtle"}
 HAS_DOT = shutil.which("dot") is not None
-# The strict profile refuses it and the lenient profile skips it with a warning.
+# The default profile refuses it and the lenient profile skips it with a warning.
 UNKNOWN_STATEMENT = (
     "document\nprefix ex <http://example.org/>\nentity(ex:e2)\nfoo(ex:e1)\nendDocument"
+)
+# The default profile reads the bare mentionOf and the strict profile refuses it.
+BARE_MENTION = (
+    "document\nprefix ex <http://example.org/>\nentity(ex:e1)\n"
+    "mentionOf(ex:e1, ex:e0, ex:b)\nendDocument"
 )
 
 
@@ -182,6 +189,12 @@ def test_convert_to_dot(infile, tmp_path, monkeypatch) -> None:
     rc = convert_main()
     assert rc == 0
     assert outfile.stat().st_size > 0
+    from prov.dot import prov_to_dot
+
+    # The writer options the CLI names are prov_to_dot's keywords.
+    assert (
+        set(inspect.signature(prov_to_dot).parameters) - {"bundle"} == _GRAPHVIZ_OPTIONS
+    )
 
 
 @pytest.mark.skipif(
@@ -703,23 +716,24 @@ def test_rdf_format_names_the_turtle_writer_and_reader(tmp_path) -> None:
     assert _read_back(back, "json") == primer_example()
 
 
-@pytest.mark.parametrize(("profile", "code"), [("strict", 2), ("lenient", 0)])
-def test_reader_options_reach_the_reader(tmp_path, capsys, profile, code) -> None:
+@pytest.mark.parametrize(
+    ("text", "profile", "code"),
+    [(BARE_MENTION, "strict", 2), (UNKNOWN_STATEMENT, "lenient", 0)],
+    ids=["strict", "lenient"],
+)
+def test_reader_options_reach_the_reader(tmp_path, capsys, text, profile, code) -> None:
     source = tmp_path / "doc.provn"
     target = tmp_path / "out.json"
-    source.write_text(UNKNOWN_STATEMENT)
+    source.write_text(text)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
+        # Without the option the default profile gives the other result.
+        assert convert_main([str(source), str(target)]) == (0 if code else 2)
+        capsys.readouterr()
         assert (
             convert_main(["-r", f"profile={profile}", str(source), str(target)]) == code
         )
     assert capsys.readouterr().err.startswith("prov-convert: error: ") == bool(code)
-
-
-JSON_READER_NAMES = (
-    "object_hook, object_pairs_hook, parse_constant, parse_float, parse_int"
-)
-RDF_READER_NAMES = "predicate_mapper, rdf_format, relation_mapper"
 
 
 def _writer_sentence(fmt: str, name: str, accepted: str) -> str:
@@ -762,9 +776,30 @@ def _reader_sentence(fmt: str, name: str, accepted: str) -> str:
         pytest.param(
             ["-i", "json", "-r", "profile=x"],
             "out.dat",
-            _reader_sentence("json", "profile", JSON_READER_NAMES),
+            _reader_sentence("json", "profile", "none"),
             (),
             id="json-reader",
+        ),
+        pytest.param(
+            ["-i", "json", "-r", "object_hook=x"],
+            "out.dat",
+            _reader_sentence("json", "object_hook", "none"),
+            (),
+            id="json-callable",
+        ),
+        pytest.param(
+            ["-i", "rdf", "-r", "relation_mapper=x"],
+            "out.dat",
+            _reader_sentence("rdf", "relation_mapper", "rdf_format"),
+            ("rdflib",),
+            id="rdf-mapper",
+        ),
+        pytest.param(
+            ["-f", "bogus"],
+            "out.dat",
+            'No serializer available for the format "bogus"',
+            (),
+            id="unknown-format",
         ),
         pytest.param(
             ["-i", "xml", "-r", "profile=x"],
@@ -812,18 +847,10 @@ def test_a_reader_option_is_checked_against_every_reader_under_detection(
         assert convert_main(["-r", f"{name}=lenient"]) == code
     err = capsys.readouterr().err
     if code:
-        union = f"{JSON_READER_NAMES}, predicate_mapper, profile, rdf_format, relation_mapper"
-        sentence = _reader_sentence("auto", name, union)
+        sentence = _reader_sentence("auto", name, "profile, rdf_format")
         assert err == f"prov-convert: error: {sentence}\n"
     else:
         assert err == ""
-
-
-def test_a_reader_rejects_a_value_it_cannot_use(infile, tmp_path, capsys) -> None:
-    flags = ["-i", "json", "-r", "object_hook=x"]
-    assert convert_main([*flags, str(infile), str(tmp_path / "out.json")]) == 2
-    err = capsys.readouterr().err
-    assert err == "prov-convert: error: 'str' object is not callable\n"
 
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
@@ -908,6 +935,38 @@ def test_color_always_colours_a_format_that_has_a_lexer(
             outfile=tmp_path / "never.dat",
         )
         assert ANSI.sub("", always) == never
+
+
+def test_color_always_writes_text_to_a_text_only_stream(infile, monkeypatch) -> None:
+    texts = []
+    for choice in ("never", "always"):
+        stdout = io.StringIO()
+        monkeypatch.setattr(sys, "stdout", stdout)
+        flags = ["--color", choice, "-f", "provn", str(infile)]
+        assert convert_main(flags) == 0
+        texts.append(stdout.getvalue())
+    never, always = texts
+    assert "\x1b[" in always
+    assert ANSI.sub("", always) == never
+
+
+@pytest.mark.parametrize("error", [ClassNotFound, ImportError])
+def test_color_writes_plain_when_the_lexer_cannot_be_fetched(
+    infile, tmp_path, monkeypatch, capsys, error
+) -> None:
+    def fetch(*args, **kwargs) -> NoReturn:
+        raise error("no lexer")
+
+    monkeypatch.setattr("pygments.lexers.get_lexer_by_name", fetch)
+    flags = ["-f", "provn"]
+    always = _converted(
+        infile, monkeypatch, ["--color", "always", *flags], outfile=tmp_path / "a.dat"
+    )
+    never = _converted(
+        infile, monkeypatch, ["--color", "never", *flags], outfile=tmp_path / "n.dat"
+    )
+    assert always == never
+    assert capsys.readouterr().err == ""
 
 
 @pytest.mark.parametrize(
@@ -1163,7 +1222,7 @@ def test_compare_passes_each_file_its_own_reader_options(tmp_path, capsys) -> No
     capsys.readouterr()
     # Each name is checked against its own file's format.
     assert compare_main(["-F", "rdf", "-R", "porfile=x", *files]) == 2
-    sentence = _reader_sentence("rdf", "porfile", RDF_READER_NAMES)
+    sentence = _reader_sentence("rdf", "porfile", "rdf_format")
     assert capsys.readouterr().err == f"prov-compare: error: {sentence}\n"
     assert compare_main(["-r", "rdf_format=x", "-F", "rdf", *files]) == 2
     assert (
@@ -1208,11 +1267,12 @@ def test_help_is_one_description_with_examples(main) -> None:
     # Every declared name of every format is listed; a format with none is not.
     assert Registry.serializers is not None
     for fmt, cls in Registry.serializers.items():
-        declared = [cls.deserialize_options]
+        declared = [cls.deserialize_options - _UNTYPABLE]
         if main is convert_main:
             declared.append(cls.serialize_options)
         for names in filter(None, declared):
             assert f"{fmt}: {', '.join(sorted(names))}" in flat
+    assert not any(name in flat for name in _UNTYPABLE)
     if main is convert_main:
         assert f"Graphviz formats: {', '.join(sorted(_GRAPHVIZ_OPTIONS))}" in flat
 
