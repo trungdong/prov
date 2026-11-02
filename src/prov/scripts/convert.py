@@ -11,6 +11,7 @@ from typing import IO, Any, cast
 import prov
 from prov import serializers
 from prov.scripts import (
+    _extension_row,
     _format_names,
     _input_format,
     _open_binary,
@@ -132,9 +133,12 @@ def _output_format(path: str, flag: str) -> tuple[str, dict[str, str]]:
     extension's row, else a Graphviz format named by the extension, else
     PROV-JSON, which is also the format for standard output.
     """
-    format, options = _input_format(path, flag)
-    if format != "auto":
-        return format, options
+    flag = flag.lower()
+    if flag != "auto":
+        return flag, {}
+    row = _extension_row(path)
+    if row is not None:
+        return row
     graphviz = os.path.splitext(path)[1][1:].lower()
     return (graphviz if graphviz in GRAPHVIZ_SUPPORTED_FORMATS else "json"), {}
 

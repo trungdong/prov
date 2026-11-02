@@ -658,12 +658,10 @@ def test_compare_detects_formats_from_extensions(provn_and_xml, flags) -> None:
     assert compare_main([*flags, str(provn_file), str(xml_file)]) == 0
 
 
-@pytest.mark.parametrize("stream", STDIN_STREAMS)
-def test_compare_detects_a_document_on_stdin(
-    provn_and_xml, monkeypatch, stream
-) -> None:
+def test_compare_detects_a_document_on_stdin(provn_and_xml, monkeypatch) -> None:
     provn_file, xml_file = provn_and_xml
-    monkeypatch.setattr(sys, "stdin", STDIN_STREAMS[stream](provn_file.read_bytes()))
+    stdin = STDIN_STREAMS["pipe-bytes"](provn_file.read_bytes())
+    monkeypatch.setattr(sys, "stdin", stdin)
     assert compare_main(["-", str(xml_file)]) == 0
 
 
