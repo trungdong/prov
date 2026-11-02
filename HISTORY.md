@@ -624,6 +624,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - Writing N-Triples, as `rdf_format="nt"` or `prov-convert` to a `.nt` file, prints no
   rdflib encoding warning, where 3.2.3 printed `UserWarning: NTSerializer always uses UTF-8
   encoding` ([#742](https://github.com/trungdong/prov/issues/742))
+- `prov-convert` reads its input before it opens the output file, so an input that fails to
+  read leaves an existing output file as it was, where 3.2.3 emptied it
+  ([#742](https://github.com/trungdong/prov/issues/742))
 
 ### Project
 

@@ -39,6 +39,7 @@ from prov.scripts.convert import (
     CLIError,
     _build_parser as convert_build_parser,
     _output_format,
+    _read_input,
     convert_file,
     main as convert_main,
 )
@@ -236,12 +237,16 @@ def test_convert_closes_files_even_when_conversion_fails(
     outfile = tmp_path / "doc.xml"
     captured = {}
 
-    def spy_convert_file(in_stream, out_stream, *args, **kwargs) -> NoReturn:
+    def spy_read_input(in_stream, *args, **kwargs):
         captured["infile"] = in_stream
+        return _read_input(in_stream, *args, **kwargs)
+
+    def spy_write_output(prov_doc, out_stream, *args, **kwargs) -> NoReturn:
         captured["outfile"] = out_stream
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("prov.scripts.convert.convert_file", spy_convert_file)
+    monkeypatch.setattr("prov.scripts.convert._read_input", spy_read_input)
+    monkeypatch.setattr("prov.scripts.convert._write_output", spy_write_output)
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
     )
@@ -497,6 +502,60 @@ def test_convert_a_broken_document_on_stdin_exits_2_with_one_line(
     reason = unresolved_sentence("ex:a", "its prefix 'ex' is not declared")
     expected = f"{NOT_DETECTED} line 2, column 10: {reason}"
     assert capsys.readouterr().err == f"prov-convert: error: {expected}\n"
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pytest.param(
+            b"document\n  entity(ex:a)\nendDocument\n", id="undeclared-prefix"
+        ),
+        pytest.param(
+            b"document\n  prefix ex <http://example.org/>\n  entity(", id="unclosed"
+        ),
+    ],
+)
+def test_convert_a_failing_input_leaves_an_existing_output_file(
+    tmp_path, capsys, data
+) -> None:
+    source = tmp_path / "bad.provn"
+    source.write_bytes(data)
+    target = tmp_path / "out.json"
+    target.write_bytes(b"KEEP ME")
+    assert convert_main([str(source), str(target)]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("prov-convert: error: ") and err.count("\n") == 1
+    assert target.read_bytes() == b"KEEP ME"
+
+
+def test_convert_a_failing_input_writes_nothing_to_stdout(
+    tmp_path, capsys, monkeypatch
+) -> None:
+    source = tmp_path / "bad.provn"
+    source.write_bytes(b"document\n  entity(ex:a)\nendDocument\n")
+    stdout = io.TextIOWrapper(io.BytesIO())
+    monkeypatch.setattr(sys, "stdout", stdout)
+    assert convert_main([str(source)]) == 2
+    stdout.flush()
+    assert stdout.buffer.getvalue() == b""
+    assert capsys.readouterr().err.startswith("prov-convert: error: ")
+
+
+@pytest.mark.parametrize(
+    ("target_name", "flags", "fmt"),
+    [
+        pytest.param("out.provn", [], "provn", id="replaces-an-existing-file"),
+        pytest.param("doc.json", ["-f", "json"], "json", id="same-path-as-the-input"),
+    ],
+)
+def test_convert_writes_over_an_existing_output_file(
+    infile, tmp_path, target_name, flags, fmt
+) -> None:
+    target = tmp_path / target_name
+    if not target.exists():
+        target.write_bytes(b"KEEP ME")
+    assert convert_main([*flags, str(infile), str(target)]) == 0
+    assert _read_back(target, fmt) == primer_example()
 
 
 @pytest.mark.parametrize("stream", STDIN_STREAMS)
@@ -1341,7 +1400,7 @@ def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:
 @pytest.mark.parametrize(
     ("main", "patched", "args"),
     [
-        (convert_main, "prov.scripts.convert.convert_file", ["-f", "xml"]),
+        (convert_main, "prov.scripts.convert._read_input", ["-f", "xml"]),
         (compare_main, "prov.scripts.compare._read", []),
         (convert_main, "prov.scripts.convert._build_parser", []),
         (compare_main, "prov.scripts.compare._build_parser", []),

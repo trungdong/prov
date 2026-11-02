@@ -148,17 +148,36 @@ def convert_file(
     A writer's own error for a value it rejects (such as the ``ValueError``
     for an unknown ``context``) and a reader's error propagate unchanged.
     """
+    prov_doc = _read_input(infile, input_format, reader_options or {})
+    _write_output(prov_doc, outfile, output_format, writer_options or {}, color)
+
+
+def _read_input(
+    infile: IO[Any], input_format: str, reader_options: Mapping[str, Any]
+) -> ProvDocument:
+    """Read the document from ``infile`` in ``input_format``.
+
+    An unregistered ``input_format`` is a :class:`CLIError`.
+    """
     try:
-        prov_doc = _read(infile, input_format, reader_options or {})
+        return _read(infile, input_format, reader_options)
     except serializers.DoNotExist as e:
         raise CLIError(str(e)) from e
 
-    options = writer_options or {}
-    lexer = _lexer_name(output_format, options) if color else None
+
+def _write_output(
+    prov_doc: ProvDocument,
+    outfile: IO[Any],
+    output_format: str,
+    writer_options: Mapping[str, Any],
+    color: bool,
+) -> None:
+    """Write ``prov_doc`` to ``outfile`` in ``output_format``, coloured with ``color``."""
+    lexer = _lexer_name(output_format, writer_options) if color else None
     if lexer is None:
-        _write_document(prov_doc, outfile, output_format, options)
+        _write_document(prov_doc, outfile, output_format, writer_options)
     else:
-        _write_colored(prov_doc, outfile, output_format, options, lexer)
+        _write_colored(prov_doc, outfile, output_format, writer_options, lexer)
 
 
 def _write_colored(
@@ -392,18 +411,11 @@ def _convert(argv: list[str] | None) -> int:
     color = _use_color(args.color, args.outfile)
     with contextlib.ExitStack() as streams:
         infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))
+        prov_doc = _read_input(infile, input_format, reader_options)
         outfile = streams.enter_context(
             _open_binary(parser, args.outfile, "wb", "stdout")
         )
-        convert_file(
-            infile,
-            outfile,
-            output_format,
-            input_format,
-            reader_options=reader_options,
-            writer_options=writer_options,
-            color=color,
-        )
+        _write_output(prov_doc, outfile, output_format, writer_options, color)
         outfile.flush()
     return 0
 
@@ -415,8 +427,9 @@ def main(argv: list[str] | None = None) -> int:
     ``-w/--writer-option`` and ``-r/--reader-option`` (``NAME=VALUE``), ``--color``, an
     optional input file (default stdin), and an optional output file (default
     stdout), then
-    converts between them via :func:`convert_file`. Files are opened after
-    parsing; the standard streams are used for ``-`` and are not closed.
+    converts between them. The input is read before the output file opens, so an
+    input that fails to read leaves an existing output file as it was. The
+    standard streams are used for ``-`` and are not closed.
 
     Args:
         argv: The command-line arguments, without the program name. ``None``
