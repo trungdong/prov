@@ -13,7 +13,9 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE]
 PROV-JSONLD, or renders it as any image format Graphviz supports. It reads `infile` and
 writes `outfile`, and standard input and standard output stand in for a missing or `-`
 argument. It reads and parses the input before it opens `outfile`, so an input that fails
-to read leaves an existing output file as it was.
+to read leaves an existing output file as it was. An error while writing can leave the
+output file empty or partial, so write to a new file and replace the old one after the
+command succeeds.
 
 Both formats default to `auto`, which follows the extension table under Options.
 

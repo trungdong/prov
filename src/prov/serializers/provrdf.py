@@ -1892,7 +1892,7 @@ class ProvRDFSerializer(Serializer):
         # a predicate into `unique_sets`, and `walk()` in
         # `_emit_decoded_records` would then emit more than one record for
         # the *same* identifier of an identified qualified node, which
-        # C1 in docs/reference/conformance.md rules out. Do not "fix" this
+        # C1 on the conformance page (#217) rules out. Do not "fix" this
         # format mismatch.
         # On a qualified Start/End node, `startedAtTime`/`endedAtTime` have
         # already been rewritten to `prov:time` by the
@@ -1980,12 +1980,12 @@ class ProvRDFSerializer(Serializer):
             except pm.ProvMissingFormalAttribute as exc:
                 warn(f"subject {subj!r}: {exc}")
             except pm.ProvException as exc:
-                # Only relabel the specific C1 shape, a formal-attribute
-                # predicate repeated in `attrs` (see the duplicate-detection
-                # docstring below for why such repeats land there instead of
-                # being walked). Anything else, such as an unresolvable
-                # qualified name, is a genuinely different failure and keeps
-                # its own message, behind the subject.
+                # Only relabel the specific C1 shape (conformance page, #217),
+                # a formal-attribute predicate repeated in `attrs` (see the
+                # duplicate-detection docstring below for why such repeats
+                # land there instead of being walked). Anything else, such as
+                # an unresolvable qualified name, is a genuinely different
+                # failure and keeps its own message, behind the subject.
                 duplicate_attr = _repeated_formal_attribute(
                     state.record_types[subj], attrs
                 )
@@ -2015,7 +2015,7 @@ def _repeated_formal_attribute(
 ) -> str | None:
     """Return the formal-attribute name repeated in ``attrs``, if any.
 
-    This is the shape behind C1 on the conformance page. PROV-O names a
+    This is the shape behind C1 on the conformance page (#217). PROV-O names a
     relation by its identifier, so two same-identifier relations that disagree
     on a formal attribute cannot both be represented.
 

@@ -1187,7 +1187,9 @@ class ProvRecord:
         follows, one ``name=value`` pair per line, aligned after the opening
         parenthesis. The formal arguments and a single pair are never broken.
         ``str(record)`` never wraps. A string value that holds a line feed is
-        still written as a triple-quoted string over several lines.
+        still written as a triple-quoted string over several lines. A subclass
+        that overrides this method takes ``width`` too, because the PROV-N
+        writer passes it.
 
         Args:
             strict: Write output that parses under the strict PROV-N

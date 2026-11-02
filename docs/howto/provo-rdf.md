@@ -40,7 +40,7 @@ loaded = pm.ProvDocument.deserialize(content=turtle_str, format="rdf", rdf_forma
 ```{important}
 A triple syntax such as `"turtle"` loses which bundle each statement came from, so keep
 the default TriG if your document has bundles. The PROV-O notes in
-{doc}`../reference/conformance` list the syntaxes that keep them.
+{doc}`../reference/conformance` say which syntaxes keep them.
 ```
 
 ## Limitations

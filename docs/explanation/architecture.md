@@ -32,12 +32,11 @@ derivation and the rest) split the PROV-DM world between them. Each concrete cla
 its formal attributes in order. Everything else on the record is an "other" attribute.
 
 A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager, and offers a
-factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
+factory method per record type (`entity()`, `wasGeneratedBy()`, ...). Its docstring says
+which namespaces a bundle registers. A
 {py:class}`~prov.model.ProvDocument` is a bundle that can also contain named bundles, and
 is the unit that serializes. Records are created through the bundle so that identifiers
-resolve against its namespaces. A bundle declares only the namespaces it binds itself. A
-name in the document's namespaces resolves through the document, and a name built from a
-`Namespace` that nothing declared is registered on the bundle.
+resolve against its namespaces.
 
 Two transformations leave the original untouched. {py:meth}`~prov.model.ProvDocument.unified`
 merges records that share an identifier under the PROV-CONSTRAINTS rules and returns a new
@@ -50,8 +49,7 @@ level and returns a new document, or the document itself when it has no bundles.
 Each serializer subclasses {py:class}`~prov.serializers.Serializer` and implements
 `serialize()` and `deserialize()`. `prov.serializers.Registry` holds them under their
 format names, and {py:func}`prov.serializers.get` resolves a name to a class.
-{py:meth}`~prov.serializers.Registry.load_serializers` gives the registry order, and
-{ref}`auto-detect` shows how {py:func}`prov.read` walks it.
+{ref}`auto-detect` gives the registry order and shows how {py:func}`prov.read` walks it.
 
 The registry is populated lazily, on the first call to {py:func}`prov.serializers.get` or
 {py:func}`prov.read`, by `Registry.load_serializers()`. Formats whose parser is an optional

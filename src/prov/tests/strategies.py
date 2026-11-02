@@ -74,8 +74,8 @@ text_values = st.text(
 
 attr_values = st.one_of(
     text_values,  # str, including non-ASCII
-    # The xsd:int range, where a plain Python int is typed xsd:int. Wider
-    # magnitudes are typed xsd:long or xsd:integer by magnitude.
+    # The xsd:int range, which keeps the frozen prov_documents() digest stable.
+    # _int64_only and test_numeric_typing.py pin the wider magnitudes.
     st.integers(min_value=-(2**31), max_value=2**31 - 1),
     st.booleans(),
     # Floats. Every writer spells the infinities INF and -INF and a NaN as

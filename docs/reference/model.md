@@ -221,6 +221,9 @@ a type checker reports a call.
    The attributes of a record: a mapping from attribute name to value, or pairs of name
    and value in a sequence, a set or an iterator.
 
+.. The four union aliases use py:data. autodata renders the interpreter's
+   union-type boilerplate in place of their description.
+
 .. py:data:: OptionalID
 
    An identifier as a qualified name, a string or an ``Identifier``, or ``None``.

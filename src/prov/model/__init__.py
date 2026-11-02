@@ -104,9 +104,9 @@ __email__ = "trungdong@donggiang.com"
 
 logger = logging.getLogger(__name__)
 
-# The submodules are an implementation detail. Remove the attributes the import
-# system bound on this package, so that dir(prov.model) holds only the public
-# names re-exported above. `from prov.model.records import ...` (and
+# The submodules are an implementation detail. Remove the four attributes the
+# import system bound on this package, so that dir(prov.model) lists none of
+# them. `from prov.model.records import ...` (and
 # `.namespaces`/`.bundle`) still works via sys.modules; only attribute access
 # such as `prov.model.records` is hidden.
 for _submodule_name in ("_values", "bundle", "namespaces", "records"):

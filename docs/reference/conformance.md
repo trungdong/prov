@@ -15,8 +15,9 @@ Summary:
 ## Reading the tables
 
 - A round trip is `deserialize(serialize(doc)) == doc` for every shared test case. ✓ means
-  it holds; ✓ C1 means it holds except in the case caveat C1 describes; ✗ C2 means the
-  format cannot represent the concept.
+  it holds; ✓ followed by a caveat, such as ✓ C5, means it holds except in the case that
+  caveat describes; ✗ C2 means the format cannot represent the concept. The PROV-O notes
+  say where C1 applies.
 - The PROV-N column shows the keyword `get_provn()` writes. Every row round-trips through
   PROV-N under the `default` profile, and under `strict` when written with `strict=True`,
   except that a strict write drops the identifier and attribute block of a `hadMember`,
@@ -31,14 +32,14 @@ Summary:
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ C1 | ✓ |
-| Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ C1 | ✓ |
-| Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ C1 | ✓ |
-| Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ C1 | ✓ |
-| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ C1 | ✓ |
-| Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ C1 | ✓ |
-| End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ C1 | ✓ |
-| Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ C1 | ✓ |
+| Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ | ✓ |
+| Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ | ✓ |
+| Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ | ✓ |
+| Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ | ✓ |
+| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ | ✓ |
+| Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ | ✓ |
+| End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ | ✓ |
+| Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ | ✓ |
 
 The factories are {py:class}`~prov.model.ProvBundle` methods. {py:class}`~prov.model.ProvEntity`
 also has `wasGeneratedBy()` and `wasInvalidatedBy()`, and {py:class}`~prov.model.ProvActivity`
@@ -49,10 +50,10 @@ with the record itself as subject.
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Derivation §5.2.1 | {py:class}`~prov.model.ProvDerivation` | `derivation()` / `wasDerivedFrom()` | `wasDerivedFrom` | ✓ | ✓ | ✓ C1 | ✓ |
-| Revision §5.2.2 | {py:class}`~prov.model.ProvDerivation` + `prov:Revision` type | `revision()` / `wasRevisionOf()` | `wasDerivedFrom` with `[prov:type='prov:Revision']` | ✓ | ✓ | ✓ C1 | ✓ |
-| Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` with `[prov:type='prov:Quotation']` | ✓ | ✓ | ✓ C1 | ✓ |
-| Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` with `[prov:type='prov:PrimarySource']` | ✓ | ✓ | ✓ C1 | ✓ |
+| Derivation §5.2.1 | {py:class}`~prov.model.ProvDerivation` | `derivation()` / `wasDerivedFrom()` | `wasDerivedFrom` | ✓ | ✓ | ✓ | ✓ |
+| Revision §5.2.2 | {py:class}`~prov.model.ProvDerivation` + `prov:Revision` type | `revision()` / `wasRevisionOf()` | `wasDerivedFrom` with `[prov:type='prov:Revision']` | ✓ | ✓ | ✓ | ✓ |
+| Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` with `[prov:type='prov:Quotation']` | ✓ | ✓ | ✓ | ✓ |
+| Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` with `[prov:type='prov:PrimarySource']` | ✓ | ✓ | ✓ | ✓ |
 
 The three subtypes share one class and differ only in `prov:type`, which is how PROV-N
 expresses them: the grammar has no `wasRevisionOf` keyword.
@@ -61,13 +62,13 @@ expresses them: the grammar has no `wasRevisionOf` keyword.
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ C1 | ✓ |
-| Person / Organization / SoftwareAgent §5.3.1 | `prov:type` on {py:class}`~prov.model.ProvAgent` | none, see "Not implemented" | `agent` with `[prov:type='prov:Person']` and so on | ✓ | ✓ | ✓ C1 | ✓ |
-| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ C1 | ✓ |
-| Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ C1 | ✓ |
+| Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ | ✓ |
+| Person / Organization / SoftwareAgent §5.3.1 | `prov:type` on {py:class}`~prov.model.ProvAgent` | none, see "Not implemented" | `agent` with `[prov:type='prov:Person']` and so on | ✓ | ✓ | ✓ | ✓ |
+| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ | ✓ |
+| Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ | ✓ |
 | Plan §5.3.3 | the entity named by `association(plan=...)` | none | none; the plan is the association's third argument | ✓ | ✓ | ✓ | ✓ |
-| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ C1 | ✓ |
-| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ C1 | ✓ |
+| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ | ✓ |
+| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ | ✓ |
 
 ## Component 4: Bundles
 
@@ -96,8 +97,8 @@ bare in the document's default, or a rebinding of the identifier's prefix, is re
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` with `[prov:type='prov:Collection']` | ✓ | ✓ | ✓ C1 | ✓ |
-| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type | none, see "Not implemented" | `entity` with `[prov:type='prov:EmptyCollection']` | ✓ | ✓ | ✓ C1 | ✓ |
+| Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` with `[prov:type='prov:Collection']` | ✓ | ✓ | ✓ | ✓ |
+| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type | none, see "Not implemented" | `entity` with `[prov:type='prov:EmptyCollection']` | ✓ | ✓ | ✓ | ✓ |
 | Membership §5.6 | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` | `hadMember` | ✓ | ✓ | ✓ | ✓ |
 
 ## Values and datatypes (PROV-DM §5.7)
@@ -124,19 +125,12 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 Two constructs cannot round-trip, and no change is planned.
 
 - **C1. Two records with the same identifier that differ (PROV-O, permanent).**
-  PROV-O names a record by its identifier, so two records that share one, of one type or of
-  two, write their triples onto one node, and the write succeeds. Reading the node back
-  returns one record where two were written, which compares unequal, for two elements, for
-  two relations of one type that differ in the first formal attribute or in an extra
-  attribute, and for most pairs of relations of different types. It raises
-  `prov.serializers.provrdf.ProvRDFException` for two relations of one type that differ in
-  most other formal attributes, such as `prov:time`, and for two activities that give
-  different start or end times. It also raises for most pairs of an element and a
-  relation, with a different exception class depending on the element. A few differences,
-  such as the agents of two associations, read back as two records. Third-party RDF shaped
-  this way reads the same way. Minting a synthetic IRI and guessing values on decode were
-  both rejected ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` merges
-  the records or raises for a conflict.
+  PROV-O names a record by its identifier, so two records that share one collapse onto one
+  node when written. Reading it back gives one record, so the document compares unequal to
+  the original, or raises. Third-party RDF shaped this way reads the same way. Minting a
+  synthetic IRI and guessing values on decode were both rejected
+  ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` merges the records or
+  raises for a conflict.
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
   serialising or deserialising a document with a {py:class}`~prov.model.ProvMention` raises
   `prov.serializers.provjsonld.ProvJSONLDException`.
@@ -230,7 +224,8 @@ one of the statement's own arguments are errors.
 
 - An attribute predicate under a namespace declared neither in the document nor in the graph
   gets a minted prefix, with a `ProvWarning`.
-- Two records sharing an identifier read as C1 describes.
+- Two records sharing an identifier read as C1 describes. C1 applies to every record that
+  carries an identifier, including an entity named only as an association's plan.
 - A relation whose subject is a blank node reads with no identifier; an element's blank-node
   label resolves in the default namespace.
 - An attribute whose object is a blank node that names no record, such as a
@@ -281,9 +276,9 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
   letters, followed by any number of groups of letters and digits that each start with a
   hyphen. `prov` checks this shape only and does not look the tag up in the BCP 47
   registry.
-- **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
-  in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
-  the round trip compares equal; the original offset is not preserved.
+- **C7. Zone offsets that are not whole minutes.** {ref}`python-values` gives the UTC rule.
+  The instant is unchanged and the round trip compares equal; the original offset is not
+  preserved.
 - **C10. Literals rdflib normalises on read.** rdflib rewrites some literal texts when it
   parses them, before `prov` sees them, so PROV-O reads these differently from every other
   format: an `xsd:dateTime` fraction beyond six digits is truncated to microseconds, so such

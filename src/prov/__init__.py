@@ -95,8 +95,9 @@ def _rejection_cause(
     """The error of the reader the input's head names, when that reader
     rejected the input with its own :class:`~prov.serializers.ProvSerializationError`:
     PROV-JSON or PROV-JSONLD for ``{`` (PROV-JSONLD when the head holds
-    ``"@context"`` or ``"@graph"``), PROV-N for ``document``. ``<`` names no one
-    reader, since PROV-XML and PROV-O both start with it, so it chains nothing."""
+    ``"@context"`` or ``"@graph"``), PROV-N for ``document``. Any other
+    start, such as ``<`` or ``@prefix``, names no one reader, so it chains
+    nothing."""
     # Lazy import: prov and the serializers are circularly dependent.
     from prov.serializers import ProvSerializationError
 
@@ -265,9 +266,10 @@ def read(
             corresponding deserializer does not declare.
         ProvFormatNotDetected: If ``format`` is ``None`` and no registered
             serializer produced a non-empty document from ``source``. It is
-            also a ``TypeError`` and is raised from the rejecting reader's
-            error when the content names one of PROV-JSON, PROV-JSONLD or
-            PROV-N.
+            also a ``TypeError``. When the content starts with ``{`` (PROV-JSON
+            or PROV-JSONLD) or the word ``document`` (PROV-N) and that reader
+            rejected the input with its own error, that error is the
+            exception's ``__cause__``.
     """
     # The imports are lazy because prov.model and prov.serializers import this
     # package.

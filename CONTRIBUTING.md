@@ -153,8 +153,7 @@ names public annotations expose.
   page), and the entry links that page.
 - End the entry with one issue or pull request link.
 - Write no entry for a refactor, a test, CI, tooling or a docs-only change. A Project entry
-  is one line and only for something a user meets, such as the Python floor or a
-  deprecation.
+  is one line and only for something a user meets, such as a deprecation.
 - Write an entry once. A later pull request adds its own entry and never grows an earlier
   one. The pre-release documentation audit may rewrite the unreleased section as a whole.
 - At release time, the release pull request adds an opening summary of two to four
@@ -174,12 +173,13 @@ Every pull request that touches a page or a docstring follows these rules.
    3.3.0 upgrade guide (`docs/howto/prepare-for-3-3.md`). Elsewhere write no "since X.Y", no
    "3.2.0 added" and no benchmark percentage.
 4. Write nothing that dates. State no measured figure tied to a machine or an interpreter and
-   no date that will pass, apart from the dates in the support policy and the per-release
-   conformance sentence.
+   no date that will pass, apart from the dates in the support policy, the per-release
+   conformance sentence and the measured figures in `benchmarks/README.md`.
 5. Link to a specification and do not cite its clause numbers. Only `conformance.md` and
    code comments cite a section number.
 6. Outside the pages rule 3 names, link an issue only for an open limitation or a decision a
-   reader may want to follow. Never link one to record the history of a fix.
+   reader may want to follow. Never link one to record the history of a fix. A code comment
+   keeps an issue number that explains why a guard exists.
 7. Change no behaviour in a documentation change. Correct a sentence that is wrong against
    the code, never the code to match the sentence, and list the correction in the pull
    request body.
@@ -189,7 +189,8 @@ Every pull request that touches a page or a docstring follows these rules.
 | Extras | `docs/installation.md` |
 | Auto-detection | `docs/howto/read-write.md` |
 | Format limitations | `docs/reference/conformance.md` |
-| Support policy | `SECURITY.md` and `ROADMAP.md` |
+| Supported release lines | `SECURITY.md` |
+| Python-version policy | `ROADMAP.md` |
 | Gate commands | `CONTRIBUTING.md` |
 | Equality rules and Python values | `docs/reference/model.md` |
 | Exceptions | `docs/reference/serializers.md` |

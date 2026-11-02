@@ -11,11 +11,10 @@ lists each message, the input that causes it and what to write instead.
 
 - `prov` requires Python 3.11 or later, since Python 3.10 reached its end of life on
   2026-10-31 ([#604](https://github.com/trungdong/prov/pull/604))
-- The five format errors derive from `ProvSerializationError`, and a reader raises its
-  format's error for a model rejection too, with the model's error as `__cause__`. Write
-  `except ProvSerializationError` around a read, or `except prov.Error` for both kinds,
-  where 3.2.3 raised the model's error, or a bare `ValueError` or `AttributeError`
-  ([#653](https://github.com/trungdong/prov/issues/653))
+- A reader raises its format's error, a `ProvSerializationError`, for a model rejection
+  too, where 3.2.3 raised the model's error, or a bare `ValueError` or `AttributeError`.
+  Write `except ProvSerializationError` around a read, or `except prov.Error` for both
+  kinds ([#653](https://github.com/trungdong/prov/issues/653))
 - A `Literal` of `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` or an integer
   type compares by its value, so `Literal("05", XSD_INT) == Literal("5", XSD_INT)`, and
   keeps a non-canonical text such as `"05"` as written, where 3.2.3 compared every type
@@ -36,10 +35,10 @@ lists each message, the input that causes it and what to write instead.
   PROV-JSON, PROV-JSONLD or PROV-XML no longer writes the document's `prefix ex` again
   inside each bundle that uses it, and `bundle.get_registered_namespaces()` lists the
   bundle's own declarations only ([#449](https://github.com/trungdong/prov/issues/449))
-- The PROV-N writer puts a statement that has an attribute block and is wider than 80
-  columns on several rows, one attribute per row, where 3.2.3 wrote one line. Pass
-  `width=None` for the one-line shape, and give a `get_provn()` override a
-  `width: int | None = 80` parameter ([#131](https://github.com/trungdong/prov/issues/131))
+- The PROV-N writer wraps a statement with an attribute block wider than 80 columns, one
+  attribute per row, where 3.2.3 wrote one line. Pass `width=None` for one line, and give
+  a `get_provn()` override a `width` parameter
+  ([#131](https://github.com/trungdong/prov/issues/131))
 - A record holds one value of each PROV attribute, so assert one `hadMember` per entity,
   where 3.2.3 accepted several in one call. The PROV-XML reader reads a `hadMember` with
   several entities as one record per entity
@@ -114,13 +113,11 @@ lists each message, the input that causes it and what to write instead.
   earlier in PROV-JSON, PROV-JSONLD and PROV-N output
   ([#696](https://github.com/trungdong/prov/issues/696))
 - A bundle's own default namespace and a datatype in the default namespace round-trip
-  through PROV-XML, and PROV-N escapes a `:` in such a datatype's local part as
-  `"1" %% a\:b`, where 3.2.3 read the bundle's names in the document's default and wrote
-  the datatype as `xsi:type=":t"` ([#572](https://github.com/trungdong/prov/issues/572))
-- A subclass of `int`, `float` or `datetime`, such as an `(int, Enum)` member, a
-  `numpy.float64` or a `pandas.Timestamp` at microsecond precision, is written as the
-  plain value is and reads back equal, where 3.2.3 wrote an `(int, Enum)` member by its
-  name and PROV-XML gave a subclass no `xsi:type`
+  through PROV-XML, where 3.2.3 read the bundle's names in the document's default
+  ([#572](https://github.com/trungdong/prov/issues/572))
+- A subclass of `int`, `float` or `datetime`, such as an `(int, Enum)` member or a
+  `numpy.float64`, is written as the plain value is and reads back equal, where 3.2.3
+  wrote an `(int, Enum)` member by its name
   ([#657](https://github.com/trungdong/prov/issues/657))
 
 The [3.3.0 milestone](https://github.com/trungdong/prov/milestone/10?closed=1) lists every

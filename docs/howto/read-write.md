@@ -77,8 +77,8 @@ Every format reads and writes.
 | [PROV-XML](provxml) | `xml` | `xml` | `.provx` | `application/provenance+xml` |
 | [PROV-O (RDF)](provo-rdf) | `rdf` | `rdf` | `.trig` by default | that of the RDF syntax, `application/trig` by default |
 
-{doc}`../installation` lists the extras. `prov` dispatches on neither the extension nor
-the media type; they are conventions for other tools.
+{doc}`../installation` lists the extras. In the library, `prov` dispatches on neither the
+extension nor the media type; they are conventions for other tools.
 
 ## How errors surface
 

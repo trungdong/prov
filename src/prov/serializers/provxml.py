@@ -81,7 +81,7 @@ _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
 class ProvXMLException(ProvSerializationError):
-    """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
+    """Raised when this package cannot serialize or parse a PROV-XML document."""
 
 
 def _line(element: etree._Element) -> str:
@@ -351,9 +351,10 @@ class ProvXMLSerializer(Serializer):
                 one, its line.
         """
 
-        # For a bundleContent, _read_bundle_content has already adopted the
-        # element's default, so this call changes something for the document
-        # element only.
+        # Adopts the element's own xmlns as the default namespace when it
+        # differs from the one in scope. For a bundleContent,
+        # _read_bundle_content has already done so, so this call changes
+        # something for the document element only.
         try:
             _adopt_own_default(xml_doc, bundle)
         except ProvException as exc:

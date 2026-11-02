@@ -77,8 +77,8 @@ class NamespaceManager(dict[str, Namespace]):
         self._namespaces: dict[str, Namespace] = {}
 
         # Maps a plain string to the name this manager resolved from its own
-        # namespaces. Every mutation that could change how a string resolves
-        # clears it.
+        # namespaces. A mutation of this manager clears it; a mutation of the
+        # parent does not.
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:

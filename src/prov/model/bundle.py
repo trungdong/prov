@@ -1961,31 +1961,21 @@ class ProvDocument(ProvBundle):
         """Return a new document with records sharing an identifier merged.
 
         The document's top-level records and each contained bundle are merged
-        independently, so nothing is merged across a bundle boundary and the
-        bundle structure is kept. The original document is left untouched.
+        independently, so nothing is merged across a bundle boundary. The
+        original document is left untouched.
 
-        Records that share an identifier merge into one record. An agent that
-        is also an entity or an activity stays as separate records, one per
-        type. An entity and an activity, an element and a relation, and two
-        relation kinds such as a generation and a usage cannot share an
-        identifier and raise. A derivation or an influence may share an
-        identifier with another relation kind. A formal attribute that one
-        record leaves out takes the value another record gives it, and equal
-        values unify. The plan of an association, the activity of a derivation,
-        and the generation and usage of a derivation with no activity are
-        exceptions to that rule, because an absent value there means "none"
-        and cannot take a concrete one. Other attributes are combined. Records
-        with a unique identifier, or none, are not merged, and neither are
-        ``alternateOf``, ``specializationOf``, ``mentionOf`` and ``hadMember``
-        records, which have no identifier to merge on. After the merge each
-        record appears once, so a record equal to an earlier one is dropped and
-        the earlier one keeps its position.
+        Records that share an identifier merge into one record, and a formal
+        attribute that one record leaves out takes the value another gives it.
+        Records with a unique identifier, or none, are not merged. Neither are
+        the four relations ``alternateOf``, ``specializationOf``,
+        ``mentionOf`` and ``hadMember``. PROV-DM gives them no identifier, so
+        one that carries an identifier passes through unmerged. After the
+        merge each record appears once, so a record equal to an earlier one is
+        dropped and the earlier one keeps its position.
 
-        The result is not the specification's full normalisation. The
-        uniqueness constraints that key on something other than the record
-        identifier are not checked, and no inference is performed.
-        :doc:`/explanation/unification-flattening` gives the rules and
-        examples.
+        The result is not the specification's full normalisation.
+        :doc:`/explanation/unification-flattening` gives the rules, the
+        exceptions and the limits.
 
         Returns:
             The new, unified :class:`ProvDocument`.
@@ -1993,9 +1983,10 @@ class ProvDocument(ProvBundle):
         Raises:
             ProvUnificationError: If two records sharing an identifier within
                 the same scope hold different concrete values for the same
-                formal attribute, or one leaves out a value in one of the
-                positions above where another holds a concrete one, or the
-                records have incompatible types.
+                formal attribute, or one leaves out a value in a position that
+                cannot take one, such as an association's plan, where another
+                holds a concrete one, or the records have incompatible types,
+                such as an entity and an activity.
         """
         document = ProvDocument()
         document._copy_declarations_from(self)

@@ -40,13 +40,3 @@ echo $?  # 2
 ```
 
 {doc}`../reference/prov-compare` gives the exit status of `prov-compare`.
-
-## Convert a file in place
-
-Input and output may name the same file, since `prov-convert` reads the input before it
-opens the output ({doc}`../reference/prov-convert`). This command reformats PROV-JSON with
-two-space indents:
-
-```bash
-prov-convert -w indent=2 document.json document.json
-```
