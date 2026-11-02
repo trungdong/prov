@@ -15,15 +15,14 @@ column in PROV-N, or the record identifier and attribute name in PROV-JSON. A la
 tag, a local part, a namespace prefix, a namespace IRI, a Python value, a qualified-name
 value or a time offset beyond ±14:00 is rejected by the model, and the model's sentence
 names the value. A reader's error names the record (the subject in PROV-O), or the
-declaration. It carries that sentence, and its `__cause__` is the model's error. Code that
-builds the value gets the model's error on its own. 3.2.3 let the model's error, or a
-bare `ValueError` or `AttributeError`, escape from a read. A message from `unified()`
-names the identifier of the records it cannot merge.
+declaration. Code that builds the value gets the model's error on its own. 3.2.3 let the
+model's error, or a bare `ValueError` or `AttributeError`, escape from a read. A message
+from `unified()` names the identifier of the records it cannot merge.
 
-With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that its
-reader rejects raises `ProvFormatNotDetected` with the reader's error as `__cause__`, and
-a PROV-XML or PROV-O input chains nothing, because its start does not name its reader;
-{doc}`../reference/serializers` has the rule, and `format=` shows the error on its own.
+Where the model refused the value, a reader's error carries the model's sentence and has
+the model's error as `__cause__`, and a fault that the reader finds itself has no cause.
+{doc}`../reference/serializers` gives the rule, and when `prov.read()` without `format=`
+chains a reader's error to `ProvFormatNotDetected`.
 
 Around a read, `except prov.serializers.ProvSerializationError` catches a reader's
 rejection, `except prov.Error` also catches the model's refusal, and {doc}`read-write`
@@ -100,51 +99,63 @@ and PROV-XML gave a subclass no `xsi:type`
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared` | [#516](https://github.com/trungdong/prov/issues/516), [#551](https://github.com/trungdong/prov/issues/551), [#552](https://github.com/trungdong/prov/issues/552), [#673](https://github.com/trungdong/prov/issues/673), [#677](https://github.com/trungdong/prov/issues/677), [#727](https://github.com/trungdong/prov/pull/727) | PROV-N: `[ex:k='zz:x']` or `entity(zz:e)`. PROV-JSON: `{"$": "zz:x", "type": "xsd:QName"}`, `"prov:activity": "zz:a"`, `"zz:a"` among the members of `hadMember`, `"entity": {"zz:e": {}}`, `"zz:k": "v"` as an attribute, or `{"$": "1", "type": "foo:int"}`. PROV-JSONLD: `{"@value": "1", "@type": "zz:t"}`, or an `"@id"` of `zz:e`. PROV-XML: `prov:id="zz:x"` or `<prov:type xsi:type="xsd:QName">zz:x</prov:type>` with no `xmlns:zz` in scope, with or without an `xmlns`. Code: `Literal("zz:x", XSD_QNAME)` as a value, `doc.entity("zz:e")`, `doc.used("ex:a", "ex:e", identifier="zz:u")`, `doc.bundle("zz:b")`, `doc.add_bundle(b, "zz:b")`, `doc.used("zz:a", "ex:e")` or `doc.entity("ex:e", {"zz:a": 1})`. Each with no `zz` (or `foo`) prefix declared. | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N, a `zz` entry in `"prefix"` in PROV-JSON or in the `@context` in PROV-JSONLD, `xmlns:zz="http://example.org/zz/"` on the PROV-XML document element, or `doc.add_namespace("zz", "http://example.org/zz/")` in code. A relation that has no identifier takes none, and a PROV-JSONLD relation's `"@id": "_:u"` reads as one with no identifier. |
-| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared` | [#553](https://github.com/trungdong/prov/issues/553), [#551](https://github.com/trungdong/prov/issues/551) | PROV-N: `entity(http://example.org/e)`, or the IRI as a formal argument, an attribute name, a datatype or a `prov:QUALIFIED_NAME` value. PROV-JSON: the IRI as a record key, a bundle key, an attribute name, a formal attribute or a `hadMember` member. PROV-JSONLD: `{"@value": "http://example.org/x", "@type": "xsd:QName"}`. | The qualified name, such as `ex:x`. |
+| `the qualified name '…' does not resolve, because its prefix '…' is not declared` | [#516](https://github.com/trungdong/prov/issues/516), [#551](https://github.com/trungdong/prov/issues/551), [#552](https://github.com/trungdong/prov/issues/552), [#673](https://github.com/trungdong/prov/issues/673), [#677](https://github.com/trungdong/prov/issues/677), [#727](https://github.com/trungdong/prov/pull/727) | An undeclared prefix, in any format | Declare the prefix. |
+| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared` | [#553](https://github.com/trungdong/prov/issues/553), [#551](https://github.com/trungdong/prov/issues/551) | PROV-N: `entity(http://example.org/e)`, or the IRI as a formal argument, an attribute name, a datatype or a `prov:QUALIFIED_NAME` value, as in `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]`. PROV-JSON: the IRI as a record key, a bundle key, an attribute name, a formal attribute or a `hadMember` member. PROV-JSONLD: `{"@value": "http://example.org/x", "@type": "xsd:QName"}`. | The qualified name, such as `ex:x`. |
 | `the qualified name 'g1' does not resolve, because it has no prefix and no default namespace is declared` | [#516](https://github.com/trungdong/prov/issues/516), [#622](https://github.com/trungdong/prov/pull/622) | PROV-N: `[ex:k="not a name" %% prov:QUALIFIED_NAME]`. PROV-JSON: `"wasGeneratedBy": {"g1": {…}}` with no `default` entry. | A qualified name with a declared prefix, `_:g1` for a PROV-JSON relation with no identifier, or a string if the value is not a name. |
 | `the qualified name '_:b1' of ex:a does not resolve, because its prefix '_' is reserved for blank nodes` | [#673](https://github.com/trungdong/prov/issues/673) | `{"@value": "1", "@type": "_:b1"}` in PROV-JSONLD | A datatype in a declared namespace, such as `xsd:integer`, since a blank node names no datatype. |
 | `A value object for 'ex:a' must hold a string "@type"; found {'@value': '1', '@type': None}` | [#673](https://github.com/trungdong/prov/issues/673) | `{"@value": "1", "@type": null}` or a number, a boolean, a list or an object as the `@type` in PROV-JSONLD | A datatype's qualified name as a string, such as `"xsd:integer"`, or no `@type` for a plain string. |
 | `A value object for 'ex:a' cannot hold both "@language" and "@type"; found {'@value': 'x', '@language': 'en', '@type': 'xsd:string'}` | [#673](https://github.com/trungdong/prov/issues/673) | `{"@value": "x", "@language": "en", "@type": "xsd:string"}` in PROV-JSONLD | `@language` alone for a language-tagged string, or `@type` alone for a typed value. |
+
+Each format raises its own error for the first four rows. The list gives that error, the
+inputs that give the first row, each with no `zz` (or `foo`) prefix declared, and what to
+write instead.
+
+- PROV-N: a `ProvNSyntaxError` at the value or the name, and the `lenient` profile skips
+  the statement with a `ProvWarning`. Inputs: `[ex:k='zz:x']` or `entity(zz:e)`. Write
+  instead: `prefix zz <http://example.org/zz/>`.
+- PROV-JSON: a `ProvJSONException` that starts with the record and, for a value or an
+  attribute name, the attribute, as in `record 'ex:e', attribute 'ex:k':`. A record key has
+  no attribute, so its message starts with `record 'ex:g'` and a colon, and a bundle key's
+  starts with `bundle 'ex:b'` and a colon. Inputs: `{"$": "zz:x", "type": "xsd:QName"}`,
+  `"prov:activity": "zz:a"`, `"zz:a"` among the members of `hadMember`,
+  `"entity": {"zz:e": {}}`, `"zz:k": "v"` as an attribute, or
+  `{"$": "1", "type": "foo:int"}`. Write instead: a `zz` entry in `"prefix"`, such as
+  `"zz": "http://example.org/zz/"`, or a datatype in a declared namespace, such as
+  `xsd:int`.
+- PROV-JSONLD: a `ProvJSONLDException` that names the statement before the model's error,
+  as in `prov:Entity 'ex:e': Invalid Qualified Name: zz:x, …`. Inputs:
+  `{"@value": "1", "@type": "zz:t"}`, or an `"@id"` of `zz:e`. Write instead: a `zz` entry
+  in the `@context`, or a datatype in a declared namespace, such as `xsd:integer`. A
+  relation's `"@id": "_:u"` reads as one with no identifier.
+- PROV-XML: a `ProvXMLException` naming the element and the line, for a name whose prefix
+  no element in scope declares and the document has not already registered, in a record or
+  bundle `prov:id`, a `prov:ref`, `xsd:QName` text, `xsi:type` or a reference given as
+  element text, for a name with no colon and no `xmlns` in scope, and for an empty
+  `xsd:QName` element. Inputs: `prov:id="zz:x"` or
+  `<prov:type xsi:type="xsd:QName">zz:x</prov:type>` with no `xmlns:zz` in scope, with or
+  without an `xmlns`. Write instead: `xmlns:zz="http://example.org/zz/"` on the document
+  element.
+- PROV-O: a `ProvRDFException`.
+- Code: a `ProvExceptionInvalidQualifiedName` whose message starts
+  `Invalid Qualified Name: zz:x,`. Inputs: `Literal("zz:x", XSD_QNAME)` as a value,
+  `doc.entity("zz:e")`, `doc.used("ex:a", "ex:e", identifier="zz:u")`,
+  `doc.bundle("zz:b")`, `doc.add_bundle(b, "zz:b")`, `doc.used("zz:a", "ex:e")` or
+  `doc.entity("ex:e", {"zz:a": 1})`. Write instead:
+  `doc.add_namespace("zz", "http://example.org/zz/")`. A relation that has no identifier
+  takes none.
+
+For a value or a formal attribute in code or in PROV-JSONLD, and for a PROV-JSONLD
+datatype, the sentence names the attribute after the name, as in `the qualified name
+'zz:a' of prov:activity`. An attribute name's message has no `of`, so `doc.entity("ex:e",
+{"zz:a": 1})` gives `the qualified name 'zz:a' does not resolve, …`.
 
 For an identifier with an undeclared prefix, 3.2.3 raised `ProvElementIdentifierRequired`
 for an element, with `An identifier is missing. All PROV elements require a valid
 identifier.`, built a relation with no identifier and raised `ProvException` from
 `bundle()`. For an undeclared prefix in a formal attribute's value, such as
 `doc.used("zz:a", "ex:e")`, it raised `Invalid Qualified Name: zz:a` alone.
-
-In PROV-N the error is a `ProvNSyntaxError` at the value or the name, and the `lenient`
-profile skips the statement with a `ProvWarning`. In PROV-JSON it is a `ProvJSONException`
-that starts with the record and, for a value or an attribute name, the attribute, as in
-`record 'ex:e', attribute 'ex:k':`; a bundle key starts with `bundle 'ex:b'`. From code it
-is a `ProvExceptionInvalidQualifiedName` whose message starts `Invalid Qualified Name:
-zz:x,`. For a value asserted in code, a formal attribute or a PROV-JSONLD datatype, the
-sentence names the attribute after the name, as in `the qualified name 'zz:a' of
-prov:activity`. The PROV-JSONLD reader raises `ProvJSONLDException`, which names the
-statement before the model's error, as in `prov:Entity 'ex:e': Invalid Qualified Name:
-zz:x, …`, with that error as the cause. The PROV-O reader raises `ProvRDFException` with
-it as the cause. The PROV-XML reader raises `ProvXMLException` with it as the cause,
-naming the element and the line, for a name whose prefix no element in scope declares and
-the document has not already registered, in a record or bundle `prov:id`, a `prov:ref`,
-`xsd:QName` text, `xsi:type` or a reference given as element text, for a name with no
-colon and no `xmlns` in scope, and for an empty `xsd:QName` element.
-
-`prov` 3.2.3 read a PROV-XML name whose prefix is not declared, in a `prov:id`, `prov:ref`,
-`xsd:QName` text or `xsi:type`, under an `xmlns` as a local part of the default namespace,
-so `zz:x` became the default namespace's `zz:x`, and without an `xmlns` raised a
-`ProvXMLException` naming no element. It returned reference text as written for the model
-to resolve against its registry, so a full IRI such as `http://example.org/e1` read as
-`ex:e1` once an earlier name had registered `ex`, and a prefix the document element
-declared that no earlier name had used was rejected. The full IRI is rejected now, and a
-prefix declared in scope resolves. A file 3.2.3 wrote with a default-namespace local part
-holding `:`, such as `a:b`, has that shape in `prov:id`, `prov:ref` and `xsd:QName` text.
-Declare a prefix for the default namespace IRI, such as `xmlns:dn="http://example.org/"`,
-and write the name under it, `dn:a:b`.
-
-Whitespace around a name in `xsd:QName` text or reference text is stripped. 3.2.3 rejected
-it in reference text and, in `xsd:QName` text, read it under an `xmlns` as part of a
-default-namespace local part and raised a `ProvXMLException` without one. An empty
-`xsd:QName` element raised a `TypeError` in 3.2.3.
+{ref}`upgrade-provxml` and {ref}`upgrade-provjsonld` say how those two readers resolve
+these names and what 3.2.3 did with them.
 
 A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and so does
 `'zz:x'` in PROV-N. `prov` splits its text at the first `:` and looks the prefix up in the
@@ -166,16 +177,6 @@ A formal attribute is one of the record's arguments in PROV-N, such as `prov:ent
 an attribute name, a formal attribute value other than a time and a `hadMember` member.
 3.2.3 dropped a formal attribute value or a `hadMember` member that did not resolve, with a
 warning.
-
-In PROV-JSONLD, the context marks the values of `type`, `role` and `location` as IRIs, so
-a bare string there is an IRI, as a `{"@id": …}` node reference is. When a declared
-namespace compacts the IRI, the value is that qualified name, and when none does, the
-reader rejects it with `ProvJSONLDException`, as it rejects a node reference. 3.2.3 kept
-that string as an `xsd:QName` `Literal` and warned that 3.3.0 would reject it, and read a
-node reference no namespace compacts as an `Identifier`. A reference to a blank node,
-`{"@id": "_:b1"}` or `"_:b1"`, names no record, so the reader drops that value with a
-`ProvWarning`. An `xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or
-an undeclared prefix is rejected by the model, and the reader's error names the record.
 
 In code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts when no prefix named `http` is
@@ -217,12 +218,11 @@ PROV-JSON `prefix` object or a PROV-JSONLD context.
 
 Each is a `ProvValueError` when the `Namespace` is built, from code or from a reader.
 PROV-N refuses the declaration at its token with a `ProvNSyntaxError`, and the other
-readers raise their format's error with the model's error as the cause, naming the prefix
-and the IRI, as in `prefix 'ex', IRI 5: the namespace IRI 5 is not a string`. A PROV-XML
-read raises it at the `bundleContent` element that declares the prefix, or at the first
-name under a prefix the document element declares, and raises the model's refusal of an
-`xmlns` on the document element at `<prov:document>`. C4 on
-{doc}`../reference/conformance` gives the form a prefix takes.
+readers raise their format's error naming the prefix and the IRI, as in `prefix 'ex', IRI
+5: the namespace IRI 5 is not a string`. A PROV-XML read raises it at the `bundleContent`
+element that declares the prefix, or at the first name under a prefix the document element
+declares, and raises the model's refusal of an `xmlns` on the document element at
+`<prov:document>`. C4 on {doc}`../reference/conformance` gives the form a prefix takes.
 
 3.2.3 accepted a prefix that is not a `PN_PREFIX` and wrote text that did not read back.
 It also accepted an integer prefix and an IRI that starts with `@`. For a namespace IRI
@@ -250,7 +250,7 @@ without a warning.
 
 In PROV-N the error is a `ProvNSyntaxError` at the name. An `xsi:` identifier with no
 declaration raises `ProvExceptionInvalidQualifiedName` in code, as the attribute name does,
-and the PROV-JSONLD reader raises `ProvJSONLDException` with it as the cause. PROV-XML
+and the PROV-JSONLD reader raises `ProvJSONLDException`. PROV-XML
 documents are unchanged, because the PROV-XML codec reads and writes `xsi:type` itself.
 The PROV-XML writer of 3.2.3 renamed a prefix `xsi` bound to another IRI to `xsi_1`.
 
@@ -271,8 +271,8 @@ so an environment that still has 3.2.3 can convert the file before the upgrade.
 
 The error is a `ProvExceptionInvalidQualifiedName` when the name is built, from code or
 from a pickle written by an earlier release; its message is
-`Invalid Qualified Name: ex:a b,` followed by the text in the table. A reader raises its
-format's error with it as the cause. In PROV-N the sentence appears for a
+`Invalid Qualified Name: ex:a b,` followed by the text in the table. In PROV-N the
+sentence appears for a
 `prov:QUALIFIED_NAME` value, as a `ProvNSyntaxError` at the statement, and the `lenient`
 profile skips the statement with a `ProvWarning`. Bare `ex:a b` in PROV-N text is a syntax
 error, as it was in 3.2.3. C4 on
@@ -291,7 +291,7 @@ and are accepted.
 | `the language tag of 'hi' is empty` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="")`, or `{"$": "hi", "lang": ""}` in PROV-JSON | No language tag. |
 
 Each is a `ProvValueError` when the `Literal` is built, from code or from a pickle written
-by an earlier release. A reader raises its format's error with it as the cause. C5 and C6
+by an earlier release. C5 and C6
 on {doc}`../reference/conformance` give the form a tag takes. The PROV-N reader of 3.2.3
 rejected these tags already.
 
@@ -303,8 +303,8 @@ rejected these tags already.
 | `invalid xsd:dateTime '…'` (PROV-N), `expected an xsd:dateTime, found '…'` (PROV-JSON), `… is not an xsd:dateTime` (PROV-JSONLD), `Invalid value for attribute prov:startTime: …` (PROV-XML) or `Invalid xsd:dateTime value: '…'` (code) | [#514](https://github.com/trungdong/prov/issues/514) | `used(ex:a, ex:e, 2012-12-03T21:08:16.1234567Z)` | At most six fractional digits, `2012-12-03T21:08:16.123456Z`. A typed `xsd:dateTime` value of an ordinary attribute keeps the `Literal`. PROV-O reads it truncated to microseconds. |
 
 The offset error is a `ProvValueError` where the time is asserted, from code, for every
-time of a statement and for a Python `datetime` as the value of any attribute. A reader
-raises its format's error with it as the cause. 3.2.3 warned only for a time of a
+time of a statement and for a Python `datetime` as the value of any attribute. 3.2.3
+warned only for a time of a
 statement. A typed `xsd:dateTime` value of an ordinary attribute with such an offset,
 `[ex:t="2011-11-16T16:05:33+15:00" %% xsd:dateTime]`, is not an error. 3.3.0 keeps it as a
 `Literal` with its text, where 3.2.3 read it as a `datetime` and warned. A PROV-N read
@@ -482,8 +482,7 @@ value-object checks first, so an unknown key, a `$` or `type` that is not a stri
 an undeclared datatype gives that check's message; a value object of any other
 datatype, or with a `lang`, is not an `xsd:dateTime`.
 
-A record key has no attribute, so its message starts with `record 'ex:g'` and a colon.
-A bundle key starts with `bundle 'ex:b'` and a colon.
+(upgrade-provjsonld)=
 
 ## PROV-JSONLD
 
@@ -497,6 +496,18 @@ A bundle key starts with `bundle 'ex:b'` and a colon.
 The repeated-key message names only the key, because Python's JSON parser reports no
 position for it. 3.2.3 kept the last value of a repeated key without a message, and read a
 statement whose formal time it could not parse without that time.
+
+The context marks the values of `type`, `role` and `location` as IRIs, so a bare string
+there is an IRI, as a `{"@id": …}` node reference is. When a declared namespace compacts
+the IRI, the value is that qualified name, and when none does, the reader rejects it with
+`ProvJSONLDException`, as it rejects a node reference. 3.2.3 kept that string as an
+`xsd:QName` `Literal` and warned that 3.3.0 would reject it, and read a node reference no
+namespace compacts as an `Identifier`. A reference to a blank node, `{"@id": "_:b1"}` or
+`"_:b1"`, names no record, so the reader drops that value with a `ProvWarning`. An
+`xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared
+prefix is rejected by the model, and the reader's error names the record.
+
+(upgrade-provxml)=
 
 ## PROV-XML
 
@@ -520,6 +531,24 @@ Remove an unused declaration from the file if the output must not declare it.
 
 A bundle's own default namespace round-trips through PROV-XML. 3.2.3 read the bundle's
 names in the document's default ([#572](https://github.com/trungdong/prov/issues/572)).
+
+A name whose prefix is not declared gives the first message under
+{ref}`upgrade-qualified-names`. `prov` 3.2.3 read a PROV-XML name whose prefix is not
+declared, in a `prov:id`, `prov:ref`, `xsd:QName` text or `xsi:type`, under an `xmlns` as
+a local part of the default namespace, so `zz:x` became the default namespace's `zz:x`,
+and without an `xmlns` raised a `ProvXMLException` naming no element. It returned
+reference text as written for the model to resolve against its registry, so a full IRI
+such as `http://example.org/e1` read as `ex:e1` once an earlier name had registered `ex`,
+and a prefix the document element declared that no earlier name had used was rejected. The
+full IRI is rejected now, and a prefix declared in scope resolves. A file 3.2.3 wrote with
+a default-namespace local part holding `:`, such as `a:b`, has that shape in `prov:id`,
+`prov:ref` and `xsd:QName` text. Declare a prefix for the default namespace IRI, such as
+`xmlns:dn="http://example.org/"`, and write the name under it, `dn:a:b`.
+
+Whitespace around a name in `xsd:QName` text or reference text is stripped. 3.2.3 rejected
+it in reference text and, in `xsd:QName` text, read it under an `xmlns` as part of a
+default-namespace local part and raised a `ProvXMLException` without one. An empty
+`xsd:QName` element raised a `TypeError` in 3.2.3.
 
 ## PROV-O
 

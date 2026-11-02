@@ -31,9 +31,9 @@ map. `ProvElement` (entity, activity, agent) and `ProvRelation` (generation, usa
 derivation and the rest) split the PROV-DM world between them. Each concrete class declares
 its formal attributes in order. Everything else on the record is an "other" attribute.
 
-A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager, and offers a
-factory method per record type (`entity()`, `wasGeneratedBy()`, ...). Its docstring says
-which namespaces a bundle registers. A
+A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager that registers
+the namespaces the bundle binds and those its records use that no enclosing scope declares,
+and offers a factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
 {py:class}`~prov.model.ProvDocument` is a bundle that can also contain named bundles, and
 is the unit that serializes. Records are created through the bundle so that identifiers
 resolve against its namespaces.
@@ -51,12 +51,8 @@ Each serializer subclasses {py:class}`~prov.serializers.Serializer` and implemen
 format names, and {py:func}`prov.serializers.get` resolves a name to a class.
 {ref}`auto-detect` gives the registry order and shows how {py:func}`prov.read` walks it.
 
-The registry is populated lazily, on the first call to {py:func}`prov.serializers.get` or
-{py:func}`prov.read`, by `Registry.load_serializers()`. Formats whose parser is an optional
-dependency (`rdf`, `xml`) are registered only if that dependency imports successfully.
-Otherwise they are left out of the registry, so its shape depends on what is installed.
-Requesting a format that is not registered raises {py:class}`~prov.serializers.DoNotExist`,
-naming the extra to install when the format is one of the optional ones.
+{py:meth}`Registry.load_serializers() <prov.serializers.Registry.load_serializers>` fills
+the registry on first use and leaves out a format whose optional parser is not installed.
 
 ## Extras
 

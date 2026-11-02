@@ -51,32 +51,12 @@ FULL_PROV_RECORD_IDS_MAP = {
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
-# The parser is hardened against XXE and entity expansion. PROV-XML documents
-# have no legitimate use for DTD entity resolution or network access, so both
-# are switched off explicitly rather than left to lxml's own default. Three
-# things make the explicit setting necessary. The lxml default for
-# `resolve_entities` only became safe ('internal') in lxml 5.0, and this
-# package's floor (`lxml>=3.3.5`) still admits older releases that default to
-# `True` (full external entity resolution). Even on a safe lxml release, any
-# other library sharing the process can repoint the *global* default parser
-# via `etree.set_default_parser(...)`, which a bare `etree.parse(...)` call
-# (no `parser=`) silently inherits. And prov is embedded in other applications
-# that may load such libraries. Passing this parser explicitly at both parse
-# sites closes all three, whatever the installed lxml version or the other
-# libraries loaded in the process.
-#
-# `huge_tree` stays at lxml's default of `False`, because raising it disables
-# libxml2's own hard limits on tree depth, text length and entity
-# amplification, which a hardened parser keeps.
-#
-# The parser is a shared module-level instance, not one constructed per parse.
-# lxml's own documentation for `XMLParser` states that sharing a parser across threads
-# "is not harmful", only less efficient than per-thread instances under
-# heavy concurrent load (access is internally serialized). PROV-XML
-# deserialization is not expected to be a high-frequency, highly concurrent
-# hot path even in a web service, so the simplicity of a single shared
-# parser wins over per-parse allocation; if profiling ever shows lock
-# contention here, switch to constructing a parser per call.
+# Entity resolution and network access are off, against XXE and entity
+# expansion. Both parse sites pass this parser, because lxml before 5.0 (the
+# floor is 3.3.5) resolves external entities by default and another library in
+# the process can replace the global default parser. `huge_tree` stays False,
+# so libxml2 keeps its limits on depth, text length and entity amplification.
+# One parser is shared; lxml serialises access to it across threads.
 _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 

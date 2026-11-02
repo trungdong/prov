@@ -36,6 +36,7 @@ every pin.
 `CONTRIBUTING.md` (Checks every pull request must pass) holds the one list of commands and
 the rules around them: the mypy override list that only shrinks, Codacy on every changed
 file, the coverage floor and the Sphinx build. Run every applicable line before pushing.
+A change to a page or a docstring follows its Documentation rules.
 
 Performance changes also run `uv run python benchmarks/ab.py main --python 3.12`. Repeat a
 red CI benchmark locally before acting on it. `benchmarks/README.md` has the details.

@@ -1746,13 +1746,15 @@ class ProvBundle:
     ) -> None:
         """Plot the document as a graph, saving to a file or displaying it.
 
-        A bundle that is not a document warns :class:`DeprecationWarning`, as
+        The graph is the one :func:`prov.dot.prov_to_dot` draws. A bundle that
+        is not a document warns :class:`DeprecationWarning`, as
         :func:`prov.dot.prov_to_dot` does, and 4.0 draws documents only.
 
         Args:
-            filename: The path to save the plot to; the image format is derived
-                from its extension. If not given, the plot is shown in an
-                interactive matplotlib window (default: ``None``).
+            filename: The path to save the plot to, written through Graphviz;
+                the image format is derived from its extension. If not given,
+                the plot is shown through matplotlib, in an interactive window
+                or inline in a notebook (default: ``None``).
             show_nary: Whether to show all elements in n-ary relations
                 (default: ``True``).
             use_labels: Whether to label elements by their ``prov:label``
@@ -1960,20 +1962,11 @@ class ProvDocument(ProvBundle):
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
 
-        The document's top-level records and each contained bundle are merged
-        independently, so nothing is merged across a bundle boundary. The
-        original document is left untouched.
-
-        Records that share an identifier merge into one record, and a formal
-        attribute that one record leaves out takes the value another gives it.
-        Records with a unique identifier, or none, are not merged. Neither are
-        the four relations ``alternateOf``, ``specializationOf``,
-        ``mentionOf`` and ``hadMember``. PROV-DM gives them no identifier, so
-        one that carries an identifier passes through unmerged. After the
-        merge each record appears once, so a record equal to an earlier one is
-        dropped and the earlier one keeps its position.
-
-        The result is not the specification's full normalisation.
+        Records that share an identifier in one scope, the document's top
+        level or one bundle, merge into one record, and the original document
+        is left untouched. After the merge, a record equal to an earlier one
+        is dropped. Records that share an identifier but cannot merge raise
+        :class:`~prov.model.ProvUnificationError`.
         :doc:`/explanation/unification-flattening` gives the rules, the
         exceptions and the limits.
 

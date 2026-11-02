@@ -105,12 +105,6 @@ dot = prov_to_dot(document)
 dot.write_png("article-prov.png")
 ```
 
-```{note}
-Rendering to PNG, PDF or SVG needs a local Graphviz installation, not just the `pydot`
-package. The {doc}`../howto/graphics` guide shows how to install it and covers layout
-direction, labels and hiding attributes.
-```
-
 ## Bundles
 
 A **bundle** is a named set of statements with its own namespaces. It lets you describe the

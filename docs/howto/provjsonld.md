@@ -2,6 +2,10 @@
 
 [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/) is a W3C member submission
 that represents the PROV Data Model in JSON-LD. Select it with `format="jsonld"`; it needs no extra.
+The submission defines no Mention term, so a document with a
+{py:class}`~prov.model.ProvMention` cannot be written or read.
+{doc}`../reference/conformance` states the format's other limits and what its reader
+accepts and drops.
 
 ## Round trip
 
@@ -68,10 +72,3 @@ that is archived or processed offline. Any other value raises `ValueError`.
 ```python
 document.serialize(format="jsonld", context="embed")
 ```
-
-## Limitations
-
-The submission defines no Mention term, so a document with a
-{py:class}`~prov.model.ProvMention` cannot be written or read (C2 in
-{doc}`../reference/conformance`). The PROV-JSONLD notes on the same page state what the
-reader accepts and what it drops.

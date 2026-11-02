@@ -171,7 +171,8 @@ Every pull request that touches a page or a docstring follows these rules.
    homes.
 3. Keep release history in `HISTORY.md`, `docs/whats-new-3.md`, `docs/upgrading-3.0.md` and the
    3.3.0 upgrade guide (`docs/howto/prepare-for-3-3.md`). Elsewhere write no "since X.Y", no
-   "3.2.0 added" and no benchmark percentage.
+   "3.2.0 added" and no benchmark percentage. A `deprecated` directive, and a compatibility
+   statement that names the release it protects, keep their version.
 4. Write nothing that dates. State no measured figure tied to a machine or an interpreter and
    no date that will pass, apart from the dates in the support policy, the per-release
    conformance sentence and the measured figures in `benchmarks/README.md`.
@@ -192,6 +193,7 @@ Every pull request that touches a page or a docstring follows these rules.
 | Supported release lines | `SECURITY.md` |
 | Python-version policy | `ROADMAP.md` |
 | Gate commands | `CONTRIBUTING.md` |
+| Python floor and what pip installs below it | `docs/installation.md` |
 | Equality rules and Python values | `docs/reference/model.md` |
 | Exceptions | `docs/reference/serializers.md` |
 

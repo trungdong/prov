@@ -38,12 +38,8 @@ loaded = pm.ProvDocument.deserialize(content=turtle_str, format="rdf", rdf_forma
 ```
 
 ```{important}
-A triple syntax such as `"turtle"` loses which bundle each statement came from, so keep
-the default TriG if your document has bundles. The PROV-O notes in
-{doc}`../reference/conformance` say which syntaxes keep them.
+A syntax with named graphs, such as `"trig"` or `"nquads"`, keeps each bundle, and a triple
+syntax such as `"turtle"` flattens every bundle into one graph, so keep the default TriG if
+your document has bundles. {doc}`../reference/conformance` states the other limits of
+PROV-O.
 ```
-
-## Limitations
-
-{doc}`../reference/conformance` states the limits of PROV-O in C1, C10, C11 and C12 and in
-its PROV-O notes.

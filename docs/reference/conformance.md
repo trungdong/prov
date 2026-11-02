@@ -16,8 +16,7 @@ Summary:
 
 - A round trip is `deserialize(serialize(doc)) == doc` for every shared test case. ✓ means
   it holds; ✓ followed by a caveat, such as ✓ C5, means it holds except in the case that
-  caveat describes; ✗ C2 means the format cannot represent the concept. The PROV-O notes
-  say where C1 applies.
+  caveat describes; ✗ C2 means the format cannot represent the concept.
 - The PROV-N column shows the keyword `get_provn()` writes. Every row round-trips through
   PROV-N under the `default` profile, and under `strict` when written with `strict=True`,
   except that a strict write drops the identifier and attribute block of a `hadMember`,
@@ -118,7 +117,7 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
 | `xsd:dateTime` | the form that {ref}`python-values` gives; a typed literal with an offset beyond ±14:00, a fraction of more than six digits or a year outside 1 to 9999 stays a `Literal`; PROV-O reads a longer fraction truncated (C10) | ✓ C7 C10 |
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given, compared by the rules in {ref}`equality`; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
-| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form listed under {ref}`python-values`; a value of any other type is rejected | ✓ C10 |
+| Other Python values | the form that {ref}`python-values` gives | ✓ C10 |
 
 ## Permanent limitations
 
@@ -128,9 +127,10 @@ Two constructs cannot round-trip, and no change is planned.
   PROV-O names a record by its identifier, so two records that share one collapse onto one
   node when written, and the round trip is not guaranteed. Reading it back may give one
   record, which compares unequal to the original, or raise. Third-party RDF shaped this way
-  reads the same way. Minting a synthetic IRI and guessing values on decode were both rejected
-  ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` merges the records or
-  raises for a conflict.
+  reads the same way. C1 applies to every record that carries an identifier, including an
+  entity named only as an association's plan. Minting a synthetic IRI and guessing values on
+  decode were both rejected ([#217](https://github.com/trungdong/prov/issues/217)).
+  `unified()` merges the records or raises for a conflict.
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
   serialising or deserialising a document with a {py:class}`~prov.model.ProvMention` raises
   `prov.serializers.provjsonld.ProvJSONLDException`.
@@ -165,7 +165,7 @@ blank `<prov:entity/>` still raises the reader's error.
 ### PROV-N profiles
 
 {doc}`../howto/provn` lists what each of the three profiles, `strict`, `default` and
-`lenient`, accepts, including the `-` rule and the skip of a statement that misses a party.
+`lenient`, accepts.
 
 No profile accepts the keywords `person`, `organization`, `softwareAgent`, `collection`,
 `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` or `hadPrimarySource`. They are
@@ -224,8 +224,6 @@ one of the statement's own arguments are errors.
 
 - An attribute predicate under a namespace declared neither in the document nor in the graph
   gets a minted prefix, with a `ProvWarning`.
-- Two records sharing an identifier read as C1 describes. C1 applies to every record that
-  carries an identifier, including an entity named only as an association's plan.
 - A relation whose subject is a blank node reads with no identifier; an element's blank-node
   label resolves in the default namespace.
 - An attribute whose object is a blank node that names no record, such as a
@@ -251,8 +249,7 @@ one of the statement's own arguments are errors.
 `prov.read()` detects the format from the content and forwards each reader's own options
 (`profile` for PROV-N; `rdf_format`, `relation_mapper` and `predicate_mapper` for PROV-O;
 the `json.load` hooks for PROV-JSON and PROV-JSONLD, which receive each object after the
-check for repeated keys). With an explicit `format`, an option that the format does not
-accept raises `TypeError` naming the format.
+check for repeated keys).
 
 ## Edge cases
 

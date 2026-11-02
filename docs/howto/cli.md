@@ -38,5 +38,3 @@ prov-convert -f bogus document.json out.bogus
 # prov-convert: error: No serializer available for the format "bogus"
 echo $?  # 2
 ```
-
-{doc}`../reference/prov-compare` gives the exit status of `prov-compare`.

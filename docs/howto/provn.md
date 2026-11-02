@@ -37,9 +37,7 @@ endDocument
 ```
 
 A statement with an attribute block that is wider than 80 columns, indentation included,
-wraps. The keyword, the identifier and the formal arguments stay on the first line, and the
-attribute block follows with one attribute per line.
-{py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass `width` to change the
+wraps. {py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass `width` to change the
 limit, or `width=None` to never wrap:
 
 ```python

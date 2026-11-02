@@ -25,8 +25,7 @@ the registry and the exception classes for reading and writing.
 
 ## Reading documents
 
-{py:func}`prov.read` detects the format of a source by trying the registered
-deserializers in turn, as {ref}`auto-detect` describes.
+{ref}`auto-detect` shows how to read a document whose format is not known.
 
 ```{eval-rst}
 .. autofunction:: prov.read
@@ -56,28 +55,15 @@ prov.Error
 `-- DoNotExist                           (prov.serializers)
 ```
 
-A reader raises its format's error for input it cannot represent. When the model rejects
-a record or a namespace that the reader builds, the reader raises its own error, whose
-message names the record and carries the model's sentence, and sets the model's exception
-as `__cause__`. A fault that the reader finds itself has no cause. Code that builds the
-record gets the model's exception.
-
-{py:func}`prov.read` raises `ProvFormatNotDetected` when no registered reader produces a
-document. When the source starts with `{` or `document` and the reader that this start
-names rejected it with a `ProvSerializationError`, that error is the `__cause__`.
-Otherwise it has no cause.
+{py:class}`~prov.serializers.ProvSerializationError` says what a reader's error carries,
+and code that builds the record gets the model's exception itself.
+{py:class}`~prov.serializers.ProvFormatNotDetected` says when its `__cause__` is a reader's
+error.
 
 With an explicit `format`, input that is not well-formed in the underlying syntax raises the
 parsing library's own error, outside the tree: `json.JSONDecodeError` for the two JSON
 formats, `lxml`'s `XMLSyntaxError`, and rdflib's parser error for the chosen `rdf_format`,
-such as `BadSyntax` for TriG and Turtle. Also with an explicit `format`, {py:func}`prov.read` raises
-`ValueError` for an unsupported `profile` and `TypeError` for an option name that the
-format's reader does not accept. `serialize` raises `ValueError` for an unsupported
-`context`, a PROV-JSONLD write option, and the two JSON writers raise `TypeError` for a
-keyword that `json.JSONEncoder` does not accept. Without a `format`, {py:func}`prov.read`
-passes an option only to the readers that declare it, so an undeclared name has no effect.
-An unsupported `profile` ends in `ProvFormatNotDetected` for PROV-N content, and has no
-effect on content in another format.
+such as `BadSyntax` for TriG and Turtle.
 
 ```{eval-rst}
 .. autoclass:: prov.serializers.ProvSerializationError

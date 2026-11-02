@@ -36,9 +36,8 @@ document.wasGeneratedBy(e, a)
 dot = prov_to_dot(document)
 ```
 
-`prov_to_dot()` unifies the document before it draws, so records that share an identifier
-become one node. When the records disagree and unification fails, it draws the document as
-given.
+{py:func}`~prov.dot.prov_to_dot` unifies the document before it draws, so records that
+share an identifier become one node.
 
 ## Write PNG, SVG or PDF
 
@@ -95,12 +94,8 @@ dot_binary = prov_to_dot(document, show_nary=False)
 
 ## Plot in a notebook or window
 
-{py:meth}`~prov.model.ProvDocument.plot` draws the same graph. With no filename it shows
-the image through matplotlib, in an interactive window or inline in a notebook, which needs
-the `plot` extra that {doc}`../installation` lists. With a filename it writes the file
-through Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes
-`show_nary`, `use_labels`, `show_element_attributes` and `show_relation_attributes`, and no
-`direction`.
+{py:meth}`~prov.model.ProvDocument.plot` draws the same graph to the file its extension
+names, or, with no filename, shows it through matplotlib, which needs the `plot` extra.
 
 ```python
 document.plot("document.png", use_labels=True)

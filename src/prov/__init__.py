@@ -92,12 +92,8 @@ def _head(
 def _rejection_cause(
     head: str | None, errors: dict[str, Exception]
 ) -> Exception | None:
-    """The error of the reader the input's head names, when that reader
-    rejected the input with its own :class:`~prov.serializers.ProvSerializationError`:
-    PROV-JSON or PROV-JSONLD for ``{`` (PROV-JSONLD when the head holds
-    ``"@context"`` or ``"@graph"``), PROV-N for ``document``. Any other
-    start, such as ``<`` or ``@prefix``, names no one reader, so it chains
-    nothing."""
+    """The cause to chain, by the rule that
+    :class:`~prov.serializers.ProvFormatNotDetected` states."""
     # Lazy import: prov and the serializers are circularly dependent.
     from prov.serializers import ProvSerializationError
 
@@ -124,10 +120,8 @@ def _detect_and_parse(
 
     Raises:
         ProvFormatNotDetected: If no registered serializer produced a
-            non-empty document from ``src``/``content``. When the content
-            starts with ``{`` (PROV-JSON or PROV-JSONLD) or the word
-            ``document`` (PROV-N) and that reader rejected the input with its
-            own error, that error is the exception's ``__cause__``.
+            non-empty document from ``src``/``content``; its class docstring
+            gives the ``__cause__`` rule.
     """
     # Lazy import: prov and prov.model are circularly dependent.
     from prov._warnings import collect_warnings, warn
@@ -229,11 +223,9 @@ def read(
     registered deserializer in turn and returning the first that both
     succeeds and produces a non-empty document. A source that parses to no
     records and no bundles is not that format. Auto-detection swallows each
-    candidate's error. When every candidate fails and the content starts with
-    ``{`` (PROV-JSON or PROV-JSONLD) or the word ``document`` (PROV-N), that
-    reader's own error is the :class:`~prov.serializers.ProvFormatNotDetected`'s
-    ``__cause__``, so the traceback shows the rule and its position; pass
-    ``format`` explicitly to get that error on its own.
+    candidate's error, and :class:`~prov.serializers.ProvFormatNotDetected`
+    says when one is its ``__cause__``; pass ``format`` explicitly to get a
+    reader's error on its own.
 
     ``prov``'s own warnings from a candidate that fails or produces an empty
     document are dropped. Those of the chosen candidate are emitted at the
@@ -254,22 +246,26 @@ def read(
         **kwargs: Passed to the deserializer, for example ``profile`` for
             PROV-N or ``rdf_format`` for PROV-O. Each serializer declares
             the options it accepts (``deserialize_options``); with
-            ``format`` given, an undeclared option raises ``TypeError``;
-            with auto-detection, every candidate receives only the options
-            it declares.
+            ``format`` given, an undeclared option raises ``TypeError``.
+            With auto-detection, every candidate receives only the options
+            it declares, so an undeclared option has no effect, and an
+            unsupported ``profile`` ends in ``ProvFormatNotDetected`` for
+            PROV-N content and has no effect on content in another format.
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.
 
     Raises:
         TypeError: If ``format`` is given and names an option the
-            corresponding deserializer does not declare.
+            corresponding deserializer does not declare. The message names
+            the format and the options it accepts.
+        ValueError: If ``format`` is ``"provn"`` and ``profile`` is not
+            ``"strict"``, ``"default"`` or ``"lenient"``.
         ProvFormatNotDetected: If ``format`` is ``None`` and no registered
             serializer produced a non-empty document from ``source``. It is
-            also a ``TypeError``. When the content starts with ``{`` (PROV-JSON
-            or PROV-JSONLD) or the word ``document`` (PROV-N) and that reader
-            rejected the input with its own error, that error is the
-            exception's ``__cause__``.
+            also a ``TypeError``; see
+            :class:`~prov.serializers.ProvFormatNotDetected` for its
+            ``__cause__``.
     """
     # The imports are lazy because prov.model and prov.serializers import this
     # package.

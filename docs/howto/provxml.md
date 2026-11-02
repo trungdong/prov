@@ -6,6 +6,9 @@
 python -m pip install "prov[xml]"
 ```
 
+{doc}`../reference/conformance` states how the format escapes an attribute name that is not
+an NCName and what its reader accepts.
+
 ## Round trip
 
 ```python
@@ -31,8 +34,3 @@ for every non-`prov:` attribute too:
 ```python
 xml_str_typed = document.serialize(format="xml", force_types=True)
 ```
-
-## Limitations
-
-{doc}`../reference/conformance` states how the format treats attribute names that are not
-NCNames (C3) and entities declared in a `DOCTYPE` (its PROV-XML notes).

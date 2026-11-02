@@ -26,8 +26,10 @@ with io.StringIO() as stream:
 
 In the library, the format is never inferred from a file extension; pass `format=` for
 anything but PROV-JSON. Keyword arguments beyond `format` go to the format's writer, such as
-`indent=2` for the two JSON formats. The `prov-convert` command does infer the format from
-the extension ({doc}`../reference/prov-convert`).
+`indent=2` for the two JSON formats. The two JSON writers raise `TypeError` for a keyword that
+`json.JSONEncoder` does not accept, and the other writers ignore an unknown keyword
+([#749](https://github.com/trungdong/prov/issues/749)). The `prov-convert` command does
+infer the format from the extension ({doc}`../reference/prov-convert`).
 
 ## Read from a file, a string or a stream
 

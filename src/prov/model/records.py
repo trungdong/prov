@@ -464,14 +464,10 @@ class Literal:
         """Initialise the literal.
 
         Args:
-            value: The literal's value. The stored form follows the
-                :ref:`Python values <python-values>` section of the reference.
-                The datatype stays as given. A ``Literal`` holds the text its
-                caller gave it, however it was spelled, so
+            value: The literal's value, stored in the form that
+                :ref:`Python values <python-values>` gives, so
                 ``Literal(Decimal("NaN"), XSD_DECIMAL)`` is the ill-formed text
-                ``NaN``, which compares as text, and a ``bytes`` value under
-                ``xsd:duration`` is its base64 text under that datatype. Only a
-                plain Python value given to a record must have a PROV form.
+                ``NaN``, which compares as text.
             datatype: The qualified name of the value's datatype (default:
                 ``None``). Any other object, a plain
                 :class:`~prov.model.Identifier` or a ``str`` included, raises
@@ -835,9 +831,9 @@ class ProvRecord:
         Returns a fresh, plain ``set`` copy, so mutating it does not affect the
         record. The set holds the ``prov:type`` values as asserted, whether
         :class:`~prov.identifier.QualifiedName`\\ s, strings, numbers or other
-        attribute values. Values that Python holds equal but that differ in
-        type, such as ``5`` and ``5.0``, collapse in it, as they do in
-        :meth:`get_attribute`.
+        attribute values, although the annotation says ``QualifiedName``
+        (`#748 <https://github.com/trungdong/prov/issues/748>`_). Values that
+        Python holds equal collapse in it, as :meth:`get_attribute` describes.
         """
         return set(self._attributes.get(PROV_TYPE, ()))
 
