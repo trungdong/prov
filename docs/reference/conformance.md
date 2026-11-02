@@ -126,9 +126,9 @@ Two constructs cannot round-trip, and no change is planned.
 
 - **C1. Two records with the same identifier that differ (PROV-O, permanent).**
   PROV-O names a record by its identifier, so two records that share one collapse onto one
-  node when written. Reading it back gives one record, so the document compares unequal to
-  the original, or raises. Third-party RDF shaped this way reads the same way. Minting a
-  synthetic IRI and guessing values on decode were both rejected
+  node when written, and the round trip is not guaranteed. Reading it back may give one
+  record, which compares unequal to the original, or raise. Third-party RDF shaped this way
+  reads the same way. Minting a synthetic IRI and guessing values on decode were both rejected
   ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` merges the records or
   raises for a conflict.
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
