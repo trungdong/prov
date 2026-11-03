@@ -306,14 +306,12 @@ class NamespaceManager(dict[str, Namespace]):
             # Plain string input: served from, and written to, this
             # manager's own cache, emptied first when the parent changed.
             parent = self.parent
-            parent_changes = 0 if parent is None else parent._changes
-            if (
-                self._cache_parent is not parent
-                or self._cache_parent_changes != parent_changes
+            if self._cache_parent is not parent or (
+                parent is not None and parent._changes != self._cache_parent_changes
             ):
                 self._resolve_cache.clear()
                 self._cache_parent = parent
-                self._cache_parent_changes = parent_changes
+                self._cache_parent_changes = 0 if parent is None else parent._changes
             resolved = self._resolve_cache.get(qname)
             if resolved is None:
                 resolved = self._resolve_string(qname, is_plain_str=True)

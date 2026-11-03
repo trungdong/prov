@@ -906,23 +906,29 @@ def _turtle(document):
     return document.serialize(format="rdf", rdf_format="turtle")
 
 
-def _written_generation(second_class):
-    # prov's own writer gives the generation and the second record one IRI.
+def _written(*, shared=None, generation_type=None, anonymous=False, entity_type=None):
+    # A document as prov's own writer emits it, one builder for every shape:
+    # ``entity_type`` an element whose prov:type names a relation class
+    # (``ex:x a prov:Entity, prov:Revision``), ``anonymous`` a generation with
+    # no identifier (a blank qualification node), else an identified
+    # generation whose IRI ``shared`` gives a second record too.
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:e")
-    document.activity("ex:a")
-    document.generation("ex:e", "ex:a", identifier="ex:g")
-    getattr(document, second_class)("ex:g")
-    return _turtle(document)
-
-
-def _written_revision_type():
-    # An element whose prov:type names a relation class is written as
-    # ``ex:x a prov:Entity, prov:Revision``.
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:x", {"prov:type": PROV["Revision"]})
+    if entity_type:
+        document.entity("ex:x", {"prov:type": PROV[entity_type]})
+        return _turtle(document)
+    if not anonymous:
+        document.entity("ex:e")
+        document.activity("ex:a")
+    attributes = {"prov:type": PROV[generation_type]} if generation_type else None
+    document.generation(
+        "ex:e",
+        "ex:a",
+        identifier=None if anonymous else "ex:g",
+        other_attributes=attributes,
+    )
+    if shared:
+        getattr(document, shared)("ex:g")
     return _turtle(document)
 
 
@@ -936,20 +942,6 @@ def _either_order(second_class):
     return f"{_both('Generation', second_class)}|{_both(second_class, 'Generation')}"
 
 
-def _generation(types):
-    return _GENERATION_TURTLE.format(types=types)
-
-
-def _association(types, binary=""):
-    return _ASSOCIATION_TURTLE.format(types=types, binary=binary)
-
-
-def _blank_generation(types):
-    # The qualification node is blank, so it registers from the first class
-    # the reader meets.
-    return _BLANK_GENERATION_TURTLE.format(types=types)
-
-
 _BINARY = "prov:wasAssociatedWith ex:ag ;"
 
 
@@ -957,7 +949,7 @@ _BINARY = "prov:wasAssociatedWith ex:ag ;"
     "turtle, descending, expected",
     [
         pytest.param(
-            _written_generation(second),
+            _written(shared=second),
             None,
             _either_order(second.capitalize()),
             id=f"written-{second}",
@@ -967,32 +959,32 @@ _BINARY = "prov:wasAssociatedWith ex:ag ;"
     + [
         # An element whose prov:type names a relation class keeps the refusal.
         pytest.param(
-            _written_revision_type(),
+            _written(entity_type="Revision"),
             False,
             _both("Entity", "Revision", iri=re.escape("http://example.org/x")),
             id="written-element-typed-as-a-relation-class",
         ),
         # sorted_type_triples fixes the order the reader meets the classes in.
         pytest.param(
-            _generation("prov:Entity, prov:Generation"),
+            _GENERATION_TURTLE.format(types="prov:Entity, prov:Generation"),
             False,
             _both("Entity", "Generation"),
             id="element-first",
         ),
         pytest.param(
-            _generation("prov:Entity, prov:Generation"),
+            _GENERATION_TURTLE.format(types="prov:Entity, prov:Generation"),
             True,
             _both("Generation", "Entity"),
             id="relation-first",
         ),
         pytest.param(
-            _generation("prov:Agent, prov:Person, prov:Generation"),
+            _GENERATION_TURTLE.format(types="prov:Agent, prov:Person, prov:Generation"),
             False,
             _both("Agent", "Generation"),
             id="agent-then-relation",
         ),
         pytest.param(
-            _generation("prov:Agent, prov:Person, prov:Generation"),
+            _GENERATION_TURTLE.format(types="prov:Agent, prov:Person, prov:Generation"),
             True,
             _both("Generation", "Agent"),
             id="relation-then-agent",
@@ -1001,7 +993,7 @@ _BINARY = "prov:wasAssociatedWith ex:ag ;"
         # class met first raises, and the relation's own class met first keeps
         # the element class as a prov:type (see the reads table).
         pytest.param(
-            _blank_generation("prov:Person, prov:Generation"),
+            _BLANK_GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
             True,
             _both("Agent", "Generation", iri=_BLANK_LABEL),
             id="blank-element-first",
@@ -1009,7 +1001,7 @@ _BINARY = "prov:wasAssociatedWith ex:ag ;"
     ]
     + [
         pytest.param(
-            _association(f"prov:{cls}", binary),
+            _ASSOCIATION_TURTLE.format(types=f"prov:{cls}", binary=binary),
             None,
             _QUALIFIER_MESSAGE.format(
                 iri=re.escape("http://example.org/q"), type=f"prov:{cls}"
@@ -1037,36 +1029,6 @@ def test_decode_refuses_an_element_and_a_relation_sharing_an_iri(
     assert re.fullmatch(expected, str(ctx.value))
 
 
-def _written_with_type(cls):
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:e")
-    document.activity("ex:a")
-    document.generation(
-        "ex:e", "ex:a", identifier="ex:g", other_attributes={"prov:type": PROV[cls]}
-    )
-    return _turtle(document)
-
-
-def _written_anonymous_person():
-    # prov writes the anonymous generation's qualification node as a blank
-    # node typed ``prov:Generation, prov:Person``.
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.wasGeneratedBy(
-        "ex:e", "ex:a", other_attributes={PROV["type"]: PROV["Person"]}
-    )
-    return _turtle(document)
-
-
-_PERSON_GENERATION = [
-    "activity(ex:a, -, -)",
-    "entity(ex:e)",
-    "wasGeneratedBy(ex:e, ex:a, -)",
-    "wasGeneratedBy(ex:g; ex:e, ex:a, -, [prov:type='prov:Person'])",
-]
-
-
 def _written_generation_with(cls):
     return [
         "activity(ex:a, -, -)",
@@ -1075,19 +1037,24 @@ def _written_generation_with(cls):
     ]
 
 
+_PERSON_GENERATION = sorted(
+    [*_written_generation_with("Person"), "wasGeneratedBy(ex:e, ex:a, -)"]
+)
+
+
 @pytest.mark.parametrize(
     "turtle, descending, expected",
     [
         # An element subclass alone registers no record type, so it stays a
         # prov:type in either order.
         pytest.param(
-            _generation("prov:Person, prov:Generation"),
+            _GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
             False,
             _PERSON_GENERATION,
             id="person-and-relation-ascending",
         ),
         pytest.param(
-            _generation("prov:Person, prov:Generation"),
+            _GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
             True,
             _PERSON_GENERATION,
             id="person-and-relation-descending",
@@ -1095,7 +1062,7 @@ def _written_generation_with(cls):
         # A blank node's own relation class met first keeps the element
         # class as a prov:type.
         pytest.param(
-            _blank_generation("prov:Person, prov:Generation"),
+            _BLANK_GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
             False,
             [
                 "activity(ex:a, -, -)",
@@ -1112,7 +1079,7 @@ def _written_generation_with(cls):
             id="two-elements",
         ),
         pytest.param(
-            _association("prov:Person", _BINARY).replace(
+            _ASSOCIATION_TURTLE.format(types="prov:Person", binary=_BINARY).replace(
                 "prov:qualifiedAssociation", "ex:qualifiedThing"
             ),
             None,
@@ -1124,19 +1091,19 @@ def _written_generation_with(cls):
             id="non-prov-qualified-predicate",
         ),
         pytest.param(
-            _written_with_type("Person"),
+            _written(generation_type="Person"),
             None,
             _written_generation_with("Person"),
             id="written-person",
         ),
         pytest.param(
-            _written_with_type("Plan"),
+            _written(generation_type="Plan"),
             None,
             _written_generation_with("Plan"),
             id="written-plan",
         ),
         pytest.param(
-            _written_anonymous_person(),
+            _written(generation_type="Person", anonymous=True),
             None,
             ["wasGeneratedBy(ex:e, ex:a, -, [prov:type='prov:Person'])"],
             id="written-anonymous-person",

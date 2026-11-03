@@ -359,10 +359,8 @@ class _DecodeState:
             blank node names nothing, so their records get no identifier;
             an element's blank-node label is its identifier.
         blank_elements: The subjects that are blank nodes typed as an element.
-        first_class: Maps a subject to the first of its ``rdf:type`` classes
-            that :data:`_RECORD_TYPE_OF_CLASS` knows, whether or not that
-            class registered a record type. Only a qualifier node typed with
-            an element subclass alone needs it, to name that class.
+        unregistered_class: Maps a subject to the first class of a subject
+            typed with an element subclass alone.
     """
 
     record_types: dict[str, pm.QualifiedName] = field(default_factory=dict)
@@ -375,7 +373,7 @@ class _DecodeState:
     other_attributes: dict[str, list[pm.AttributePair]] = field(default_factory=dict)
     anonymous: set[str] = field(default_factory=set)
     blank_elements: set[str] = field(default_factory=set)
-    first_class: dict[str, str] = field(default_factory=dict)
+    unregistered_class: dict[str, str] = field(default_factory=dict)
 
     def register(
         self, subj: str, prov_obj: pm.QualifiedName, blank: bool = False
@@ -391,7 +389,7 @@ class _DecodeState:
         self.record_types[subj] = prov_obj
         klass = pm.PROV_REC_CLS[prov_obj]
         if blank:
-            if issubclass(klass, pm.ProvRelation):
+            if _is_relation(prov_obj):
                 self.anonymous.add(subj)
             else:
                 self.blank_elements.add(subj)
@@ -1660,8 +1658,6 @@ class ProvRDFSerializer(Serializer):
             subject's record type, such as ``prov:Derivation`` beside
             ``prov:Revision``.
         """
-        state.first_class.setdefault(subj, obj)
-        blank = isinstance(stmt[0], BNode)
         prov_obj = _RECORD_TYPE_OF_CLASS[obj]
         gives_type = prov_obj == PROV_DERIVATION or prov_obj.uri == obj
         registered = state.record_types.get(subj)
@@ -1669,6 +1665,7 @@ class ProvRDFSerializer(Serializer):
             if gives_type:
                 _refuse_element_and_relation(subj, registered, prov_obj, obj)
             return registered.uri != obj
+        blank = isinstance(stmt[0], BNode)
         if not blank and self.valid_identifier(subj) is None:
             # Register the subject's namespace (side effect) so a later
             # valid_identifier(subj) resolves; tolerates trailing PROV-N
@@ -1676,6 +1673,8 @@ class ProvRDFSerializer(Serializer):
             self._resolve_iri(subj, graph)
         if blank or gives_type:
             state.register(subj, prov_obj, blank=blank)
+        else:
+            state.unregistered_class.setdefault(subj, obj)
         return prov_obj.uri != obj
 
     def _decode_triples(
@@ -1713,7 +1712,16 @@ class ProvRDFSerializer(Serializer):
                         graph, state, subj, pred, obj, predicate_mapper
                     )
                 local_key = str(obj)
-                if _points_at_qualifier(state, local_key, pred):
+                if local_key in state.record_types:
+                    points_at_qualifier = "qualified" in pred
+                else:
+                    # A node typed with an element subclass alone registers
+                    # nothing, so only a prov:qualified* predicate reaches it.
+                    points_at_qualifier = (
+                        local_key in state.unregistered_class
+                        and pred.startswith(_PROV_QUALIFIED)
+                    )
+                if points_at_qualifier:
                     # The qualification node's influencer: the subject that
                     # points at it fills the relation's first formal attribute.
                     slots = _qualifier_slots(state, local_key, pred)
@@ -1788,9 +1796,10 @@ class ProvRDFSerializer(Serializer):
         name = relation_mapper[pred]
         if name in _QUALIFIED_RELATION_INFLUENCER:
             qualifier = "qualified" + name.upper()[0] + name[1:]
+            qualifier_uri = _prov_uri(qualifier)
             qualifier_bnode = None
             influencer_pred = _QUALIFIED_RELATION_INFLUENCER[name]
-            for stmt in graph.triples((subj_node, _prov_uri(qualifier), None)):
+            for stmt in graph.triples((subj_node, qualifier_uri, None)):
                 candidate = stmt[2]
                 # #226/#250: a subject may point at more than one
                 # qualification node of the same kind -- e.g. two
@@ -1805,9 +1814,7 @@ class ProvRDFSerializer(Serializer):
                 if (candidate, influencer_pred, obj) in graph:
                     break
             if qualifier_bnode is not None:
-                slots = _qualifier_slots(
-                    state, str(qualifier_bnode), _prov_uri(qualifier)
-                )
+                slots = _qualifier_slots(state, str(qualifier_bnode), qualifier_uri)
                 fakeys = list(slots)
                 slots[fakeys[0]] = subj_name
                 slots[fakeys[1]] = obj_name
@@ -2022,23 +2029,14 @@ class ProvRDFSerializer(Serializer):
                 del state.other_attributes[subj]
 
 
+_PROV_QUALIFIED = pm.PROV.uri + "qualified"
+
+
 def _prov_name(iri: str) -> str:
     """``iri`` as ``prov:<local part>`` inside the PROV namespace, else ``iri``."""
     if iri.startswith(pm.PROV.uri):
         return "prov:" + iri[len(pm.PROV.uri) :]
     return iri
-
-
-def _points_at_qualifier(state: _DecodeState, node: str, predicate: str) -> bool:
-    """Whether a triple with this ``predicate`` points at ``node`` as a qualifier.
-
-    A registered node qualifies under any predicate containing "qualified". A
-    node typed with an element subclass alone registers nothing, so only a
-    ``prov:qualified*`` predicate reaches it.
-    """
-    if node in state.record_types:
-        return "qualified" in predicate
-    return node in state.first_class and predicate.startswith(pm.PROV.uri + "qualified")
 
 
 def _is_relation(record_type: pm.QualifiedName) -> bool:
@@ -2091,7 +2089,7 @@ def _qualifier_slots(
     record_type = state.record_types.get(node)
     if record_type is not None and _is_relation(record_type):
         return state.formal_attributes[node]
-    typed_as = record_type.uri if record_type else state.first_class.get(node)
+    typed_as = record_type.uri if record_type else state.unregistered_class.get(node)
     if typed_as is None:
         # R6: a node with no known type is never in formal_attributes, so the
         # read keeps its bare KeyError.
