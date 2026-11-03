@@ -106,8 +106,9 @@ lists each message, the input that causes it and what to write instead.
 - PROV-N writes an `xsd:QName` literal value as `'ex:x'` and PROV-O writes the IRI, where
   3.2.3 wrote `"ex:x" %% xsd:QName` and `"ex:x"^^xsd:QName`
   ([#238](https://github.com/trungdong/prov/issues/238))
-- The PROV-O reader raises `ProvRDFException` for an IRI that is both an element and a
-  relation, where 3.2.3 raised a bare `StopIteration` or lost a record
+- The PROV-O reader raises `ProvRDFException` for an IRI typed as both an element and a
+  relation, such as an element whose `prov:type` names a relation class, where 3.2.3 raised
+  a bare `StopIteration`, lost a record or read the element
   ([#743](https://github.com/trungdong/prov/issues/743))
 
 The [3.3.0 milestone](https://github.com/trungdong/prov/milestone/10?closed=1) lists every

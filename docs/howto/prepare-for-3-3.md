@@ -568,10 +568,10 @@ typed as both an element and a relation.
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `Cannot split IRI 'urn:example:t=' into a namespace and a local part: it contains no '#' or '/' separator.` | [#665](https://github.com/trungdong/prov/issues/665) | `"1"^^<urn:example:t=>` as a literal's datatype, or `<urn:example:t=>` as a subject, a predicate or the object of a relation | An IRI with a `/` or `#` before its local part, such as `<urn:example:t/x>`. |
-| `subject '…' is typed as both … and …; an element and a relation cannot share an identifier` | [#743](https://github.com/trungdong/prov/issues/743) | `entity(ex:g)` beside `wasGeneratedBy(ex:g; ex:e, ex:a, -)` | Give the entity and the relation different identifiers, or write the document in another format. |
+| `subject '…' is typed as both … and …; an element and a relation cannot share an identifier` | [#743](https://github.com/trungdong/prov/issues/743) | `entity(ex:g)` beside `wasGeneratedBy(ex:g; ex:e, ex:a, -)`, or `entity(ex:x, [prov:type='prov:Revision'])`, whose `prov:type` names a PROV relation class | Give the entity and the relation different identifiers, or write the document in another format. For a `prov:type` that names a PROV relation class, use a type outside the PROV namespace. |
 
 3.2.3 read such a datatype as plain text and lost it, and raised the model's error for an
 untyped relation object. For the other positions it raised a bare `ValueError` with the
 same sentence, which `except ValueError` around a read caught. `ProvRDFException` is not a
 `ValueError`. For an IRI typed as both an element and a relation, 3.2.3 raised a bare
-`StopIteration` or lost a record.
+`StopIteration`, lost a record or read the element.

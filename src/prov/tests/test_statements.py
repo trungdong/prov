@@ -1558,7 +1558,7 @@ def test_scruffy_relation(roundtrip, family, tags, endpoints, activities) -> Non
 def test_element_and_relation_sharing_an_identifier(roundtrip, second) -> None:
     # An entity (or agent or activity) and a generation share ex:g. PROV-O
     # cannot represent that (C1 on docs/reference/conformance.md), and
-    # test_rdf.py's test_decode_refuses_an_iri_that_is_an_element_and_a_relation
+    # test_rdf.py's test_decode_refuses_an_element_and_a_relation_sharing_an_iri
     # asserts the raise, so the rdf target is left out here.
     document = new_document()
     document.entity(EX_NS["e"])

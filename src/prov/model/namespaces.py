@@ -55,7 +55,8 @@ class NamespaceManager(dict[str, Namespace]):
     """Parent :class:`NamespaceManager` this manager is a child of, if any."""
 
     # Class-level defaults stand in for a manager unpickled from a release
-    # without these attributes.
+    # without these attributes. The cache check follows the immediate parent
+    # only, because bundles do not nest.
     _changes: int = 0
     _cache_parent: NamespaceManager | None = None
     _cache_parent_changes: int = 0
@@ -305,12 +306,14 @@ class NamespaceManager(dict[str, Namespace]):
             # Plain string input: served from, and written to, this
             # manager's own cache, emptied first when the parent changed.
             parent = self.parent
-            if self._cache_parent is not parent or (
-                parent is not None and self._cache_parent_changes != parent._changes
+            parent_changes = 0 if parent is None else parent._changes
+            if (
+                self._cache_parent is not parent
+                or self._cache_parent_changes != parent_changes
             ):
                 self._resolve_cache.clear()
                 self._cache_parent = parent
-                self._cache_parent_changes = parent._changes if parent else 0
+                self._cache_parent_changes = parent_changes
             resolved = self._resolve_cache.get(qname)
             if resolved is None:
                 resolved = self._resolve_string(qname, is_plain_str=True)
@@ -363,9 +366,9 @@ class NamespaceManager(dict[str, Namespace]):
             return self._spelled_by_prefix(qname)
         existing = self._uri_map.get(namespace.uri)
         if existing is not None:
-            if prefix not in self:
+            if prefix not in self and prefix not in self._prefix_renamed_map:
                 # the prefix the caller gave reads as the registered namespace
-                self._prefix_renamed_map.setdefault(prefix, existing)
+                self._prefix_renamed_map[prefix] = existing
                 self._declarations_changed()
             return existing[qname.localpart]
         chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)

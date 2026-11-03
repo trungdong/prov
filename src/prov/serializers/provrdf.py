@@ -1614,7 +1614,8 @@ class ProvRDFSerializer(Serializer):
         Registers a record type in ``state`` for every subject typed with a
         known PROV-O class; every other ``rdf:type`` object (and the extra
         types of an already-registered subject, other than its record type's
-        own class) becomes a ``prov:type`` attribute instead.
+        own class) becomes a ``prov:type`` attribute instead. A subject typed
+        with an element class and a relation class raises ``ProvRDFException``.
 
         Args:
             graph: The RDF (sub)graph being decoded.
@@ -1664,9 +1665,9 @@ class ProvRDFSerializer(Serializer):
         prov_obj = _RECORD_TYPE_OF_CLASS[obj]
         gives_type = prov_obj == PROV_DERIVATION or prov_obj.uri == obj
         registered = state.record_types.get(subj)
-        if gives_type:
-            _refuse_element_and_relation(subj, registered, prov_obj, obj)
         if registered is not None:
+            if gives_type:
+                _refuse_element_and_relation(subj, registered, prov_obj, obj)
             return registered.uri != obj
         if not blank and self.valid_identifier(subj) is None:
             # Register the subject's namespace (side effect) so a later
@@ -1715,7 +1716,7 @@ class ProvRDFSerializer(Serializer):
                 if _points_at_qualifier(state, local_key, pred):
                     # The qualification node's influencer: the subject that
                     # points at it fills the relation's first formal attribute.
-                    slots = _qualifier_slots(state, local_key, _prov_name(pred))
+                    slots = _qualifier_slots(state, local_key, pred)
                     slots[next(iter(slots))] = self._relation_node(subj_node, graph)
             except pm.ProvException as exc:
                 raise ProvRDFException(f"subject {subj!r}: {exc}") from exc
@@ -1805,7 +1806,7 @@ class ProvRDFSerializer(Serializer):
                     break
             if qualifier_bnode is not None:
                 slots = _qualifier_slots(
-                    state, str(qualifier_bnode), "prov:" + qualifier
+                    state, str(qualifier_bnode), _prov_uri(qualifier)
                 )
                 fakeys = list(slots)
                 slots[fakeys[0]] = subj_name
@@ -2047,24 +2048,26 @@ def _is_relation(record_type: pm.QualifiedName) -> bool:
 
 def _refuse_element_and_relation(
     subj: str,
-    registered: pm.QualifiedName | None,
+    registered: pm.QualifiedName,
     prov_obj: pm.QualifiedName,
     obj: str,
 ) -> None:
     """Refuse a class that gives ``subj`` a record type of the other kind.
 
     Only a class that gives a record type of its own is compared, with the
-    record type already registered for ``subj``. A blank node's other classes
-    register but are not compared, so a blank relation's ``prov:type`` of
-    ``prov:Person`` stays a ``prov:type``. An element subclass alone, such as
-    ``prov:Person`` beside ``prov:Generation``, registers nothing and stays a
-    ``prov:type``, as prov's writer emits it for a relation's own type value.
+    record type already registered for ``subj``. A blank node registers from
+    the first class it meets. An element class met before the relation's own
+    class raises, and the relation's own class met first keeps a later element
+    class as a ``prov:type``, so a blank relation's ``prov:type`` of
+    ``prov:Person`` reads only in that order. An element subclass alone, such
+    as ``prov:Person`` beside ``prov:Generation``, registers nothing and stays
+    a ``prov:type``, as prov's writer emits it for a relation's own type value.
 
     Raises:
         ProvRDFException: If ``registered`` is a relation and ``prov_obj`` is
             an element, or the other way round (#743).
     """
-    if registered is not None and _is_relation(registered) != _is_relation(prov_obj):
+    if _is_relation(registered) != _is_relation(prov_obj):
         raise ProvRDFException(
             f"subject {subj!r} is typed as both {_prov_name(registered.uri)} and "
             f"{_prov_name(obj)}; an element and a relation cannot share an "
@@ -2077,6 +2080,9 @@ def _qualifier_slots(
 ) -> dict[pm.QualifiedName, Any]:
     """``node``'s formal-attribute slots, refusing a node typed only as an element.
 
+    ``predicate`` is the IRI of the ``prov:qualified*`` predicate that points
+    at ``node``.
+
     Raises:
         ProvRDFException: If ``node`` is the object of ``predicate`` but is
             typed as an element and not as a relation (#743).
@@ -2087,9 +2093,11 @@ def _qualifier_slots(
         return state.formal_attributes[node]
     typed_as = record_type.uri if record_type else state.first_class.get(node)
     if typed_as is None:
-        return state.formal_attributes[node]
+        # R6: a node with no known type is never in formal_attributes, so the
+        # read keeps its bare KeyError.
+        raise KeyError(node)
     raise ProvRDFException(
-        f"subject {node!r} is the object of {predicate} but is typed as "
+        f"subject {node!r} is the object of {_prov_name(predicate)} but is typed as "
         f"{_prov_name(typed_as)}, which is not a relation"
     )
 

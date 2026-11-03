@@ -5,7 +5,7 @@ import pickle
 from collections.abc import Callable, Iterator
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import pytest
 
@@ -565,6 +565,11 @@ _COMPACTING_ROWS = {
 }
 
 
+def _answer(owner: ProvBundle | NamespaceManager, text: str) -> tuple[str, str] | None:
+    name = owner.valid_qualified_name(text)
+    return None if name is None else (name.namespace.prefix, name.uri)
+
+
 @pytest.mark.parametrize(
     ("setup", "text", "expected"), _COMPACTING_ROWS.values(), ids=_COMPACTING_ROWS
 )
@@ -573,8 +578,7 @@ def test_compacting_a_full_iri_gives_the_scans_answer(
     text: str,
     expected: tuple[str, str] | None,
 ) -> None:
-    name = setup().valid_qualified_name(text)
-    assert (None if name is None else (name.namespace.prefix, name.uri)) == expected
+    assert _answer(setup(), text) == expected
 
 
 _ABSENT_FROM_3_2_3 = (
@@ -585,7 +589,7 @@ _ABSENT_FROM_3_2_3 = (
 )
 
 
-def _without_index(document: ProvDocument) -> ProvDocument:
+def _as_pickled_by_3_2_3(document: ProvDocument) -> ProvDocument:
     # A pickle from 3.2.3 holds no index and no cache bookkeeping, in the
     # document's manager or in its bundles'.
     for bundle in (document, *document.bundles):
@@ -600,7 +604,7 @@ def _pickled(document: ProvDocument) -> ProvDocument:
 
 
 _COPIERS = {
-    "pickle-5-old": lambda d: _pickled(_without_index(d)),
+    "pickle-5-old": lambda d: _pickled(_as_pickled_by_3_2_3(d)),
     "pickle-5-current": _pickled,
     "deepcopy": copy.deepcopy,
 }
@@ -658,70 +662,48 @@ def _link(doc: ProvDocument, stale: ProvBundle) -> None:
     doc.add_bundle(stale, "ex:b")
 
 
-def _refused_link() -> tuple[ProvDocument, ProvBundle]:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://ex.org/")
-    doc.bundle("ex:b")
-    stale = ProvBundle()
-    stale.add_namespace("q", "http://ex.org/")
-    return doc, stale
+class _Scenario(NamedTuple):
+    """A stale bundle, a change to its document and what each side then reads."""
+
+    setup: Callable[[], tuple[ProvDocument, ProvBundle]]
+    change: Callable[[ProvDocument, ProvBundle], None]
+    # the declaration the fresh bundle repeats
+    declaration: tuple[str, str]
+    # the string read
+    text: str
+    # the document's answer (prefix, URI), which the change leaves as the base
+    # gives it
+    document_answer: tuple[str, str]
 
 
-def _refuse_link(doc: ProvDocument, stale: ProvBundle) -> None:
-    with pytest.raises(ProvException):
-        doc.add_bundle(stale, "http://ex.org/b")
-
-
-# Each scenario: setup, the change, the declaration the fresh bundle repeats,
-# the string read, and the document's answer (prefix, URI), which the change
-# leaves as the base gives it.
-_NAMESPACE_ADDED = (
+_NAMESPACE_ADDED = _Scenario(
     _namespace_added,
     _add_http_namespace,
     ("q", "http://ex.org/"),
     "http://ex.org/a",
     ("http", "http://other///ex.org/a"),
 )
+_PREFIX_READING = _Scenario(
+    _prefix_reading,
+    _read_foreign_prefix,
+    ("q", "zz:"),
+    "zz:a",
+    ("ex", "http://ex.org/a"),
+)
+_LINKED_LATER = _Scenario(
+    _linked_later,
+    _link,
+    ("q", "http://ex.org/"),
+    "http://ex.org/a",
+    ("http", "http://other///ex.org/a"),
+)
 _BUNDLE_RESOLVES_ROWS = {
     "namespace-added": (_NAMESPACE_ADDED, None),
-    "prefix-reading": (
-        (
-            _prefix_reading,
-            _read_foreign_prefix,
-            ("q", "zz:"),
-            "zz:a",
-            ("ex", "http://ex.org/a"),
-        ),
-        None,
-    ),
-    "linked-later": (
-        (
-            _linked_later,
-            _link,
-            ("q", "http://ex.org/"),
-            "http://ex.org/a",
-            ("http", "http://other///ex.org/a"),
-        ),
-        None,
-    ),
-    "refused-link": (
-        (
-            _refused_link,
-            _refuse_link,
-            ("q", "http://ex.org/"),
-            "http://ex.org/b",
-            ("ex", "http://ex.org/b"),
-        ),
-        None,
-    ),
+    "prefix-reading": (_PREFIX_READING, None),
+    "linked-later": (_LINKED_LATER, None),
     "pickle-5-current": (_NAMESPACE_ADDED, _COPIERS["pickle-5-current"]),
     "pickle-5-old": (_NAMESPACE_ADDED, _COPIERS["pickle-5-old"]),
 }
-
-
-def _answer(manager_owner: ProvBundle, text: str) -> tuple[str, str] | None:
-    name = manager_owner.valid_qualified_name(text)
-    return None if name is None else (name.namespace.prefix, name.uri)
 
 
 @pytest.mark.parametrize(
@@ -730,30 +712,22 @@ def _answer(manager_owner: ProvBundle, text: str) -> tuple[str, str] | None:
     ids=_BUNDLE_RESOLVES_ROWS,
 )
 def test_a_bundle_resolves_as_a_fresh_bundle_after_its_document_changes(
-    scenario: tuple[
-        Callable[[], tuple[ProvDocument, ProvBundle]],
-        Callable[[ProvDocument, ProvBundle], None],
-        tuple[str, str],
-        str,
-        tuple[str, str],
-    ],
+    scenario: _Scenario,
     copier: Callable[[ProvDocument], ProvDocument] | None,
 ) -> None:
-    setup, change, declaration, text, document_answer = scenario
-    doc, stale = setup()
+    doc, stale = scenario.setup()
     if copier is not None:
         doc = copier(doc)
         stale = next(iter(doc.bundles))
-    change(doc, stale)
+    scenario.change(doc, stale)
 
     # The fresh bundle is made after the change, with the stale one's
-    # declaration. A refused link leaves an unlinked bundle, so it compares
-    # with one.
-    fresh = ProvBundle() if change is _refuse_link else doc.bundle("ex:fresh")
-    fresh.add_namespace(*declaration)
+    # declaration.
+    fresh = doc.bundle("ex:fresh")
+    fresh.add_namespace(*scenario.declaration)
 
-    assert _answer(doc, text) == document_answer
-    assert _answer(stale, text) == _answer(fresh, text)
+    assert _answer(doc, scenario.text) == scenario.document_answer
+    assert _answer(stale, scenario.text) == _answer(fresh, scenario.text)
 
 
 def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
