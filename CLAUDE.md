@@ -36,7 +36,7 @@ every pin.
 `CONTRIBUTING.md` (Checks every pull request must pass) holds the one list of commands and
 the rules around them: the mypy override list that only shrinks, Codacy on every changed
 file, the coverage floor and the Sphinx build. Run every applicable line before pushing.
-A change to a page or a docstring follows its Documentation rules.
+A change to a page or a docstring follows `.claude/rules/documentation.md`.
 
 Performance changes also run `uv run python benchmarks/ab.py main --python 3.12`. Repeat a
 red CI benchmark locally before acting on it. `benchmarks/README.md` has the details.
@@ -47,7 +47,7 @@ red CI benchmark locally before acting on it. `benchmarks/README.md` has the det
 - Commit-message and PR-body paragraphs stay unwrapped (one line each); GitHub soft-wraps.
 - No AI attribution lines in commits or PR bodies.
 - Describe changes by release, never by plan task or batch. HISTORY entries follow
-  `CONTRIBUTING.md` (Changelog entries); a refactor, a test or a CI change never gets one.
+  `.claude/rules/changelog.md`; a refactor, a test or a CI change never gets one.
 - **Maintainability governs.** Added functionality keeps complexity as low as it can be.
   Removed behaviour comes with less code and fewer or consolidated tests, never more. Neither
   is bought with a loss of correctness. A change that simplifies and a change that breaks a

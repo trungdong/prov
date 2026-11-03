@@ -127,75 +127,14 @@ names public annotations expose.
 ## Pull request guidelines
 
 1. Include tests.
-2. If the pull request adds functionality, update the docs and follow the "Documentation
-   rules" below. Give new functions a docstring and add the feature to the list in
-   README.md.
+2. If the pull request adds functionality, update the docs. Give new functions a docstring
+   and add the feature to the list in README.md.
 3. The pull request must pass on CPython 3.11 to 3.15 and on PyPy 3.11. The automated
    checks at the bottom of the pull request run the full matrix.
 4. The `benchmark` check times your change and the target branch on one CI runner. It is
    advisory and never blocks a merge. If it is red, or if your change is meant to alter
    speed, run `uv run python benchmarks/ab.py main --python 3.12` and put its table in the
    pull request. `benchmarks/README.md` describes the script.
-5. Add an entry to `HISTORY.md` under the unreleased version, following "Changelog
-   entries" below.
-
-## Changelog entries
-
-- Write one entry per change a user can see, in the pull request that makes it, under the
-  unreleased version's fixed headings: Breaking changes, Additions, Fixes and Project.
-  Breaking changes comes first. It holds everything a reader of the previous release may
-  have to act on: input now rejected, behaviour that changed with or without a prior
-  warning, and output that changed shape.
-- State the new behaviour. When a reader must change code, say what to write instead, and
-  only then give the old behaviour, as one clause ("where 3.2.3 read it as ...").
-- Keep an entry to one or two sentences, under about 40 words. Anything longer belongs on
-  the page that owns the topic (the upgrade guide, the reference or the conformance
-  page), and the entry links that page.
-- End the entry with one issue or pull request link.
-- Write no entry for a refactor, a test, CI, tooling or a docs-only change. A Project entry
-  is one line and only for something a user meets, such as a deprecation.
-- Write an entry once. A later pull request adds its own entry and never grows an earlier
-  one. The pre-release documentation audit may rewrite the unreleased section as a whole.
-- At release time, the release pull request adds an opening summary of two to four
-  sentences (what kind of release it is and who has to act) and a short list of the
-  changes that require action, one line each, linking the how-to. Nothing else is added
-  at release time.
-
-## Documentation rules
-
-Every pull request that touches a page or a docstring follows these rules.
-
-1. Open each page and each section with what most readers need. Put a rare case in the
-   docstring, on the conformance page or in an "Edge cases" section at the bottom of the page.
-2. Give each fact one home, and link to it from every other page. The table below lists the
-   homes.
-3. Keep release history in `HISTORY.md`, `docs/whats-new-3.md`, `docs/upgrading-3.0.md` and the
-   3.3.0 upgrade guide (`docs/howto/prepare-for-3-3.md`). Elsewhere write no "since X.Y", no
-   "3.2.0 added" and no benchmark percentage. A `deprecated` directive, and a compatibility
-   statement that names the release it protects, keep their version.
-4. Write nothing that dates. State no measured figure tied to a machine or an interpreter and
-   no date that will pass, apart from the dates in the support policy, the per-release
-   conformance sentence and the measured figures in `benchmarks/README.md`.
-5. Link to a specification and do not cite its clause numbers. Only `conformance.md` and
-   code comments cite a section number.
-6. Outside the pages rule 3 names, link an issue only for an open limitation or a decision a
-   reader may want to follow. Never link one to record the history of a fix. A code comment
-   keeps an issue number that explains why a guard exists.
-7. Change no behaviour in a documentation change. Correct a sentence that is wrong against
-   the code, never the code to match the sentence, and list the correction in the pull
-   request body.
-
-| Fact | Home |
-|---|---|
-| Extras | `docs/installation.md` |
-| Auto-detection | `docs/howto/read-write.md` |
-| Format limitations | `docs/reference/conformance.md` |
-| Supported release lines | `SECURITY.md` |
-| Python-version policy | `ROADMAP.md` |
-| Gate commands | `CONTRIBUTING.md` |
-| Python floor and what pip installs below it | `docs/installation.md` |
-| Equality rules and Python values | `docs/reference/model.md` |
-| Exceptions | `docs/reference/serializers.md` |
 
 ## Licensing
 

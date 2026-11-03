@@ -85,7 +85,7 @@ The stamped files, in one commit:
 | File | Change |
 |---|---|
 | `src/prov/__init__.py` | `__version__ = "X.Y.Z"`, the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
-| `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it. Add the opening summary and the action list that `CONTRIBUTING.md` (Changelog entries) describes |
+| `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it. Add the opening summary and the action list that `.claude/rules/changelog.md` describes |
 | `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme`. An unplanned point release has no row under **Next**; add its row under **Released** directly |
 | `docs/reference/conformance.md` | Per-release revisit: verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
 | `docs/whats-new-3.md` | Update "What comes next" for the release |

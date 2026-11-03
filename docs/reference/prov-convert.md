@@ -151,5 +151,5 @@ prov-convert --color always -f provn document.json | less -R
 
 ## See also
 
-{doc}`prov-compare(1) <prov-compare>`, the how-to {doc}`../howto/cli`, and
+{doc}`prov-compare <prov-compare>`, the how-to {doc}`../howto/cli`, and
 {py:func}`prov.read`. The full documentation is at <https://prov.readthedocs.io/>.

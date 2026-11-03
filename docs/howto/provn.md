@@ -25,7 +25,7 @@ document.entity(
 print(document.get_provn())
 ```
 
-```text
+```provn
 document
   default <http://example.org/>
 
@@ -106,7 +106,8 @@ document = pm.ProvDocument.deserialize("document.provn", format="provn", profile
 ```
 
 The Recommendation has no Mention production. Every existing producer writes the bare
-keyword, `prov` and ProvToolbox included, so `default` and `lenient` accept it.
+keyword, `prov` and [ProvToolbox](http://lucmoreau.github.io/ProvToolbox/) included, so
+`default` and `lenient` accept it.
 
 `strict` refuses these, which `default` and `lenient` accept:
 
@@ -160,11 +161,12 @@ c.HighlightMagicsPreprocessor.languages = {"%%provn": "provn"}
 ### Write strictly conformant output
 
 `get_provn()` and `serialize(format="provn")` write the bare `mentionOf` keyword by
-default, which ProvToolbox reads. They also write an identifier or attribute block on
-`alternateOf`, `specializationOf` and `hadMember` when a record carries one, which the
-grammar does not allow. Pass `strict=True` to write `prov:mentionOf` and to drop those
-identifiers and attribute blocks. Each drop issues a {py:class}`~prov.model.ProvWarning`
-that names the record. The output then parses under the `strict` profile:
+default, which [ProvToolbox](http://lucmoreau.github.io/ProvToolbox/) reads. They also
+write an identifier or attribute block on `alternateOf`, `specializationOf` and
+`hadMember` when a record carries one, which the grammar does not allow. Pass
+`strict=True` to write `prov:mentionOf` and to drop those identifiers and attribute
+blocks. Each drop issues a {py:class}`~prov.model.ProvWarning` that names the record. The
+output then parses under the `strict` profile:
 
 ```python
 document.serialize("document.provn", format="provn", strict=True)
@@ -173,7 +175,7 @@ document.serialize("document.provn", format="provn", strict=True)
 ### Extensibility expressions
 
 Every profile reads an [extensibility expression](https://www.w3.org/TR/prov-n/#extensibility),
-a statement of the form `prefix:name(...)`. The parser drops the expression with a
+a statement of the form `prefix:name(...)`, and ignores it apart from a
 {py:class}`~prov.model.ProvWarning` that names the predicate and its position.
 
 The parser counts the brackets that an expression's arguments open, and not the `(` of the

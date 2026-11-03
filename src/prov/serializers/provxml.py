@@ -51,12 +51,13 @@ FULL_PROV_RECORD_IDS_MAP = {
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
-# Entity resolution and network access are off, against XXE and entity
-# expansion. Both parse sites pass this parser, because lxml before 5.0 (the
-# floor is 3.3.5) resolves external entities by default and another library in
-# the process can replace the global default parser. `huge_tree` stays False,
-# so libxml2 keeps its limits on depth, text length and entity amplification.
-# One parser is shared; lxml serialises access to it across threads.
+# Entity resolution and network access are switched off, against XXE and
+# entity expansion. Both parse sites pass this parser, because lxml before 5.0
+# (the floor is 3.3.5) resolves external entities by default and another
+# library in the process can replace the global default parser. `huge_tree`
+# stays False, so libxml2 keeps its limits on depth, text length and entity
+# amplification. The two sites share one parser so the settings live in one
+# place, and lxml serialises access to it across threads.
 _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 

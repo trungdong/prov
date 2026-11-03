@@ -59,20 +59,23 @@ lists each message, the input that causes it and what to write instead.
   and `-V` prints the program name and version
   ([#737](https://github.com/trungdong/prov/pull/737))
 
-### Additions
+### New features
 
-- A Pygments lexer for PROV-N, registered as `provn` and `prov-n`, lets `pygmentize`,
-  Sphinx, MkDocs and other Pygments-based tools highlight a `provn` code block. The
-  `pygments` extra installs Pygments ([#628](https://github.com/trungdong/prov/issues/628))
-- `prov-convert` and `prov-compare` detect the input format from the file's extension or
-  else its content, so a format flag is needed only to override it
-  ([#737](https://github.com/trungdong/prov/pull/737))
-- `prov-convert -w` and `-r`, and `prov-compare -r` and `-R`, pass `NAME=VALUE` options to
-  a format's writer or reader ([#667](https://github.com/trungdong/prov/issues/667))
-- `prov-convert --color` highlights the output with Pygments, which the `pygments` extra
-  installs ([#684](https://github.com/trungdong/prov/issues/684))
-- `prov-convert` and `prov-compare` have reference pages, and each GitHub release attaches
-  their man pages ([#83](https://github.com/trungdong/prov/issues/83))
+- [A Pygments lexer for PROV-N](https://prov.readthedocs.io/en/latest/howto/provn.html#syntax-highlighting),
+  registered as `provn` and `prov-n`, lets `pygmentize`, Sphinx, MkDocs and other
+  Pygments-based tools highlight a `provn` code block. The `pygments` extra installs
+  Pygments ([#628](https://github.com/trungdong/prov/issues/628))
+- [`prov-convert` and `prov-compare`](https://prov.readthedocs.io/en/latest/howto/cli.html)
+  gain four features.
+  - Both detect the input format from the file's extension or else its content, so a format
+    flag is needed only to override it
+    ([#737](https://github.com/trungdong/prov/pull/737))
+  - `prov-convert -w` and `-r`, and `prov-compare -r` and `-R`, pass `NAME=VALUE` options
+    to a format's writer or reader ([#667](https://github.com/trungdong/prov/issues/667))
+  - `prov-convert --color` highlights the output with Pygments, which the `pygments` extra
+    installs ([#684](https://github.com/trungdong/prov/issues/684))
+  - Both have reference pages, and each GitHub release attaches their man pages
+    ([#83](https://github.com/trungdong/prov/issues/83))
 
 ### Fixes
 
@@ -93,14 +96,9 @@ lists each message, the input that causes it and what to write instead.
 - A refused `ProvDocument.add_bundle()` leaves the bundle's identifier and namespaces as
   they were, where 3.2.3 could set the identifier and leave the bundle's namespaces linked
   to the document ([#726](https://github.com/trungdong/prov/issues/726))
-- Writing N-Triples prints no rdflib encoding warning, where 3.2.3 printed
-  `UserWarning: NTSerializer always uses UTF-8 encoding`
-  ([#742](https://github.com/trungdong/prov/pull/742))
 - `prov-convert` reads its input before it opens the output file, so an input that fails
   to parse leaves an existing output file as it was, where 3.2.3 emptied it
   ([#742](https://github.com/trungdong/prov/pull/742))
-- `prov.read()` is annotated as returning a `ProvDocument`, where 3.2.3 said
-  `ProvDocument | None` ([#742](https://github.com/trungdong/prov/pull/742))
 - The PROV-JSONLD writer writes a qualified name under an attribute other than
   `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:x"}`,
   where 3.2.3 wrote an `xsd:QName` value object. `prov` 3.2.2 and earlier cannot read the
@@ -108,17 +106,6 @@ lists each message, the input that causes it and what to write instead.
 - PROV-N writes an `xsd:QName` literal value as `'ex:x'` and PROV-O writes the IRI, where
   3.2.3 wrote `"ex:x" %% xsd:QName` and `"ex:x"^^xsd:QName`
   ([#238](https://github.com/trungdong/prov/issues/238))
-- Reading a record's `label`, `args` or `get_attribute()`, or calling `unified()`, leaves
-  its attributes unchanged, where 3.2.3 added an empty entry that moved a later attribute
-  earlier in PROV-JSON, PROV-JSONLD and PROV-N output
-  ([#696](https://github.com/trungdong/prov/issues/696))
-- A bundle's own default namespace and a datatype in the default namespace round-trip
-  through PROV-XML, where 3.2.3 read the bundle's names in the document's default
-  ([#572](https://github.com/trungdong/prov/issues/572))
-- A subclass of `int`, `float` or `datetime`, such as an `(int, Enum)` member or a
-  `numpy.float64`, is written as the plain value is and reads back equal, where 3.2.3
-  wrote an `(int, Enum)` member by its name
-  ([#657](https://github.com/trungdong/prov/issues/657))
 
 The [3.3.0 milestone](https://github.com/trungdong/prov/milestone/10?closed=1) lists every
 fixed issue.
@@ -127,25 +114,16 @@ fixed issue.
 
 - The wheel no longer holds `prov.tests` and its fixtures, which ship in the sdist
   ([#728](https://github.com/trungdong/prov/issues/728))
-- `ProvFutureRejectionWarning` is never raised. It stays importable so that a filter
-  written for 3.2.3 keeps working, and 4.0 removes it
-  ([#590](https://github.com/trungdong/prov/issues/590))
-- Public return types match the runtime, such as `serialize()` returning `str` without a
-  destination and the chaining methods returning `Self`, so mypy reports a subclass that
-  overrides one with a looser type ([#491](https://github.com/trungdong/prov/issues/491))
-- `ProvBundle.unified()` is deprecated and warns `DeprecationWarning`; unify the document
-  with `ProvDocument.unified()` instead. 4.0 removes it
-  ([#652](https://github.com/trungdong/prov/issues/652))
-- `prov_to_dot()` and `plot()` warn `DeprecationWarning` when given a bundle that is not a
-  document, because 4.0 draws documents only
-  ([#652](https://github.com/trungdong/prov/issues/652))
-- `ProvBundle.document` and the `document` argument of `ProvBundle()` are deprecated and
-  warn `DeprecationWarning`; keep a reference to the document and create a bundle with
-  `ProvDocument.bundle()`. 4.0 removes both
-  ([#650](https://github.com/trungdong/prov/issues/650))
-- `ProvRecord.bundle` is deprecated and warns `DeprecationWarning`; keep the document or
-  bundle that made the record beside it. 4.0 removes it
-  ([#734](https://github.com/trungdong/prov/issues/734))
+- These warn `DeprecationWarning`, and 4.0 removes them:
+  - `ProvBundle.unified()`. Unify the document with `ProvDocument.unified()` instead
+    ([#652](https://github.com/trungdong/prov/issues/652))
+  - `prov_to_dot()` and `plot()` given a bundle that is not a document, because 4.0 draws
+    documents only ([#652](https://github.com/trungdong/prov/issues/652))
+  - `ProvBundle.document` and the `document` argument of `ProvBundle()`. Keep a reference
+    to the document and create a bundle with `ProvDocument.bundle()`
+    ([#650](https://github.com/trungdong/prov/issues/650))
+  - `ProvRecord.bundle`. Keep the document or bundle that made the record beside it
+    ([#734](https://github.com/trungdong/prov/issues/734))
 - `Identifier`, `QualifiedName`, `Namespace` and `Literal` raise `AttributeError` when code
   assigns or deletes a stored field such as `_value` after construction, so a subclass that
   set one in its own `__init__` now calls the base class's `__init__`, where 3.2.3 let the
