@@ -890,122 +890,178 @@ def sorted_type_triples(monkeypatch):
     return install
 
 
-def _read_turtle_error(turtle) -> str:
-    with pytest.raises(ProvRDFException) as ctx:
-        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
-    assert ctx.type is ProvRDFException
-    assert ctx.value.__cause__ is None
-    return str(ctx.value)
-
-
-@pytest.mark.parametrize(
-    "second_class, add_second",
-    [
-        ("Entity", ProvDocument.entity),
-        ("Agent", ProvDocument.agent),
-        ("Activity", ProvDocument.activity),
-    ],
-)
-def test_decode_refuses_an_iri_that_is_an_element_and_a_relation(
-    second_class, add_second
-) -> None:
-    # #743: prov's own writer emits the shared identifier of 2.11 and every
-    # other format reads it back, so the PROV-O reader names the clash.
+def _written_generation(second_class):
+    # prov's own writer gives the generation and the second record one IRI.
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e")
     document.activity("ex:a")
     document.generation("ex:e", "ex:a", identifier="ex:g")
-    add_second(document, "ex:g")
+    getattr(document, second_class)("ex:g")
+    return document.serialize(format="rdf", rdf_format="turtle")
+
+
+def _both(first, second):
+    return _BOTH_TYPES_MESSAGE.format(first=f"prov:{first}", second=f"prov:{second}")
+
+
+def _either_order(second_class):
+    return {_both("Generation", second_class), _both(second_class, "Generation")}
+
+
+def _generation(types):
+    return _GENERATION_TURTLE.format(types=types)
+
+
+def _association(types, binary=""):
+    return _ASSOCIATION_TURTLE.format(types=types, binary=binary)
+
+
+_BINARY = "prov:wasAssociatedWith ex:ag ;"
+
+
+@pytest.mark.parametrize(
+    "turtle, descending, expected",
+    [
+        pytest.param(
+            _written_generation(second),
+            None,
+            _either_order(second.capitalize()),
+            id=f"written-{second}",
+        )
+        for second in ("entity", "agent", "activity")
+    ]
+    + [
+        # sorted_type_triples fixes the order the reader meets the classes in.
+        pytest.param(
+            _generation("prov:Entity, prov:Generation"),
+            False,
+            {_both("Entity", "Generation")},
+            id="element-first",
+        ),
+        pytest.param(
+            _generation("prov:Entity, prov:Generation"),
+            True,
+            {_both("Generation", "Entity")},
+            id="relation-first",
+        ),
+        pytest.param(
+            _generation("prov:Agent, prov:Person, prov:Generation"),
+            False,
+            {_both("Agent", "Generation")},
+            id="agent-then-relation",
+        ),
+        pytest.param(
+            _generation("prov:Agent, prov:Person, prov:Generation"),
+            True,
+            {_both("Generation", "Agent")},
+            id="relation-then-agent",
+        ),
+    ]
+    + [
+        pytest.param(
+            _association(f"prov:{cls}", binary),
+            None,
+            {_QUALIFIER_MESSAGE.format(type=f"prov:{cls}")},
+            id=f"qualifier-{cls}-{'binary' if binary else 'no-binary'}",
+        )
+        for cls in ("Entity", "Person")
+        for binary in (_BINARY, "")
+    ],
+)
+def test_decode_refuses_an_element_and_a_relation_sharing_an_iri(
+    sorted_type_triples, turtle, descending, expected
+) -> None:
+    # #743: an IRI typed as an element and as a relation, whichever class the
+    # reader meets first, and a qualifier typed as an element only, raise one
+    # sentence with no cause.
+    if descending is not None:
+        sorted_type_triples(descending)
 
     with pytest.raises(ProvRDFException) as ctx:
-        ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
     assert ctx.type is ProvRDFException
     assert ctx.value.__cause__ is None
-    assert str(ctx.value) in {
-        _BOTH_TYPES_MESSAGE.format(first=f"prov:{first}", second=f"prov:{second}")
-        for first, second in (
-            ("Generation", second_class),
-            (second_class, "Generation"),
-        )
-    }
+    assert str(ctx.value) in expected
 
 
-@pytest.mark.parametrize("descending", [False, True])
+def _written_with_type(cls):
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e")
+    document.activity("ex:a")
+    document.generation(
+        "ex:e", "ex:a", identifier="ex:g", other_attributes={"prov:type": PROV[cls]}
+    )
+    return document
+
+
+_PERSON_GENERATION = [
+    "activity(ex:a, -, -)",
+    "entity(ex:e)",
+    "wasGeneratedBy(ex:e, ex:a, -)",
+    "wasGeneratedBy(ex:g; ex:e, ex:a, -, [prov:type='prov:Person'])",
+]
+
+
 @pytest.mark.parametrize(
-    "types, ascending_pair",
+    "source, descending, expected",
     [
-        ("prov:Entity, prov:Generation", ("Entity", "Generation")),
-        ("prov:Person, prov:Generation", ("Generation", "Person")),
+        # An element subclass alone registers no record type, so it stays a
+        # prov:type in either order.
+        pytest.param(
+            _generation("prov:Person, prov:Generation"),
+            False,
+            _PERSON_GENERATION,
+            id="person-and-relation-ascending",
+        ),
+        pytest.param(
+            _generation("prov:Person, prov:Generation"),
+            True,
+            _PERSON_GENERATION,
+            id="person-and-relation-descending",
+        ),
+        pytest.param(
+            "@prefix prov: <http://www.w3.org/ns/prov#> . "
+            "@prefix ex: <http://example.org/> . ex:x a prov:Entity, prov:Agent .",
+            None,
+            ["entity(ex:x, [prov:type='prov:Agent'])"],
+            id="two-elements",
+        ),
+        pytest.param(
+            _association("prov:Person", _BINARY).replace(
+                "prov:qualifiedAssociation", "ex:qualifiedThing"
+            ),
+            None,
+            None,
+            id="non-prov-qualified-predicate",
+        ),
+        pytest.param(_written_with_type("Person"), None, "equal", id="written-person"),
+        pytest.param(_written_with_type("Plan"), None, "equal", id="written-plan"),
     ],
 )
-def test_decode_refuses_a_shared_iri_whichever_class_comes_first(
-    sorted_type_triples, types, ascending_pair, descending
+def test_decode_reads_a_shared_iri_that_is_not_a_clash(
+    sorted_type_triples, source, descending, expected
 ) -> None:
-    # The order of the rdf:type triples decides which class the reader meets
-    # first, and a bare element subclass registers no record type, so both
-    # orders and both kinds of element class must raise the one sentence.
-    sorted_type_triples(descending)
-
-    message = _read_turtle_error(_GENERATION_TURTLE.format(types=types))
-
-    first, second = reversed(ascending_pair) if descending else ascending_pair
-    assert message == _BOTH_TYPES_MESSAGE.format(
-        first=f"prov:{first}", second=f"prov:{second}"
+    if descending is not None:
+        sorted_type_triples(descending)
+    turtle = (
+        source
+        if isinstance(source, str)
+        else source.serialize(format="rdf", rdf_format="turtle")
     )
 
-
-@pytest.mark.parametrize("binary", ["prov:wasAssociatedWith ex:ag ;", ""])
-@pytest.mark.parametrize("element_class", ["Entity", "Person"])
-def test_decode_refuses_a_qualifier_typed_as_an_element_only(
-    binary, element_class
-) -> None:
-    # #743: a prov:qualified* object typed as an element has no formal
-    # attribute slots to fill, whether the relation's binary triple is there
-    # or not.
-    message = _read_turtle_error(
-        _ASSOCIATION_TURTLE.format(binary=binary, types=f"prov:{element_class}")
-    )
-
-    assert message == _QUALIFIER_MESSAGE.format(type=f"prov:{element_class}")
-
-
-def test_decode_reads_two_elements_on_one_iri_as_one_element() -> None:
-    turtle = """
-    @prefix prov: <http://www.w3.org/ns/prov#> .
-    @prefix ex: <http://example.org/> .
-
-    ex:x a prov:Entity, prov:Agent .
-    """
-    document = ProvDocument.deserialize(
-        content=turtle, format="rdf", rdf_format="turtle"
-    )
-
-    (record,) = document.get_records()
-    assert isinstance(record, pm.ProvEntity)
-    assert record.identifier.uri == "http://example.org/x"
-    assert record.get_attribute("prov:type") == {PROV["Agent"]}
-
-
-def test_decode_reads_a_non_prov_qualified_predicate_at_an_element_subclass() -> None:
-    # A predicate outside PROV that merely contains "qualified" never reaches
-    # a node typed with an element subclass alone, so this reads as before.
-    turtle = """
-    @prefix prov: <http://www.w3.org/ns/prov#> .
-    @prefix ex: <http://example.org/> .
-
-    ex:a a prov:Activity ; ex:qualifiedThing ex:q .
-    ex:q a prov:Person .
-    """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         document = ProvDocument.deserialize(
             content=turtle, format="rdf", rdf_format="turtle"
         )
 
-    # The base reads the activity alone; the Person only warns as unconverted.
-    assert [str(r) for r in document.get_records()] == ["activity(ex:a, -, -)"]
+    if expected == "equal":
+        assert document == source
+    elif expected is not None:
+        assert sorted(str(r) for r in document.get_records()) == expected
 
 
 def test_decode_reads_two_relations_on_one_iri_without_raising() -> None:

@@ -361,7 +361,8 @@ class _DecodeState:
         blank_elements: The subjects that are blank nodes typed as an element.
         first_class: Maps a subject to the first of its ``rdf:type`` classes
             that :data:`_RECORD_TYPE_OF_CLASS` knows, whether or not that
-            class registered a record type.
+            class registered a record type. Only a qualifier node typed with
+            an element subclass alone needs it, to name that class.
     """
 
     record_types: dict[str, pm.QualifiedName] = field(default_factory=dict)
@@ -1658,17 +1659,21 @@ class ProvRDFSerializer(Serializer):
             subject's record type, such as ``prov:Derivation`` beside
             ``prov:Revision``.
         """
-        _refuse_element_and_relation(state, subj, obj)
-        if subj in state.record_types:
-            return state.record_types[subj].uri != obj
+        state.first_class.setdefault(subj, obj)
         blank = isinstance(stmt[0], BNode)
+        prov_obj = _RECORD_TYPE_OF_CLASS[obj]
+        gives_type = prov_obj == PROV_DERIVATION or prov_obj.uri == obj
+        registered = state.record_types.get(subj)
+        if gives_type:
+            _refuse_element_and_relation(subj, registered, prov_obj, obj)
+        if registered is not None:
+            return registered.uri != obj
         if not blank and self.valid_identifier(subj) is None:
             # Register the subject's namespace (side effect) so a later
             # valid_identifier(subj) resolves; tolerates trailing PROV-N
             # metacharacters that compute_qname would refuse to split (#294).
             self._resolve_iri(subj, graph)
-        prov_obj = _RECORD_TYPE_OF_CLASS[obj]
-        if blank or prov_obj == PROV_DERIVATION or prov_obj.uri == obj:
+        if blank or gives_type:
             state.register(subj, prov_obj, blank=blank)
         return prov_obj.uri != obj
 
@@ -1800,7 +1805,7 @@ class ProvRDFSerializer(Serializer):
                     break
             if qualifier_bnode is not None:
                 slots = _qualifier_slots(
-                    state, str(qualifier_bnode), _prov_name(_prov_uri(qualifier))
+                    state, str(qualifier_bnode), "prov:" + qualifier
                 )
                 fakeys = list(slots)
                 slots[fakeys[0]] = subj_name
@@ -2040,19 +2045,28 @@ def _is_relation(record_type: pm.QualifiedName) -> bool:
     return issubclass(pm.PROV_REC_CLS[record_type], pm.ProvRelation)
 
 
-def _refuse_element_and_relation(state: _DecodeState, subj: str, obj: str) -> None:
-    """Record ``obj`` as ``subj``'s first known class, or refuse a clash.
+def _refuse_element_and_relation(
+    subj: str,
+    registered: pm.QualifiedName | None,
+    prov_obj: pm.QualifiedName,
+    obj: str,
+) -> None:
+    """Refuse a class that gives ``subj`` a record type of the other kind.
+
+    Only a class that gives a record type of its own is compared, with the
+    record type already registered for ``subj``. A blank node's other classes
+    register but are not compared, so a blank relation's ``prov:type`` of
+    ``prov:Person`` stays a ``prov:type``. An element subclass alone, such as
+    ``prov:Person`` beside ``prov:Generation``, registers nothing and stays a
+    ``prov:type``, as prov's writer emits it for a relation's own type value.
 
     Raises:
-        ProvRDFException: If ``subj`` is typed with a class of an element and
-            a class of a relation, whichever the graph gives first (#743).
+        ProvRDFException: If ``registered`` is a relation and ``prov_obj`` is
+            an element, or the other way round (#743).
     """
-    first = state.first_class.setdefault(subj, obj)
-    if _is_relation(_RECORD_TYPE_OF_CLASS[first]) != _is_relation(
-        _RECORD_TYPE_OF_CLASS[obj]
-    ):
+    if registered is not None and _is_relation(registered) != _is_relation(prov_obj):
         raise ProvRDFException(
-            f"subject {subj!r} is typed as both {_prov_name(first)} and "
+            f"subject {subj!r} is typed as both {_prov_name(registered.uri)} and "
             f"{_prov_name(obj)}; an element and a relation cannot share an "
             "identifier"
         )
@@ -2069,12 +2083,9 @@ def _qualifier_slots(
         KeyError: If ``node`` has no known ``rdf:type`` at all.
     """
     record_type = state.record_types.get(node)
-    if record_type is None:
-        typed_as = state.first_class.get(node)
-    elif _is_relation(record_type):
+    if record_type is not None and _is_relation(record_type):
         return state.formal_attributes[node]
-    else:
-        typed_as = str(record_type)
+    typed_as = record_type.uri if record_type else state.first_class.get(node)
     if typed_as is None:
         return state.formal_attributes[node]
     raise ProvRDFException(
