@@ -54,6 +54,13 @@ class NamespaceManager(dict[str, Namespace]):
     parent: NamespaceManager | None = None
     """Parent :class:`NamespaceManager` this manager is a child of, if any."""
 
+    # Class-level defaults stand in for a manager unpickled from a release
+    # without these attributes. The cache check follows the immediate parent
+    # only, because bundles do not nest.
+    _changes: int = 0
+    _cache_parent: NamespaceManager | None = None
+    _cache_parent_changes: int = 0
+
     def __init__(
         self,
         namespaces: NSCollection | None = None,
@@ -77,8 +84,8 @@ class NamespaceManager(dict[str, Namespace]):
         self._namespaces: dict[str, Namespace] = {}
 
         # Maps a plain string to the name this manager resolved from its own
-        # namespaces. A mutation of this manager clears it; a mutation of the
-        # parent does not.
+        # namespaces. A mutation here or in the parent, or a new parent,
+        # empties it before the next plain-string read.
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:
@@ -141,6 +148,10 @@ class NamespaceManager(dict[str, Namespace]):
         self._default = namespace
         self[""] = namespace
         self._reindex()
+        self._declarations_changed()
+
+    def _declarations_changed(self) -> None:
+        self._changes += 1
         self._resolve_cache.clear()
 
     def _index(self, namespace: Namespace) -> None:
@@ -213,7 +224,7 @@ class NamespaceManager(dict[str, Namespace]):
             self._prefix_renamed_map[prefix] = existing_ns
             # _prefix_renamed_map feeds _resolve_prefixed_string, so cached
             # resolutions are stale from here.
-            self._resolve_cache.clear()
+            self._declarations_changed()
             return existing_ns
 
         if prefix in self:
@@ -228,7 +239,7 @@ class NamespaceManager(dict[str, Namespace]):
             namespace = new_namespace
 
         # Only now add the namespace to the registry
-        self._resolve_cache.clear()
+        self._declarations_changed()
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
         self._index(namespace)
@@ -293,7 +304,14 @@ class NamespaceManager(dict[str, Namespace]):
             resolved = self._resolve_string(qname.uri, is_plain_str=False)
         else:
             # Plain string input: served from, and written to, this
-            # manager's own cache.
+            # manager's own cache, emptied first when the parent changed.
+            parent = self.parent
+            if self._cache_parent is not parent or (
+                parent is not None and parent._changes != self._cache_parent_changes
+            ):
+                self._resolve_cache.clear()
+                self._cache_parent = parent
+                self._cache_parent_changes = 0 if parent is None else parent._changes
             resolved = self._resolve_cache.get(qname)
             if resolved is None:
                 resolved = self._resolve_string(qname, is_plain_str=True)
@@ -346,10 +364,10 @@ class NamespaceManager(dict[str, Namespace]):
             return self._spelled_by_prefix(qname)
         existing = self._uri_map.get(namespace.uri)
         if existing is not None:
-            if prefix not in self:
+            if prefix not in self and prefix not in self._prefix_renamed_map:
                 # the prefix the caller gave reads as the registered namespace
-                self._prefix_renamed_map.setdefault(prefix, existing)
-                self._resolve_cache.clear()
+                self._prefix_renamed_map[prefix] = existing
+                self._declarations_changed()
             return existing[qname.localpart]
         chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
         return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]

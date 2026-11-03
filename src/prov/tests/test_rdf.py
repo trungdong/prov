@@ -664,8 +664,9 @@ def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
     # Whichever triple comes first, a base class beside its subclass adds
     # none and the subclass adds one; a class that is no base of the record
     # type stays a prov:type. A ``None`` subject is a blank node. The order
-    # is driven by hand because rdflib yields a parsed graph's triples in
-    # hash-seed order.
+    # is driven by hand so one test covers both orders; a parsed graph's type
+    # pass groups the triples by class in first-seen order (see
+    # ``sorted_type_triples``).
     graph = Graph()
     graph.bind("ex", "http://example.org/")
     node = BNode() if subject is None else URIRef("http://example.org/" + subject)
@@ -842,6 +843,304 @@ def test_decode_scruffy_relations_raise_documented_limitation(
     assert ctx.type is ProvRDFException
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
+
+
+# The two sentences as regular expressions, so a blank node's generated label
+# can stand in for the subject.
+_BOTH_TYPES_MESSAGE = (
+    "subject '{iri}' is typed as both {first} and {second}; "
+    "an element and a relation cannot share an identifier"
+)
+_QUALIFIER_MESSAGE = (
+    "subject '{iri}' is the object of prov:qualifiedAssociation "
+    "but is typed as {type}, which is not a relation"
+)
+_G_IRI = re.escape("http://example.org/g")
+_BLANK_LABEL = "[^']+"
+_GENERATION_TURTLE = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+
+ex:e a prov:Entity ; prov:wasGeneratedBy ex:a ; prov:qualifiedGeneration ex:g .
+ex:a a prov:Activity .
+ex:g a {types} ; prov:activity ex:a .
+"""
+_BLANK_GENERATION_TURTLE = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+
+ex:e a prov:Entity ; prov:qualifiedGeneration [ a {types} ; prov:activity ex:a ] .
+ex:a a prov:Activity .
+"""
+_ASSOCIATION_TURTLE = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+
+ex:a a prov:Activity ; {binary} prov:qualifiedAssociation ex:q .
+ex:ag a prov:Agent .
+ex:q a {types} ; prov:agent ex:ag .
+"""
+
+
+@pytest.fixture
+def sorted_type_triples(monkeypatch):
+    # The reader walks every rdf:type triple through Graph.triples (a
+    # Dataset's context graph is a Graph). rdflib's Memory store yields them
+    # grouped by class in first-seen order, so this sorts them by class IRI
+    # to make the order the reader meets explicit.
+    original = Graph.triples
+
+    def install(descending):
+        def triples(self, triple_pattern):
+            found = original(self, triple_pattern)
+            if triple_pattern != (None, RDF.type, None):
+                return found
+            return iter(sorted(found, key=lambda t: str(t[2]), reverse=descending))
+
+        monkeypatch.setattr(Graph, "triples", triples)
+
+    return install
+
+
+def _turtle(document):
+    return document.serialize(format="rdf", rdf_format="turtle")
+
+
+def _written(*, shared=None, generation_type=None, anonymous=False, entity_type=None):
+    # A document as prov's own writer emits it, one builder for every shape:
+    # ``entity_type`` an element whose prov:type names a relation class
+    # (``ex:x a prov:Entity, prov:Revision``), ``anonymous`` a generation with
+    # no identifier (a blank qualification node), else an identified
+    # generation whose IRI ``shared`` gives a second record too.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    if entity_type:
+        document.entity("ex:x", {"prov:type": PROV[entity_type]})
+        return _turtle(document)
+    if not anonymous:
+        document.entity("ex:e")
+        document.activity("ex:a")
+    attributes = {"prov:type": PROV[generation_type]} if generation_type else None
+    document.generation(
+        "ex:e",
+        "ex:a",
+        identifier=None if anonymous else "ex:g",
+        other_attributes=attributes,
+    )
+    if shared:
+        getattr(document, shared)("ex:g")
+    return _turtle(document)
+
+
+def _both(first, second, iri=_G_IRI):
+    return _BOTH_TYPES_MESSAGE.format(
+        iri=iri, first=f"prov:{first}", second=f"prov:{second}"
+    )
+
+
+def _either_order(second_class):
+    return f"{_both('Generation', second_class)}|{_both(second_class, 'Generation')}"
+
+
+_BINARY = "prov:wasAssociatedWith ex:ag ;"
+
+
+@pytest.mark.parametrize(
+    "turtle, descending, expected",
+    [
+        pytest.param(
+            _written(shared=second),
+            None,
+            _either_order(second.capitalize()),
+            id=f"written-{second}",
+        )
+        for second in ("entity", "agent", "activity")
+    ]
+    + [
+        # An element whose prov:type names a relation class keeps the refusal.
+        pytest.param(
+            _written(entity_type="Revision"),
+            False,
+            _both("Entity", "Revision", iri=re.escape("http://example.org/x")),
+            id="written-element-typed-as-a-relation-class",
+        ),
+        # sorted_type_triples fixes the order the reader meets the classes in.
+        pytest.param(
+            _GENERATION_TURTLE.format(types="prov:Entity, prov:Generation"),
+            False,
+            _both("Entity", "Generation"),
+            id="element-first",
+        ),
+        pytest.param(
+            _GENERATION_TURTLE.format(types="prov:Entity, prov:Generation"),
+            True,
+            _both("Generation", "Entity"),
+            id="relation-first",
+        ),
+        pytest.param(
+            _GENERATION_TURTLE.format(types="prov:Agent, prov:Person, prov:Generation"),
+            False,
+            _both("Agent", "Generation"),
+            id="agent-then-relation",
+        ),
+        pytest.param(
+            _GENERATION_TURTLE.format(types="prov:Agent, prov:Person, prov:Generation"),
+            True,
+            _both("Generation", "Agent"),
+            id="relation-then-agent",
+        ),
+        # A blank node registers from the first class it meets: an element
+        # class met first raises, and the relation's own class met first keeps
+        # the element class as a prov:type (see the reads table).
+        pytest.param(
+            _BLANK_GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
+            True,
+            _both("Agent", "Generation", iri=_BLANK_LABEL),
+            id="blank-element-first",
+        ),
+    ]
+    + [
+        pytest.param(
+            _ASSOCIATION_TURTLE.format(types=f"prov:{cls}", binary=binary),
+            None,
+            _QUALIFIER_MESSAGE.format(
+                iri=re.escape("http://example.org/q"), type=f"prov:{cls}"
+            ),
+            id=f"qualifier-{cls}-{'binary' if binary else 'no-binary'}",
+        )
+        for cls in ("Entity", "Person")
+        for binary in (_BINARY, "")
+    ],
+)
+def test_decode_refuses_an_element_and_a_relation_sharing_an_iri(
+    sorted_type_triples, turtle, descending, expected
+) -> None:
+    # #743: an IRI typed as an element and as a relation, whichever class the
+    # reader meets first, and a qualifier typed as an element only, raise one
+    # sentence with no cause.
+    if descending is not None:
+        sorted_type_triples(descending)
+
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert ctx.type is ProvRDFException
+    assert ctx.value.__cause__ is None
+    assert re.fullmatch(expected, str(ctx.value))
+
+
+def _written_generation_with(cls):
+    return [
+        "activity(ex:a, -, -)",
+        "entity(ex:e)",
+        f"wasGeneratedBy(ex:g; ex:e, ex:a, -, [prov:type='prov:{cls}'])",
+    ]
+
+
+_PERSON_GENERATION = sorted(
+    [*_written_generation_with("Person"), "wasGeneratedBy(ex:e, ex:a, -)"]
+)
+
+
+@pytest.mark.parametrize(
+    "turtle, descending, expected",
+    [
+        # An element subclass alone registers no record type, so it stays a
+        # prov:type in either order.
+        pytest.param(
+            _GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
+            False,
+            _PERSON_GENERATION,
+            id="person-and-relation-ascending",
+        ),
+        pytest.param(
+            _GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
+            True,
+            _PERSON_GENERATION,
+            id="person-and-relation-descending",
+        ),
+        # A blank node's own relation class met first keeps the element
+        # class as a prov:type.
+        pytest.param(
+            _BLANK_GENERATION_TURTLE.format(types="prov:Person, prov:Generation"),
+            False,
+            [
+                "activity(ex:a, -, -)",
+                "entity(ex:e)",
+                "wasGeneratedBy(ex:e, ex:a, -, [prov:type='prov:Person'])",
+            ],
+            id="blank-relation-first",
+        ),
+        pytest.param(
+            "@prefix prov: <http://www.w3.org/ns/prov#> . "
+            "@prefix ex: <http://example.org/> . ex:x a prov:Entity, prov:Agent .",
+            None,
+            ["entity(ex:x, [prov:type='prov:Agent'])"],
+            id="two-elements",
+        ),
+        pytest.param(
+            _ASSOCIATION_TURTLE.format(types="prov:Person", binary=_BINARY).replace(
+                "prov:qualifiedAssociation", "ex:qualifiedThing"
+            ),
+            None,
+            [
+                "activity(ex:a, -, -)",
+                "agent(ex:ag)",
+                "wasAssociatedWith(ex:a, ex:ag, -)",
+            ],
+            id="non-prov-qualified-predicate",
+        ),
+        pytest.param(
+            _written(generation_type="Person"),
+            None,
+            _written_generation_with("Person"),
+            id="written-person",
+        ),
+        pytest.param(
+            _written(generation_type="Plan"),
+            None,
+            _written_generation_with("Plan"),
+            id="written-plan",
+        ),
+        pytest.param(
+            _written(generation_type="Person", anonymous=True),
+            None,
+            ["wasGeneratedBy(ex:e, ex:a, -, [prov:type='prov:Person'])"],
+            id="written-anonymous-person",
+        ),
+    ],
+)
+def test_decode_reads_a_shared_iri_that_is_not_a_clash(
+    sorted_type_triples, turtle, descending, expected
+) -> None:
+    if descending is not None:
+        sorted_type_triples(descending)
+
+    with warnings.catch_warnings():
+        # rdflib's own deprecation, raised by the Dataset the reader builds.
+        warnings.filterwarnings(
+            "ignore",
+            message="Dataset.default_context is deprecated",
+            category=DeprecationWarning,
+        )
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+
+    assert sorted(str(r) for r in document.get_records()) == expected
+
+
+def test_decode_reads_two_relations_on_one_iri_without_raising() -> None:
+    # C1: two relations on one IRI collapse, and the record count is not
+    # pinned. The reader only has to read the document written by prov.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e")
+    document.activity("ex:a")
+    document.usage("ex:a", "ex:e", identifier="ex:g")
+    document.generation("ex:e", "ex:a", identifier="ex:g")
+
+    ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
 
 
 def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:

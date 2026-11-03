@@ -1553,6 +1553,21 @@ def test_scruffy_relation(roundtrip, family, tags, endpoints, activities) -> Non
     roundtrip(document)
 
 
+@pytest.mark.parametrize("fmt", SCRUFFY_TARGETS)
+@pytest.mark.parametrize("second", ["entity", "agent", "activity"])
+def test_element_and_relation_sharing_an_identifier(roundtrip, second) -> None:
+    # An entity (or agent or activity) and a generation share ex:g. PROV-O
+    # cannot represent that (C1 on docs/reference/conformance.md), and
+    # test_rdf.py's test_decode_refuses_an_element_and_a_relation_sharing_an_iri
+    # asserts the raise, so the rdf target is left out here.
+    document = new_document()
+    document.entity(EX_NS["e"])
+    document.activity(EX_NS["a"])
+    document.generation(EX_NS["e"], EX_NS["a"], identifier=EX_NS["g"])
+    getattr(document, second)(EX_NS["g"])
+    roundtrip(document)
+
+
 def test_bundle_1(roundtrip) -> None:
     document = new_document()
 
