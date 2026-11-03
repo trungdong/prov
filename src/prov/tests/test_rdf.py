@@ -844,6 +844,163 @@ def test_decode_scruffy_relations_raise_documented_limitation(
     assert isinstance(ctx.value.__cause__, ProvException)
 
 
+_BOTH_TYPES_MESSAGE = (
+    "subject 'http://example.org/g' is typed as both {first} and {second}; "
+    "an element and a relation cannot share an identifier"
+)
+_QUALIFIER_MESSAGE = (
+    "subject 'http://example.org/q' is the object of prov:qualifiedAssociation "
+    "but is typed as {type}, which is not a relation"
+)
+_GENERATION_TURTLE = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+
+ex:e a prov:Entity ; prov:wasGeneratedBy ex:a ; prov:qualifiedGeneration ex:g .
+ex:a a prov:Activity .
+ex:g a {types} ; prov:activity ex:a .
+"""
+_ASSOCIATION_TURTLE = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+
+ex:a a prov:Activity ; {binary} prov:qualifiedAssociation ex:q .
+ex:ag a prov:Agent .
+ex:q a {types} ; prov:agent ex:ag .
+"""
+
+
+@pytest.fixture
+def sorted_type_triples(monkeypatch):
+    # The reader walks every rdf:type triple through Graph.triples (a
+    # Dataset's context graph is a Graph). rdflib's Memory store yields them
+    # grouped by class in first-seen order, so this sorts them by class IRI
+    # to make the order the reader meets explicit.
+    original = Graph.triples
+
+    def install(descending):
+        def triples(self, triple_pattern):
+            found = original(self, triple_pattern)
+            if triple_pattern != (None, RDF.type, None):
+                return found
+            return iter(sorted(found, key=lambda t: str(t[2]), reverse=descending))
+
+        monkeypatch.setattr(Graph, "triples", triples)
+
+    return install
+
+
+def _read_turtle_error(turtle) -> str:
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    assert ctx.type is ProvRDFException
+    assert ctx.value.__cause__ is None
+    return str(ctx.value)
+
+
+@pytest.mark.parametrize(
+    "second_class, add_second",
+    [
+        ("Entity", ProvDocument.entity),
+        ("Agent", ProvDocument.agent),
+        ("Activity", ProvDocument.activity),
+    ],
+)
+def test_decode_refuses_an_iri_that_is_an_element_and_a_relation(
+    second_class, add_second
+) -> None:
+    # #743: prov's own writer emits the shared identifier of 2.11 and every
+    # other format reads it back, so the PROV-O reader names the clash.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e")
+    document.activity("ex:a")
+    document.generation("ex:e", "ex:a", identifier="ex:g")
+    add_second(document, "ex:g")
+
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
+
+    assert ctx.type is ProvRDFException
+    assert ctx.value.__cause__ is None
+    assert str(ctx.value) in {
+        _BOTH_TYPES_MESSAGE.format(first=f"prov:{first}", second=f"prov:{second}")
+        for first, second in (
+            ("Generation", second_class),
+            (second_class, "Generation"),
+        )
+    }
+
+
+@pytest.mark.parametrize("descending", [False, True])
+@pytest.mark.parametrize(
+    "types, ascending_pair",
+    [
+        ("prov:Entity, prov:Generation", ("Entity", "Generation")),
+        ("prov:Person, prov:Generation", ("Generation", "Person")),
+    ],
+)
+def test_decode_refuses_a_shared_iri_whichever_class_comes_first(
+    sorted_type_triples, types, ascending_pair, descending
+) -> None:
+    # The order of the rdf:type triples decides which class the reader meets
+    # first, and a bare element subclass registers no record type, so both
+    # orders and both kinds of element class must raise the one sentence.
+    sorted_type_triples(descending)
+
+    message = _read_turtle_error(_GENERATION_TURTLE.format(types=types))
+
+    first, second = reversed(ascending_pair) if descending else ascending_pair
+    assert message == _BOTH_TYPES_MESSAGE.format(
+        first=f"prov:{first}", second=f"prov:{second}"
+    )
+
+
+@pytest.mark.parametrize("binary", ["prov:wasAssociatedWith ex:ag ;", ""])
+@pytest.mark.parametrize("element_class", ["Entity", "Person"])
+def test_decode_refuses_a_qualifier_typed_as_an_element_only(
+    binary, element_class
+) -> None:
+    # #743: a prov:qualified* object typed as an element has no formal
+    # attribute slots to fill, whether the relation's binary triple is there
+    # or not.
+    message = _read_turtle_error(
+        _ASSOCIATION_TURTLE.format(binary=binary, types=f"prov:{element_class}")
+    )
+
+    assert message == _QUALIFIER_MESSAGE.format(type=f"prov:{element_class}")
+
+
+def test_decode_reads_two_elements_on_one_iri_as_one_element() -> None:
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:x a prov:Entity, prov:Agent .
+    """
+    document = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
+
+    (record,) = document.get_records()
+    assert isinstance(record, pm.ProvEntity)
+    assert record.identifier.uri == "http://example.org/x"
+    assert record.get_attribute("prov:type") == {PROV["Agent"]}
+
+
+def test_decode_reads_two_relations_on_one_iri_without_raising() -> None:
+    # C1: two relations on one IRI collapse, and the record count is not
+    # pinned. The reader only has to read the document written by prov.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e")
+    document.activity("ex:a")
+    document.usage("ex:a", "ex:e", identifier="ex:g")
+    document.generation("ex:e", "ex:a", identifier="ex:g")
+
+    ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
+
+
 def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
     # Regression: the #217 catch in _emit_decoded_records() must only
     # relabel the specific duplicate-formal-attribute failure above, not

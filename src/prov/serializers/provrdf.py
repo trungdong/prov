@@ -359,6 +359,9 @@ class _DecodeState:
             blank node names nothing, so their records get no identifier;
             an element's blank-node label is its identifier.
         blank_elements: The subjects that are blank nodes typed as an element.
+        first_class: Maps a subject to the first of its ``rdf:type`` classes
+            that :data:`_RECORD_TYPE_OF_CLASS` knows, whether or not that
+            class registered a record type.
     """
 
     record_types: dict[str, pm.QualifiedName] = field(default_factory=dict)
@@ -371,6 +374,7 @@ class _DecodeState:
     other_attributes: dict[str, list[pm.AttributePair]] = field(default_factory=dict)
     anonymous: set[str] = field(default_factory=set)
     blank_elements: set[str] = field(default_factory=set)
+    first_class: dict[str, str] = field(default_factory=dict)
 
     def register(
         self, subj: str, prov_obj: pm.QualifiedName, blank: bool = False
@@ -1654,6 +1658,7 @@ class ProvRDFSerializer(Serializer):
             subject's record type, such as ``prov:Derivation`` beside
             ``prov:Revision``.
         """
+        _refuse_element_and_relation(state, subj, obj)
         if subj in state.record_types:
             return state.record_types[subj].uri != obj
         blank = isinstance(stmt[0], BNode)
@@ -1702,12 +1707,11 @@ class ProvRDFSerializer(Serializer):
                         graph, state, subj, pred, obj, predicate_mapper
                     )
                 local_key = str(obj)
-                if local_key in state.record_types and "qualified" in pred:
+                if local_key in state.first_class and "qualified" in pred:
                     # The qualification node's influencer: the subject that
                     # points at it fills the relation's first formal attribute.
-                    state.formal_attributes[local_key][
-                        next(iter(state.formal_attributes[local_key].keys()))
-                    ] = self._relation_node(subj_node, graph)
+                    slots = _qualifier_slots(state, local_key, _prov_name(pred))
+                    slots[next(iter(slots))] = self._relation_node(subj_node, graph)
             except pm.ProvException as exc:
                 raise ProvRDFException(f"subject {subj!r}: {exc}") from exc
 
@@ -1795,9 +1799,12 @@ class ProvRDFSerializer(Serializer):
                 if (candidate, influencer_pred, obj) in graph:
                     break
             if qualifier_bnode is not None:
-                fakeys = list(state.formal_attributes[str(qualifier_bnode)].keys())
-                state.formal_attributes[str(qualifier_bnode)][fakeys[0]] = subj_name
-                state.formal_attributes[str(qualifier_bnode)][fakeys[1]] = obj_name
+                slots = _qualifier_slots(
+                    state, str(qualifier_bnode), _prov_name(_prov_uri(qualifier))
+                )
+                fakeys = list(slots)
+                slots[fakeys[0]] = subj_name
+                slots[fakeys[1]] = obj_name
                 return
         factory(subj_name, obj_name)
 
@@ -2007,6 +2014,58 @@ class ProvRDFSerializer(Serializer):
 
             if attrs is not None:
                 del state.other_attributes[subj]
+
+
+def _prov_name(iri: str) -> str:
+    """``iri`` as ``prov:<local part>`` inside the PROV namespace, else ``iri``."""
+    if iri.startswith(pm.PROV.uri):
+        return "prov:" + iri[len(pm.PROV.uri) :]
+    return iri
+
+
+def _is_relation(record_type: pm.QualifiedName) -> bool:
+    return issubclass(pm.PROV_REC_CLS[record_type], pm.ProvRelation)
+
+
+def _refuse_element_and_relation(state: _DecodeState, subj: str, obj: str) -> None:
+    """Record ``obj`` as ``subj``'s first known class, or refuse a clash.
+
+    Raises:
+        ProvRDFException: If ``subj`` is typed with a class of an element and
+            a class of a relation, whichever the graph gives first (#743).
+    """
+    first = state.first_class.setdefault(subj, obj)
+    if _is_relation(_RECORD_TYPE_OF_CLASS[first]) != _is_relation(
+        _RECORD_TYPE_OF_CLASS[obj]
+    ):
+        raise ProvRDFException(
+            f"subject {subj!r} is typed as both {_prov_name(first)} and "
+            f"{_prov_name(obj)}; an element and a relation cannot share an "
+            "identifier"
+        )
+
+
+def _qualifier_slots(
+    state: _DecodeState, node: str, predicate: str
+) -> dict[pm.QualifiedName, Any]:
+    """``node``'s formal-attribute slots, refusing a node typed only as an element.
+
+    Raises:
+        ProvRDFException: If ``node`` is the object of ``predicate`` but is
+            typed as an element and not as a relation (#743).
+        KeyError: If ``node`` has no known ``rdf:type`` at all.
+    """
+    record_type = state.record_types.get(node)
+    if record_type is not None:
+        found = None if _is_relation(record_type) else str(record_type)
+    else:
+        found = state.first_class.get(node)
+    if found is None:
+        return state.formal_attributes[node]
+    raise ProvRDFException(
+        f"subject {node!r} is the object of {predicate} but is typed as "
+        f"{_prov_name(found)}, which is not a relation"
+    )
 
 
 def _repeated_formal_attribute(
