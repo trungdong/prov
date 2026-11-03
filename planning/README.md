@@ -39,7 +39,7 @@ which is gitignored and never committed.
 | `specs/2026-10-27-release-3.3.0-spec4-performance.md` | 2026-10-27 | 3.3.0 | Complete; PRs 24a and 24b merged, the release step with the release PR |
 | `specs/2026-10-28-release-3.3.0-spec5-defects.md` | 2026-10-28 | 3.3.0 | Complete; PRs 26 to 38 merged, the release step moves to spec 7 |
 | `specs/2026-11-01-release-3.3.0-spec6-cli-tools.md` | 2026-11-01 | 3.3.0 | Complete; PRs 39 to 41 merged |
-| `specs/2026-11-02-release-3.3.0-spec7-loose-ends-freeze.md` | 2026-11-02 | 3.3.0 | Approved; PR 42 merged as #742, PR 43's merge is the freeze |
+| `specs/2026-11-02-release-3.3.0-spec7-loose-ends-freeze.md` | 2026-11-02 | 3.3.0 | Approved; PRs 42 and 43 merged as #742 and #750, PR 44's merge is the freeze |
 | `specs/2026-11-02-docs-audit-3.3.0.md` | 2026-11-02 | 3.3.0 | Complete |
 | `triage/2026-07-behaviour-bugs.md` | 2026-07-03 | 3.0.0 | Complete; #34, #77 and #89 fixed |
 | `test-gap-checklist.md` | 2026-07-04 | 2.3.0 | Complete |
