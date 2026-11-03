@@ -1707,7 +1707,7 @@ class ProvRDFSerializer(Serializer):
                         graph, state, subj, pred, obj, predicate_mapper
                     )
                 local_key = str(obj)
-                if local_key in state.first_class and "qualified" in pred:
+                if _points_at_qualifier(state, local_key, pred):
                     # The qualification node's influencer: the subject that
                     # points at it fills the relation's first formal attribute.
                     slots = _qualifier_slots(state, local_key, _prov_name(pred))
@@ -2023,7 +2023,20 @@ def _prov_name(iri: str) -> str:
     return iri
 
 
+def _points_at_qualifier(state: _DecodeState, node: str, predicate: str) -> bool:
+    """Whether a triple with this ``predicate`` points at ``node`` as a qualifier.
+
+    A registered node qualifies under any predicate containing "qualified". A
+    node typed with an element subclass alone registers nothing, so only a
+    ``prov:qualified*`` predicate reaches it.
+    """
+    if node in state.record_types:
+        return "qualified" in predicate
+    return node in state.first_class and predicate.startswith(pm.PROV.uri + "qualified")
+
+
 def _is_relation(record_type: pm.QualifiedName) -> bool:
+    """Whether ``record_type`` is a relation and not an element."""
     return issubclass(pm.PROV_REC_CLS[record_type], pm.ProvRelation)
 
 
@@ -2056,15 +2069,17 @@ def _qualifier_slots(
         KeyError: If ``node`` has no known ``rdf:type`` at all.
     """
     record_type = state.record_types.get(node)
-    if record_type is not None:
-        found = None if _is_relation(record_type) else str(record_type)
+    if record_type is None:
+        typed_as = state.first_class.get(node)
+    elif _is_relation(record_type):
+        return state.formal_attributes[node]
     else:
-        found = state.first_class.get(node)
-    if found is None:
+        typed_as = str(record_type)
+    if typed_as is None:
         return state.formal_attributes[node]
     raise ProvRDFException(
         f"subject {node!r} is the object of {predicate} but is typed as "
-        f"{_prov_name(found)}, which is not a relation"
+        f"{_prov_name(typed_as)}, which is not a relation"
     )
 
 

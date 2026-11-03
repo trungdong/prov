@@ -988,6 +988,26 @@ def test_decode_reads_two_elements_on_one_iri_as_one_element() -> None:
     assert record.get_attribute("prov:type") == {PROV["Agent"]}
 
 
+def test_decode_reads_a_non_prov_qualified_predicate_at_an_element_subclass() -> None:
+    # A predicate outside PROV that merely contains "qualified" never reaches
+    # a node typed with an element subclass alone, so this reads as before.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:a a prov:Activity ; ex:qualifiedThing ex:q .
+    ex:q a prov:Person .
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+
+    # The base reads the activity alone; the Person only warns as unconverted.
+    assert [str(r) for r in document.get_records()] == ["activity(ex:a, -, -)"]
+
+
 def test_decode_reads_two_relations_on_one_iri_without_raising() -> None:
     # C1: two relations on one IRI collapse, and the record count is not
     # pinned. The reader only has to read the document written by prov.
