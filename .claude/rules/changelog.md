@@ -1,6 +1,8 @@
 # Changelog entries
 
-These rules govern every entry in `HISTORY.md`.
+These rules govern every entry in `HISTORY.md`. The maintainer owns `HISTORY.md`, so an
+entry goes in the maintainer's own pull requests; a contributor's pull request adds none,
+and the maintainer writes its entry.
 
 - Write one entry per change a user can see, in the pull request that makes it, under the
   unreleased version's fixed headings: Breaking changes, New features, Fixes and Project.

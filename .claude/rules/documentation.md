@@ -2,8 +2,6 @@
 
 These rules govern every change to a page under `docs/`, a README or a docstring.
 
-Every pull request that touches a page or a docstring follows these rules.
-
 1. Open each page and each section with what most readers need. Put a rare case in the
    docstring, on the conformance page or in an "Edge cases" section at the bottom of the page.
 2. Give each fact one home, and link to it from every other page. The table below lists the
