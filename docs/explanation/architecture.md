@@ -31,11 +31,12 @@ map. `ProvElement` (entity, activity, agent) and `ProvRelation` (generation, usa
 derivation and the rest) split the PROV-DM world between them. Each concrete class declares
 its formal attributes in order. Everything else on the record is an "other" attribute.
 
-A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager, and offers a
-factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
+A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager that registers
+the namespaces the bundle binds and those its records use that no enclosing scope declares,
+and offers a factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
 {py:class}`~prov.model.ProvDocument` is a bundle that can also contain named bundles, and
 is the unit that serializes. Records are created through the bundle so that identifiers
-resolve against its namespaces. The bundle records every namespace a record mentions.
+resolve against its namespaces.
 
 Two transformations leave the original untouched. {py:meth}`~prov.model.ProvDocument.unified`
 merges records that share an identifier under the PROV-CONSTRAINTS rules and returns a new
@@ -47,29 +48,16 @@ level and returns a new document, or the document itself when it has no bundles.
 
 Each serializer subclasses {py:class}`~prov.serializers.Serializer` and implements
 `serialize()` and `deserialize()`. `prov.serializers.Registry` holds them under their
-format names in insertion order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and
-{py:func}`prov.serializers.get` resolves a name to a class.
+format names, and {py:func}`prov.serializers.get` resolves a name to a class.
+{ref}`auto-detect` gives the registry order and shows how {py:func}`prov.read` walks it.
 
-{py:func}`prov.read` reads a file, path or string without a `format` by trying the
-registered formats in that order until one succeeds, rewinding the stream between attempts
-where it can. The order is part of the contract, because `json` is tried first and it is
-the only attempt that can succeed on a non-seekable stream.
-
-The registry is populated lazily, on the first call to {py:func}`prov.serializers.get` or
-{py:func}`prov.read`, by `Registry.load_serializers()`. Formats whose parser is an optional
-dependency (`rdf`, `xml`) are registered only if that dependency imports successfully.
-Otherwise they are left out of the registry, so its shape depends on what is installed.
-Requesting a format that is not registered raises {py:class}`~prov.serializers.DoNotExist`,
-naming the extra to install when the format is one of the optional ones.
+{py:meth}`Registry.load_serializers() <prov.serializers.Registry.load_serializers>` fills
+the registry on first use and leaves out a format whose optional parser is not installed.
 
 ## Extras
 
-The core package has no runtime dependencies. `rdflib` sits behind the `rdf` extra, `lxml`
-behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, and
-`matplotlib`, `pydot` and `networkx` behind `plot`, and `pygments` behind `pygments` (see
-{doc}`../installation`). `prov.graph`, `prov.dot` and `prov.pygments` raise
-`ModuleNotFoundError` naming the extra when imported without it. `prov.pygments` imports
-nothing from `prov` and nothing but Pygments and the standard library, because Pygments
-imports it on every plugin scan and a plugin that raises breaks every lookup that reaches
-the plugins. A scan therefore costs only the `prov/__init__` floor, and anything added to
-`prov/__init__.py` is paid by every plugin scan in every environment with prov installed.
+The core package has no runtime dependencies. Each optional capability sits behind an
+extra, and {doc}`../installation` lists which extra installs which package. `prov.graph`,
+`prov.dot` and `prov.pygments` raise `ModuleNotFoundError` naming the extra when imported
+without it. `prov.pygments` imports nothing from `prov`, and {doc}`../development` gives
+the reason.

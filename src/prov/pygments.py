@@ -7,7 +7,7 @@ PROV-N reader accepts, and it lexes any other text without failing.
 
 The module imports Pygments and nothing from ``prov``, so it can be submitted to Pygments
 with the import guard removed. It carries its own copies of the name character classes
-and the keyword list, and ``test_pygments.py`` pins each copy to its source.
+and the keyword list, and the test suite pins each copy to its source.
 """
 
 import re
@@ -135,7 +135,8 @@ class ProvNLexer(RegexLexer):
     url = "https://www.w3.org/TR/prov-n/"
 
     tokens = {
-        # Outside brackets: the six structural words and the declarations.
+        # Outside brackets: bundle, document, endDocument and endBundle, and the
+        # prefix and default declarations.
         "root": [
             (rf"bundle{_WORD_END}", Keyword, "bundle_name"),
             (words(_STRUCTURAL, suffix=_WORD_END), Keyword),

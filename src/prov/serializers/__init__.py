@@ -97,8 +97,10 @@ class ProvSerializationError(Error):
     """A document cannot be read from or written to a format.
 
     Each format's error derives from it. A reader raises its own subclass for
-    input it cannot decode, and sets the model's exception that rejected the
-    record as ``__cause__`` when there is one.
+    input it cannot decode. When the model refuses a record or a namespace
+    that the reader builds, the reader's error locates the record or the
+    declaration, carries the model's sentence and sets the model's exception
+    as ``__cause__``. A fault that the reader finds itself has no cause.
     """
 
 
@@ -107,6 +109,19 @@ class ProvFormatNotDetected(ProvSerializationError, TypeError):
 
     Also a :class:`TypeError`, so ``except TypeError`` around
     :func:`prov.read` keeps working.
+
+    The start of the source, after any whitespace, can name one reader. A
+    ``{`` names PROV-JSONLD when the first 4096 characters hold ``"@context"``
+    or ``"@graph"``, and PROV-JSON otherwise. The word ``document`` names
+    PROV-N. When that reader rejected the source with its own
+    :class:`ProvSerializationError`, that error is the ``__cause__``, so the
+    traceback shows the reader's message and position. Any other start, such
+    as ``<`` or ``@prefix``, names no reader, and the exception has no cause.
+    Neither has one when the named reader raised another error, such as the
+    parsing library's error for malformed JSON or the :class:`ValueError` for
+    an unsupported ``profile``, or when a non-seekable stream cannot be read
+    again. Pass ``format`` to :func:`prov.read` to get a reader's error on
+    its own.
     """
 
 
@@ -127,14 +142,10 @@ class Registry:
         unavailable format then raises an informative :class:`DoNotExist`
         (see :func:`get`) rather than a bare ``ModuleNotFoundError``.
 
-        The insertion order is kept as ``json, rdf, provn, xml, jsonld`` (the
-        historic order when all extras are present, with ``jsonld``
-        appended last) because :func:`prov.read`'s format auto-detection
-        iterates ``Registry.serializers`` in order and
-        ``test_read_auto_detect_with_broken_tell_degrades_to_no_rewind``
-        pins JSON as the first candidate tried — a non-seekable stream can
-        only attempt the first format, so JSON must remain first for JSON
-        content to be auto-detected on broken streams.
+        :func:`get` and :func:`prov.read` call it on first use. The registry
+        order is ``json, rdf, provn, xml, jsonld``, and :func:`prov.read`
+        tries the formats in that order when it detects one, as
+        :ref:`auto-detect` describes for streams.
         """
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provjsonld import ProvJSONLDSerializer

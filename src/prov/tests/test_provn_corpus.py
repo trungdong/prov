@@ -9,8 +9,7 @@ PROV-JSON fixture of the same name (the interoperability claim).
 Each set has a table of files it leaves out, with the reason per file, and
 one test that proves the exclusion still holds: an excluded example or
 document still fails to parse, and a listed corpus file still differs from
-its fixture. A file that starts to pass is removed from its table and from
-the README.
+its fixture. A file that starts to pass is removed from its table.
 
 A third table, ``IGNORED_EXTENSIONS``, counts the extensibility expressions the
 reader drops from a file that otherwise parses. The two parse tests assert that
@@ -42,8 +41,7 @@ _UNDECLARED_VALUE_PREFIX = (
 
 # Specification examples that are not complete statements, that the formal
 # grammar rejects even though the Recommendation's prose presents them as valid,
-# or that use an undeclared prefix in a value; keep this list in step with
-# provn/README.md.
+# or that use an undeclared prefix in a value.
 EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
     "prov-n-example-16.provn": (
         "the sixth wasGeneratedBy variant reuses tr:WD-prov-dm-20111215 as its "
@@ -304,8 +302,7 @@ KNOWN_DIFFERENCES: dict[str, str] = {
 }
 
 # ProvToolbox's own hand-written PROV-N test documents that fall outside
-# what a document under the default profile can express. Documented in
-# provn/README.md.
+# what a document under the default profile can express.
 EXCLUDED_PROVTOOLBOX_DOCUMENTS: dict[str, str] = {
     "container0.provn": (
         "several entity identifiers are bare local names ('\\--', '\\-', "

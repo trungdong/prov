@@ -1,4 +1,4 @@
-"""Tokeniser for PROV-N (https://www.w3.org/TR/prov-n/, section 3.8).
+"""Tokeniser for PROV-N (https://www.w3.org/TR/prov-n/, section 3.7).
 
 Produces a flat token stream. Every token carries its line and column. Keywords are
 not distinguished here: every bare or prefixed name is a ``NAME`` token, and the
@@ -79,13 +79,13 @@ class ProvNSyntaxError(ProvSerializationError, ProvException):
 class TokenKind(Enum):
     """Token classes; the names follow the Recommendation's productions."""
 
-    NAME = "name"  # QUALIFIED_NAME [51], value (prefix, local)
+    NAME = "name"  # QUALIFIED_NAME [52], value (prefix, local)
     QNAME_LITERAL = "qualified name literal"  # 'prefix:local', value (prefix, local)
-    IRI = "IRI"  # IRI_REF [56], value the IRI text
-    STRING = "string"  # STRING_LITERAL [60], value the unescaped text
-    INT = "integer"  # INT_LITERAL [61], value an int
-    DATETIME = "dateTime"  # DATETIME [62], value the lexical form
-    LANGTAG = "language tag"  # LANGTAG [63], value the tag
+    IRI = "IRI"  # IRI_REF (from SPARQL), value the IRI text
+    STRING = "string"  # STRING_LITERAL [58], value the unescaped text
+    INT = "integer"  # INT_LITERAL [60], value an int
+    DATETIME = "dateTime"  # DATETIME (xsd:dateTime), value the lexical form
+    LANGTAG = "language tag"  # LANGTAG (from SPARQL), value the tag
     TYPED = "%%"
     MARKER = "-"
     LPAREN = "("
@@ -118,7 +118,7 @@ _PERCENT = r"%[0-9A-Fa-f]{2}"
 _ESC = rf"\\[{re.escape(_PN_CHARS_ESC)}]"
 _LOCAL_START = rf"[{_PN_CHARS_U}0-9{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
-# The last character of a local part can't be a bare '.' ([54]); an escaped
+# The last character of a local part can't be a bare '.' (PN_LOCAL, [53]); an escaped
 # '\.' or a percent-escape are still fine, so this is _LOCAL_CONT without
 # the bare-dot alternative. Folding the end rule into the grammar keeps
 # matching linear even for a long run of trailing dots.
@@ -132,14 +132,14 @@ _QNAME = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))")
 # Anchored variant of _QNAME, built from the same pattern so the two can't
 # drift apart.
 _QNAME_FULL = re.compile(_QNAME.pattern + r"\Z")
-# DIGIT is [0-9] ([55]); \d would also match other Unicode decimal digits,
+# DIGIT is [0-9] ([62]); \d would also match other Unicode decimal digits,
 # which the grammar treats as ordinary name characters, not digits.
 _DATETIME = re.compile(XSD_DATETIME_PATTERN)
 _INT = re.compile(r"-?[0-9]+")
-# [56]'s UCHAR exclusion is [#x00-#x20], not full Unicode whitespace: \s
-# would reject non-breaking space (a legal IRI character) and admit other
-# control characters that aren't spaces. A backslash starts an escape
-# (PROV-N section 6), which _unescape decodes.
+# The IRI_REF rule (from SPARQL) excludes [#x00-#x20], not full Unicode
+# whitespace: \s would reject non-breaking space (a legal IRI character) and
+# admit other control characters that aren't spaces. A backslash starts an
+# escape (PROV-N section 6), which _unescape decodes.
 _IRI_EXCLUDED = r'<>"{}|^`\\\x00-\x20'
 _IRI = re.compile(rf"<((?:[^{_IRI_EXCLUDED}]|\\[^\x00-\x20])*)>")
 _IRI_FORBIDDEN = re.compile(rf"[{_IRI_EXCLUDED}]")
@@ -165,7 +165,7 @@ _STRING_ESCAPES = {
     "\\": "\\",
 }
 
-# ECHAR ([59]) and PROV-N section 6's code point escapes, \uXXXX and
+# SPARQL's ECHAR and PROV-N section 6's code point escapes, \uXXXX and
 # \UXXXXXXXX, which take uppercase hex digits only. Production [57] HEX, which
 # takes either case, belongs to PERCENT.
 _ESCAPE = re.compile(r"\\(?:u([0-9A-F]{4})|U([0-9A-F]{8})|(.))", re.S)
@@ -193,7 +193,7 @@ def _unescape(raw: str, locate: _Locate, start: int, kind: str) -> str:
 
     Escapes are decoded per token, so an escaped '"' cannot end a string.
     An IRI takes only the code point escapes, and they cannot encode a
-    character [56] excludes.
+    character the IRI_REF rule excludes.
     """
     if "\\" not in raw:
         return raw
@@ -331,7 +331,8 @@ class _Lexer:
             return self.emit(TokenKind.MARKER, "-", "-")
         if char.isspace():
             # WS is space, tab, CR and LF. U+1680 never gets here: it is in
-            # PN_CHARS_BASE ([53]), so literal_or_name_token() reads it as a name.
+            # PN_CHARS_BASE, part of PN_LOCAL ([53]), so literal_or_name_token()
+            # reads it as a name.
             raise self.error(f"U+{ord(char):04X} is not PROV-N whitespace")
         raise self.error(f"unexpected character {char!r}")
 
@@ -379,7 +380,7 @@ class _Lexer:
             raise self.error(f"integer literal has more than {limit} digits") from exc
 
     def name_token(self, match: re.Match[str]) -> Token:
-        # _PN_LOCAL already excludes a bare trailing '.' ([54]), so the
+        # _PN_LOCAL already excludes a bare trailing '.' ([53]), so the
         # match never needs trimming here.
         raw = match.group(0)
         token = self.emit(TokenKind.NAME, raw, _qname_value(match))

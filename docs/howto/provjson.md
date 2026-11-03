@@ -18,8 +18,7 @@ loaded = pm.ProvDocument.deserialize("document.json")
 assert loaded == document
 ```
 
-{doc}`read-write` covers strings, streams and {py:func}`prov.read`, which tries PROV-JSON
-first.
+{doc}`read-write` covers strings, streams and {py:func}`prov.read`.
 
 ## Options
 

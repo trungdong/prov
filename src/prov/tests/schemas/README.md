@@ -7,8 +7,7 @@ schema **offline** (no network access required in CI). They are unmodified
 except for one XSD `schemaLocation` rewritten from an absolute `w3.org` URL
 to a relative, in-tree path (noted below) so the XSD set forms a closed,
 offline-resolvable set; `prov-json.schema.json` is byte-for-byte the
-submission's schema (pretty-printed) with no rewrites needed (it has no
-external `$ref`s).
+submission's schema (pretty-printed), which has no external `$ref`s.
 
 ## Files and sources
 
@@ -22,64 +21,40 @@ external `$ref`s).
 | `prov-json.schema.json`  | <https://www.w3.org/submissions/prov-json/schema>                   | 2026-07-10 |
 | `prov-jsonld.schema.json` | <https://openprovenance.org/prov-jsonld/schema-2026-10-14.json>    | 2026-10-16 |
 
-`prov.xsd` is the entry point referenced by the PROV-XML specification
-(<https://www.w3.org/TR/prov-xml/>); it `xs:include`s `prov-core.xsd`,
-`prov-dictionary.xsd`, and `prov-links.xsd`. `prov-core.xsd` in turn
-`xs:import`s the standard XML-attributes schema (`xml:lang`/`xml:base`/etc.),
-which is vendored here as `xml.xsd`. That import's `schemaLocation` was
-rewritten from `http://www.w3.org/2001/xml.xsd` to the relative `xml.xsd` so
-`lxml.etree.XMLSchema` can compile the whole set without any network access.
-No other `schemaLocation` values were changed — the `prov-core.xsd` /
-`prov-dictionary.xsd` / `prov-links.xsd` includes were already relative
-filenames in the upstream documents.
+`prov.xsd` is the entry point of the PROV-XML specification
+(<https://www.w3.org/TR/prov-xml/>). It `xs:include`s `prov-core.xsd`,
+`prov-dictionary.xsd` and `prov-links.xsd`, and `prov-core.xsd` `xs:import`s
+`xml.xsd`. That import's `schemaLocation` is rewritten from
+`http://www.w3.org/2001/xml.xsd` to the relative `xml.xsd`, so
+`lxml.etree.XMLSchema` compiles the whole set offline. No other
+`schemaLocation` changed, and every include and import target is in this
+directory. `prov-core.xsd` also declares an `xs:import` for the
+`http://www.w3.org/1999/xhtml/datatypes/` namespace with no `schemaLocation`.
+Nothing references that namespace, and the import stays as published.
 
-`prov-core.xsd` also declares (but never uses) an `xs:import` for the
-`http://www.w3.org/1999/xhtml/datatypes/` namespace with no `schemaLocation`;
-this is harmless (no element or type from that namespace is actually
-referenced) and was left as-is.
+`prov-json.schema.json` is the schema that section 2.3 of the PROV-JSON member
+submission (<https://www.w3.org/submissions/prov-json/>) links. It declares
+`"$schema": "http://json-schema.org/draft-04/schema#"`, and `test_json_schema.py`
+selects the validator with `jsonschema.validators.validator_for(schema)`. The
+file is vendored verbatim, with two quirks in the schema itself:
 
-Closure was verified by grepping every vendored file for `schemaLocation=`
-and `xs:import`/`xs:include` elements and confirming each target is itself
-vendored in this directory; see the roadmap step 30 audit notes
-(`planning/specs/2026-07-10-conformance-audit-findings.md`, §3.1)
-for the verification transcript.
-
-`prov-json.schema.json` is the schema linked from §2.3 ("Validating PROV-JSON
-Documents") of *A JSON Representation for the PROV Data Model* (the PROV-JSON
-member submission, <https://www.w3.org/submissions/prov-json/>), retrieved
-from the URL that section links to
-(<https://www.w3.org/submissions/prov-json/schema>). It declares
-`"$schema": "http://json-schema.org/draft-04/schema#"` — `jsonschema>=4`
-still ships a `Draft4Validator`, so it is used as-is (no upgrade/rewrite);
-`test_json_schema.py` selects the validator dynamically via
-`jsonschema.validators.validator_for(schema)` rather than hard-coding that
-draft. Two authoring quirks in the schema itself were noted during the audit
-(not fixed here — the file is vendored verbatim) and are recorded in
-`planning/specs/2026-07-10-conformance-audit-findings.md` §3.2: the
-`wasEndedby` property key (both at the document root and inside
-`definitions.bundle`) is misspelled — the submission's own prose (§3.2.5) and
-`prov`'s serializer both use `wasEndedBy` — and the document-root object sets
-`"additionalProperties": false` while `definitions.bundle` does not, so a
-`mentionOf` relation (a PROV-Links extension postdating this submission, and
-therefore absent from the schema entirely) is only accepted inside a named
-bundle, not at the document root.
+- The property key `wasEndedby` (at the document root and in `definitions.bundle`)
+  is misspelt, where the submission's prose and `prov`'s serializer use `wasEndedBy`.
+- The document root sets `"additionalProperties": false` and `definitions.bundle`
+  does not, so a `mentionOf` relation, which the schema lacks entirely, is accepted
+  only inside a named bundle.
 
 `prov-jsonld.schema.json` is the 2026-10-14 revision of the PROV-JSONLD JSON
-Schema, retrieved 2026-10-16 from
-<https://openprovenance.org/prov-jsonld/schema-2026-10-14.json>, which was
-then byte-identical to the live
-<https://openprovenance.org/prov-jsonld/schema.json>. It revises the W3C member
-submission's schema (<https://www.w3.org/submissions/prov-jsonld/schema.json>)
-for [openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7):
-a `node_reference` (`{"@id": ...}`) is accepted in every value array, a bare
-string under an extension property or `value` is any string
+Schema. It revises the member submission's schema
+(<https://www.w3.org/submissions/prov-jsonld/schema.json>) for
+[openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7), which is
+still open: a `node_reference` (`{"@id": ...}`) is accepted in every value array,
+a bare string under an extension property or `value` is any string
 (`ArrayOfStringValues`), and the statement `@type` patterns are anchored. It
-declares `"$schema": "http://json-schema.org/draft-07/schema#"` and has `$id`
-`https://openprovenance.org/prov-jsonld/schema.json`. A companion JSONLD
-context file is also vendored as package data at
-`src/prov/serializers/prov-jsonld-context.jsonld` (retrieved from
-<https://www.w3.org/submissions/prov-jsonld/context.jsonld>) because the
-serializer's `context="embed"` option embeds it into the output.
+declares `"$schema": "http://json-schema.org/draft-07/schema#"`. The matching
+context file is package data at `src/prov/serializers/prov-jsonld-context.jsonld`
+(from <https://www.w3.org/submissions/prov-jsonld/context.jsonld>), because the
+serializer's `context="embed"` option embeds it.
 
 ## Licence
 

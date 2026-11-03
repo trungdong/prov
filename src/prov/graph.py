@@ -119,7 +119,7 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
         node_map[element.identifier] = element
 
     for relation in unified.get_records(ProvRelation):
-        # taking the first two elements of a relation
+        # the first two formal attributes of the relation
         attr_pair_1, attr_pair_2 = relation.formal_attributes[:2]
         # only need the QualifiedName (i.e. the value of the attribute)
         qn1, qn2 = attr_pair_1[1], attr_pair_2[1]

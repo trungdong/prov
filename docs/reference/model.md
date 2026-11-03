@@ -4,7 +4,8 @@
 documents. A {py:class}`~prov.model.ProvDocument` contains
 {py:class}`~prov.model.ProvBundle` objects, which hold records. Records are elements
 (entities, activities, agents) and the relations between them. The namespace machinery
-that builds and resolves their identifiers lives here too. The
+that builds and resolves their identifiers lives here too. {doc}`values` covers how records
+store attribute values and when two of them are equal. The
 {doc}`../tutorial/getting-started` walks through building a document with this API, and
 the [PROV-DM Primer](https://www.w3.org/TR/prov-primer/) covers the concepts behind the
 classes.
@@ -132,20 +133,6 @@ attribute, comparison and PROV-N methods, so those are documented once here.
    :show-inheritance:
 ```
 
-### Equality
-
-Records compare by type, identifier and attributes; a record without an identifier equals
-only a record without one. Two attribute values are the same value when they have the same
-datatype and the same value in that datatype's value space. `xsd:boolean`, `xsd:decimal`,
-`xsd:double`, `xsd:float` and `xsd:integer` with its subtypes have a value space here,
-every other datatype compares by text, and a text outside its datatype's lexical space
-compares as text. An `xsd:float` is keyed as a Python `float`, so two texts that differ
-only beyond single precision are two values. A plain Python value takes the datatype the writers give it, so `5` and
-`Literal("05", XSD_INT)` are one value and `5` and `Literal("5", XSD_LONG)` are two. A
-`NaN` is one value with itself. `hash()` follows `==` on records and literals. A bundle
-compares as a set of records, not by its identifier; a document also matches its bundles
-by identifier, and a bundle never equals a document.
-
 ```{eval-rst}
 .. autoclass:: prov.model.Literal
    :members:
@@ -165,9 +152,8 @@ a type checker reports a call.
 .. autodata:: prov.model.AttributeValue
    :no-value:
 
-   A value accepted for a record attribute, before coercion. An ``Identifier`` is stored
-   as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``, ``time``, ``timedelta``,
-   ``UUID``, ``bytes``, ``bytearray`` or ``memoryview`` as a ``Literal`` of its XSD datatype.
+   A value accepted for a record attribute, before coercion. :ref:`python-values` lists
+   what each type becomes.
 
 .. autodata:: prov.model.RecordAttributesArg
    :no-value:
@@ -175,8 +161,10 @@ a type checker reports a call.
    The attributes of a record: a mapping from attribute name to value, or pairs of name
    and value in a sequence, a set or an iterator.
 
-.. autodata:: prov.model.OptionalID
-   :no-value:
+.. The four union aliases use py:data. autodata renders the interpreter's
+   union-type boilerplate in place of their description.
+
+.. py:data:: OptionalID
 
    An identifier as a qualified name, a string or an ``Identifier``, or ``None``.
 
@@ -215,18 +203,15 @@ a type checker reports a call.
 
    An open stream, or a path as a string, bytes or ``os.PathLike``.
 
-.. autodata:: prov.model.QualifiedNameCandidate
-   :no-value:
+.. py:data:: QualifiedNameCandidate
 
    A qualified name, or a string or ``Identifier`` the bundle resolves to one.
 
-.. autodata:: prov.model.DatetimeOrStr
-   :no-value:
+.. py:data:: DatetimeOrStr
 
    A ``datetime``, or an ``xsd:dateTime`` string parsed with :func:`~prov.model.parse_xsd_datetime`.
 
-.. autodata:: prov.model.NSCollection
-   :no-value:
+.. py:data:: NSCollection
 
    Namespaces to register: a mapping from prefix to URI, or ``Namespace`` objects.
 ```
@@ -243,6 +228,8 @@ a type checker reports a call.
 ```
 
 ## Exceptions
+
+{doc}`serializers` shows how these classes and the serialisation errors relate.
 
 ```{eval-rst}
 .. autoclass:: prov.Error

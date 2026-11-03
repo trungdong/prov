@@ -12,7 +12,8 @@ matter for most users:
    `ProvDocument.unified()` raise `prov.model.ProvUnificationError` when records sharing an
    identifier disagree on a formal attribute or have incompatible types. `prov_to_graph()`
    calls `unified()` internally, so it can raise too. `prov_to_dot()` catches the error and
-   renders the document without unifying it.
+   renders the document without unifying it. 3.3.0 deprecated
+   {py:meth}`ProvBundle.unified() <prov.model.ProvBundle.unified>`.
 
 Both were signposted from 2.4.0 with a runtime warning, which every later 2.x release also
 carries. **If your test suite ran clean under 2.4.0 or later with

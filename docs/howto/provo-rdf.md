@@ -38,20 +38,8 @@ loaded = pm.ProvDocument.deserialize(content=turtle_str, format="rdf", rdf_forma
 ```
 
 ```{important}
-Only quad-based syntaxes, `"trig"` and `"nquads"`, keep bundles as separate named graphs.
-Triple-based syntaxes such as `"turtle"` and `"xml"` flatten every bundle into one graph
-and lose which bundle each statement came from. Keep the default TriG if your document has
-bundles.
+A syntax with named graphs, such as `"trig"` or `"nquads"`, keeps each bundle, and a triple
+syntax such as `"turtle"` flattens every bundle into one graph, so keep the default TriG if
+your document has bundles. {doc}`../reference/conformance` states the other limits of
+PROV-O.
 ```
-
-## Limitations
-
-Two relations that share an identifier and differ in a formal attribute cannot round-trip,
-because PROV-O names a relation by its identifier; reading such RDF raises
-`prov.serializers.provrdf.ProvRDFException`
-({doc}`../reference/conformance`, C1). On the same page, C10 covers literals rdflib
-rewrites on read, and C11 a pair that rdflib's Turtle, long Turtle, TriG and N3 writers cannot
-write, a `NaN` and a number under one attribute where one of them is an `xsd:decimal`.
-
-The reader declares the source's own prefixes and the namespaces its names use, and an
-unused declaration does not survive a round trip ({doc}`../reference/conformance`, PROV-O).

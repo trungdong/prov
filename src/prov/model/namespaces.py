@@ -76,9 +76,9 @@ class NamespaceManager(dict[str, Namespace]):
         self._reindex()
         self._namespaces: dict[str, Namespace] = {}
 
-        # Maps a plain string to the name this manager resolved, possibly one
-        # minted in an outer scope's namespace. add_namespace() and
-        # _set_default() clear it whenever a string could resolve differently.
+        # Maps a plain string to the name this manager resolved from its own
+        # namespaces. A mutation of this manager clears it; a mutation of the
+        # parent does not.
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:
@@ -160,7 +160,7 @@ class NamespaceManager(dict[str, Namespace]):
     def __setstate__(self, state: dict[str, Any]) -> None:
         # The dict's items are already set when pickle calls this, so a state
         # from a release without the index gets one built from them. A copy
-        # carries its own index and has no items yet.
+        # carries the index in its state and has no items yet.
         self.__dict__.update(state)
         if "_uris_by_length" not in state:
             self._reindex()
@@ -281,7 +281,7 @@ class NamespaceManager(dict[str, Namespace]):
 
         # Trying to generate a valid qualified name from here
         if not isinstance(qname, (str, Identifier)):
-            # Only proceed with a string or URI value
+            # Only proceed with a string or an Identifier
             return None
 
         if not isinstance(qname, str):
@@ -321,12 +321,13 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
-        # The name as this scope holds it: unchanged when a scope in reach
-        # binds its namespace (#449); a name in a default namespace no scope
-        # in reach declares takes a prefix in reach that is bound to its IRI
-        # and rejected without one, as is the default IRI itself (#473);
-        # a prefixed foreign namespace is registered here under a prefix no
-        # scope in reach binds.
+        # The name as this scope holds it. A name whose namespace a scope in
+        # reach binds stays as it is. A name in a default namespace no scope in
+        # reach declares takes a prefix in reach that is bound to its IRI and
+        # is rejected without one, as is the default IRI itself (#473). Any
+        # other foreign namespace is reused when registered here by IRI, else
+        # registered under its prefix, or under an unused prefix when a scope
+        # in reach binds that prefix to another IRI.
         namespace = qname.namespace
         prefix = namespace.prefix
         if not prefix and not qname.localpart:

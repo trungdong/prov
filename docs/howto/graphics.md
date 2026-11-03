@@ -36,6 +36,9 @@ document.wasGeneratedBy(e, a)
 dot = prov_to_dot(document)
 ```
 
+{py:func}`~prov.dot.prov_to_dot` unifies the document before it draws, so records that
+share an identifier become one node.
+
 ## Write PNG, SVG or PDF
 
 `pydot.Dot` has a `write_<format>` method for each Graphviz output format:
@@ -89,7 +92,20 @@ records an activity, usage and generation, draws every element by default. Set
 dot_binary = prov_to_dot(document, show_nary=False)
 ```
 
-## Draw one bundle
+## Plot in a notebook or window
+
+{py:meth}`~prov.model.ProvDocument.plot` draws the same graph to the file its extension
+names, or, with no filename, shows it through matplotlib, which needs the `plot` extra.
+
+```python
+document.plot("document.png", use_labels=True)
+```
+
+{py:func}`prov.dot.prov_to_dot` documents every parameter.
+
+## Edge cases
+
+### Draw one bundle
 
 `prov_to_dot()` and `plot()` take a document. A bundle that is not a document draws with
 a `DeprecationWarning`, and 4.0 draws documents only. To draw one bundle, copy it into a
@@ -114,18 +130,3 @@ copy.update(bundle)
 
 dot_bundle = prov_to_dot(alone)
 ```
-
-## Plot in a notebook or window
-
-{py:meth}`~prov.model.ProvDocument.plot` draws the same graph. With no filename it shows
-the image through matplotlib, in an interactive window or inline in a notebook, which needs
-the `plot` extra that {doc}`../installation` lists. With a filename it writes the file
-through Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes
-`show_nary`, `use_labels`, `show_element_attributes` and `show_relation_attributes`, and no
-`direction`.
-
-```python
-document.plot("document.png", use_labels=True)
-```
-
-{py:func}`prov.dot.prov_to_dot` documents every parameter.

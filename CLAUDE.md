@@ -14,8 +14,8 @@ work. Design specs are committed under `planning/specs/` and read as `planning/R
 says. Implementation plans and their `*.tasks.json` state live under `planning/plans/`, which
 is gitignored and never committed. Neither goes in `docs/`.
 
-- One focused PR per roadmap step, green CI before merge.
-- If a step changes tooling, update the affected sections of this file in the same PR.
+- One focused PR per change, green CI before merge.
+- If a PR changes tooling, update the affected sections of this file in the same PR.
 
 ## Releasing
 
@@ -24,12 +24,8 @@ before release work, and add any new gotcha there rather than to a plan.
 
 ## Setup
 
-Uses `uv`. The test suite needs all four extras, the benchmarks the `bench` group and Sphinx
-the `docs` group:
-
-```bash
-uv sync --extra rdf --extra xml --extra dot --extra graph --group bench --group docs
-```
+Uses `uv`. `CONTRIBUTING.md` (Set up for development) holds the sync command. The test suite
+needs all four extras, the benchmarks the `bench` group and Sphinx the `docs` group.
 
 The `pygments` extra (`prov.pygments`, the Pygments lexer) is in no sync command because
 pytest already brings Pygments into every test environment. `docs/dependencies.md` explains
@@ -40,6 +36,7 @@ every pin.
 `CONTRIBUTING.md` (Checks every pull request must pass) holds the one list of commands and
 the rules around them: the mypy override list that only shrinks, Codacy on every changed
 file, the coverage floor and the Sphinx build. Run every applicable line before pushing.
+A change to a page or a docstring follows `.claude/rules/documentation.md`.
 
 Performance changes also run `uv run python benchmarks/ab.py main --python 3.12`. Repeat a
 red CI benchmark locally before acting on it. `benchmarks/README.md` has the details.
@@ -50,7 +47,7 @@ red CI benchmark locally before acting on it. `benchmarks/README.md` has the det
 - Commit-message and PR-body paragraphs stay unwrapped (one line each); GitHub soft-wraps.
 - No AI attribution lines in commits or PR bodies.
 - Describe changes by release, never by plan task or batch. HISTORY entries follow
-  `CONTRIBUTING.md` (Changelog entries); a refactor, a test or a CI change never gets one.
+  `.claude/rules/changelog.md`; a refactor, a test or a CI change never gets one.
 - **Maintainability governs.** Added functionality keeps complexity as low as it can be.
   Removed behaviour comes with less code and fewer or consolidated tests, never more. Neither
   is bought with a loss of correctness. A change that simplifies and a change that breaks a
@@ -61,9 +58,9 @@ red CI benchmark locally before acting on it. `benchmarks/README.md` has the det
 ## Architecture
 
 `docs/explanation/architecture.md` is the overview and `docs/development.md` holds the
-serializer conventions and the test-suite layout. The PROV-N lexer and parser internals are
-in the module docstrings of `provn_lexer.py` and `provn_parser.py`. The rules below are what
-an agent must not break.
+serializer conventions and the test-suite layout. The internals of `provn_lexer.py` and
+`provn_parser.py` are in their module docstrings. The rules below are what an agent must not
+break.
 
 - **Always import from `prov.model`, never from its submodules.** `prov/model/__init__.py`
   re-exports every public name at its historic location and deletes the submodule
@@ -72,7 +69,7 @@ an agent must not break.
   `ModuleNotFoundError` naming the extra when imported without it.
 - `prov.pygments` imports nothing from `prov`, because Pygments imports it on every plugin
   scan. `ProvNLexer` is reached by name through the entry point and is not public API.
-  `docs/explanation/architecture.md` (Extras) explains the rule.
+  `docs/development.md` (The `prov.pygments` module) explains the rule.
 - `prov.serializers.Registry`'s insertion order is `json, rdf, provn, xml, jsonld`, with
   `jsonld` deliberately last: `prov.read()`'s auto-detection walks that order and
   `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind` pins `json` as the first
@@ -88,7 +85,7 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   prior run. A skip or xfail that is new, gone or unexplained by your change is a regression;
   one that matches an existing `reason=` tied to a tracked issue is routine.
 - Known-lossy cases are permanent, documented limitations; never "fix" them. RDF's PROV-O
-  gap (`docs/reference/conformance.md`, #217) and PROV-JSONLD's missing Mention term (#248)
+  gap and PROV-JSONLD's missing Mention term (C1 and C2 on `docs/reference/conformance.md`)
   each leave the affected target out of the scruffy or mention round trips in
   `test_statements.py` (`SCRUFFY_TARGETS`, `MENTION_TARGETS`); `test_rdf.py` and
   `test_jsonld.py` assert the raise.

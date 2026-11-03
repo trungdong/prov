@@ -185,8 +185,8 @@ _ATTRIBUTE_NAME_FOLLOW = (TokenKind.EQUALS,)
 _DATA_FOLLOW = (*_IDENTIFIER_FOLLOW, *_DATATYPE_FOLLOW, *_ATTRIBUTE_NAME_FOLLOW)
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
-# Brackets an extensibility argument may open (N53): [50] and [51].
 _MAX_EXTENSION_DEPTH = 32
+# Brackets an extensibility argument may open (N53): [50] and [51].
 _TUPLE_CLOSERS = {
     TokenKind.LBRACE: TokenKind.RBRACE,
     TokenKind.LPAREN: TokenKind.RPAREN,
@@ -805,8 +805,8 @@ class ProvNParser:
         return self._resolve(token, bundle)
 
     def _resolve(self, token: Token, bundle: ProvBundle) -> QualifiedName:
-        # A name resolves by its prefix in scope, never by compacting an IRI
-        # (#553, #599), so http://example.org/e is the undeclared prefix 'http'.
+        # A name resolves by its prefix in scope, never by compacting an IRI,
+        # so http://example.org/e is the undeclared prefix 'http'.
         prefix, local = token.value
         qname = resolve_pair(bundle, prefix, local, shown=token.text)
         if isinstance(qname, str):

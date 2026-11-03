@@ -57,9 +57,9 @@ prov-compare -f json -F xml document.json document.xml
 Compare a lenient PROV-N file against a Turtle file:
 
 ```bash
-prov-compare -r profile=lenient -R rdf_format=turtle document.provn document.ttl
+prov-compare -r profile=lenient document.provn document.ttl
 ```
 
 ## See also
 
-{doc}`prov-convert(1) <prov-convert>` and the how-to {doc}`../howto/cli`. The full documentation is at <https://prov.readthedocs.io/>.
+{doc}`prov-convert <prov-convert>` and the how-to {doc}`../howto/cli`. The full documentation is at <https://prov.readthedocs.io/>.

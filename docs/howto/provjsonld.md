@@ -2,6 +2,10 @@
 
 [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/) is a W3C member submission
 that represents the PROV Data Model in JSON-LD. Select it with `format="jsonld"`; it needs no extra.
+The submission defines no Mention term, so a document with a
+{py:class}`~prov.model.ProvMention` cannot be written or read.
+{doc}`../reference/conformance` states the format's other limits and what its reader
+accepts and drops.
 
 ## Round trip
 
@@ -19,8 +23,7 @@ loaded = pm.ProvDocument.deserialize("document.jsonld", format="jsonld")
 assert loaded == document
 ```
 
-{doc}`read-write` covers strings, streams and {py:func}`prov.read`, which tries
-PROV-JSONLD last.
+{doc}`read-write` covers strings, streams and {py:func}`prov.read`.
 
 ## Output shape
 
@@ -69,13 +72,3 @@ that is archived or processed offline. Any other value raises `ValueError`.
 ```python
 document.serialize(format="jsonld", context="embed")
 ```
-
-## Limitations
-
-The submission defines no Mention term, so a document with a
-{py:class}`~prov.model.ProvMention` raises `prov.serializers.provjsonld.ProvJSONLDException`
-on write and on read
-({doc}`../reference/conformance`, C2). The reader accepts the submission's compacted shape
-only, not expanded or flattened JSON-LD. A reference to a blank node, such as
-`{"@id": "_:b1"}`, names no record, so the reader drops it with a
-{py:class}`~prov.model.ProvWarning`.

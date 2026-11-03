@@ -181,13 +181,14 @@ def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
 def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
 
-    Accepts the ``xsd:dateTime`` lexical space (XSD 1.1 section 3.3.7) and
-    nothing else: a date, ``T``, a time with up to six fractional digits,
-    and ``Z`` or an ``hh:mm`` offset. The hour-24 end-of-day form maps to
+    Accepts the ``xsd:dateTime`` lexical space, as `XSD 1.1 defines it
+    <https://www.w3.org/TR/xmlschema11-2/#dateTime>`_, and nothing else. That
+    is a date, ``T``, a time with up to six fractional digits, and ``Z`` or an
+    ``hh:mm`` offset. The hour-24 end-of-day form maps to
     00:00:00 of the following day, per the XSD value space. Text in another
     ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, a bare
     ``xsd:date``, and a fraction of more than six digits, which a
-    :class:`datetime.datetime` cannot hold, are not accepted (#514).
+    :class:`datetime.datetime` cannot hold, are not accepted.
 
     Args:
         value: The date/time string to parse.
@@ -339,7 +340,7 @@ class TypedValueSet(MutableSet[Any]):
         return self._index.keys()
 
     def __setstate__(self, state: Any) -> None:
-        # A 3.2.x pickle keyed the index by (type, value); rebuild by value key.
+        # A 3.2.x pickle keys the index by (type, value); rebuild by value key.
         self._index = {}
         for value in _slot_state(state)["_index"].values():
             self.add(value)
@@ -427,9 +428,10 @@ class Literal:
 
     A literal pairs a string value with an optional datatype and an optional
     language tag. Supplying a language tag forces the datatype to
-    ``prov:InternationalizedString``: if no datatype was given one is assumed,
-    and any other datatype is overridden (with a warning) to comply with the
-    PROV-JSON/PROV-XML rules for language-tagged strings.
+    ``prov:InternationalizedString``, to comply with the PROV-JSON/PROV-XML
+    rules for language-tagged strings. If no datatype was given, that one is
+    assumed. Any other datatype is overridden, and the constructor logs a
+    warning.
 
     Its fields are read-only after construction. Assigning or deleting one
     raises :class:`AttributeError`, while a subclass may still set attributes
@@ -462,22 +464,10 @@ class Literal:
         """Initialise the literal.
 
         Args:
-            value: The literal's value, stored as text: a ``str`` as given, a
-                ``bool`` as ``true`` or ``false``, an ``int`` as its digits, a
-                ``float`` in XSD form (``INF``, ``-INF``, ``NaN`` or its
-                ``repr()``; the decimal text when ``datatype`` is
-                ``xsd:decimal``), a ``Decimal`` in its plain form, a
-                ``datetime``, ``date`` or ``time`` in ISO 8601 form, a
-                ``timedelta`` as an ``xsd:duration``, a ``UUID`` as its URN, a
-                bytes-like value in base64, or in hex, uppercase, when
-                ``datatype`` is ``xsd:hexBinary``, and a value of any other
-                type through ``str()``. The datatype stays as given. A
-                ``Literal`` holds the text its caller gave it, however it was
-                spelled, so ``Literal(Decimal("NaN"), XSD_DECIMAL)`` is the
-                ill-formed text ``NaN``, which compares as text, and a
-                ``bytes`` value under ``xsd:duration`` is its base64 text under
-                that datatype; only a plain Python value given to a record must
-                have a PROV form (#482).
+            value: The literal's value, stored in the form that
+                :ref:`Python values <python-values>` gives, so
+                ``Literal(Decimal("NaN"), XSD_DECIMAL)`` is the ill-formed text
+                ``NaN``, which compares as text.
             datatype: The qualified name of the value's datatype (default:
                 ``None``). Any other object, a plain
                 :class:`~prov.model.Identifier` or a ``str`` included, raises
@@ -508,7 +498,7 @@ class Literal:
                 datatype = PROV_INTERNATIONALIZEDSTRING
         _set(self, "_value", text)
         _set(self, "_datatype", datatype)
-        # langtag is always a string
+        # a langtag that is given is stored as text
         _set(self, "_langtag", str(langtag) if langtag is not None else None)
 
     def __str__(self) -> str:
@@ -578,8 +568,7 @@ class Literal:
 
     def provn_representation(self) -> str:
         """Return the PROV-N representation of the literal, the datatype spelled
-        as at an identifier position, so a ``:`` in its local part is escaped
-        (#571)."""
+        as at an identifier position, so a ``:`` in its local part is escaped."""
         quoted_value = _provn_string_literal(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString.
@@ -699,8 +688,9 @@ class ProvValueError(ProvException, ValueError):
     """A value a :class:`Literal` or an attribute cannot hold, or a namespace
     prefix or IRI the model refuses.
 
-    Raised at assertion for a time whose offset is beyond ±14:00 (#513) and
-    for a language tag that is empty or not shaped like a BCP 47 tag (#472).
+    Raised at assertion for a time whose offset is beyond ±14:00, and when a
+    :class:`Literal` is built with a language tag that is empty or not shaped
+    like a BCP 47 tag.
     A subclass of both :class:`ProvException` and :class:`ValueError`, so a
     caller can catch either.
     """
@@ -720,7 +710,7 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         Args:
             qname: The invalid qualified name.
             detail: What is wrong with it, such as a local part PROV-N
-                cannot write (#524).
+                cannot write.
         """
         self.qname = qname
         self.detail = detail
@@ -838,11 +828,12 @@ class ProvRecord:
     def get_asserted_types(self) -> set[QualifiedName]:
         """Return the set of all asserted PROV types of this record.
 
-        Returns a fresh, plain ``set`` copy (2.x-compatible: mutating it does
-        not affect the record). Since ``prov:type`` values are always
-        :class:`~prov.identifier.QualifiedName`\\ s -- which never collapse
-        under Python equality -- this copy never loses information: unlike
-        :meth:`get_attribute`/:attr:`value`, there is no lossy case here.
+        Returns a fresh, plain ``set`` copy, so mutating it does not affect the
+        record. The set holds the ``prov:type`` values as asserted, whether
+        :class:`~prov.identifier.QualifiedName`\\ s, strings, numbers or other
+        attribute values, although the annotation says ``QualifiedName``
+        (`#748 <https://github.com/trungdong/prov/issues/748>`_). Values that
+        Python holds equal collapse in it, as :meth:`get_attribute` describes.
         """
         return set(self._attributes.get(PROV_TYPE, ()))
 
@@ -862,13 +853,12 @@ class ProvRecord:
 
         Returns:
             A fresh, plain ``set`` copy of the values held for the attribute
-            (empty if none); mutating it does not affect the record. This
-            keeps the 2.x return type: a Python-equal-but-differently-typed
-            pair retained on the record (e.g. ``2`` and ``2.0``, #34) still
-            collapses to whichever was asserted first in *this copy*, even
-            though the record's own storage, :attr:`attributes`/
-            :attr:`extra_attributes`, equality/hashing and serialization all
-            retain both -- see ``docs/upgrading-3.0.md``.
+            (empty if none); mutating it does not affect the record. Values
+            that Python holds equal but that differ in type, such as ``2`` and
+            ``2.0``, collapse in this copy to whichever was asserted first.
+            The record keeps both, and :attr:`attributes`,
+            :attr:`extra_attributes`, equality, hashing and serialisation all
+            see both.
 
         Raises:
             ProvExceptionInvalidQualifiedName: If ``attr_name`` cannot be
@@ -958,9 +948,9 @@ class ProvRecord:
     def value(self) -> set[Any]:
         """The set of the record's ``prov:value`` attribute values.
 
-        Returns a fresh, plain ``set`` copy (2.x-compatible); see
-        :meth:`get_attribute` for what that means for a Python-equal-but-
-        differently-typed pair of ``prov:value`` values (#34).
+        Returns a fresh, plain ``set`` copy. :meth:`get_attribute` describes
+        how it treats ``prov:value`` values that Python holds equal but that
+        differ in type.
         """
         return set(self._attributes.get(PROV_VALUE, ()))
 
@@ -1086,8 +1076,8 @@ class ProvRecord:
                 value = self._literal_for_python_value(attr, value)
 
         if isinstance(value, datetime.datetime):
-            # In any position, because no writer could emit it as an
-            # xsd:dateTime; a typed Literal beyond the bound stayed a Literal.
+            # In any position, because no writer can emit such an offset as an
+            # xsd:dateTime. A typed Literal beyond the bound stays a Literal.
             detail = time_offset_detail(attr, value)
             if detail is not None:
                 raise ProvValueError(detail)
@@ -1152,7 +1142,7 @@ class ProvRecord:
         Raises:
             ProvExceptionInvalidQualifiedName: If an attribute name cannot be
                 resolved to a valid qualified name, or a value typed as a
-                qualified name does not resolve by its prefix (#516).
+                qualified name does not resolve by its prefix.
             ProvException: If a value is invalid for its attribute, or a
                 second, different value is supplied for a single-valued
                 attribute.
@@ -1193,7 +1183,9 @@ class ProvRecord:
         follows, one ``name=value`` pair per line, aligned after the opening
         parenthesis. The formal arguments and a single pair are never broken.
         ``str(record)`` never wraps. A string value that holds a line feed is
-        still written as a triple-quoted string over several lines.
+        still written as a triple-quoted string over several lines. A subclass
+        that overrides this method takes ``width`` too, because the PROV-N
+        writer passes it.
 
         Args:
             strict: Write output that parses under the strict PROV-N
@@ -1225,7 +1217,7 @@ class ProvRecord:
             keyword = "prov:mentionOf"
         elif strict and self.get_type() in _PROV_N_BARE_RELATIONS:
             # A strict read rejects an identifier or attribute block here, so neither
-            # is written (#569).
+            # is written.
             written = f"{keyword}({', '.join(items)})"
             if identifier:
                 warn(

@@ -3,8 +3,9 @@
 Timing suite for the operations the library's performance work tracks. It is
 not part of the test suite and is not shipped.
 
+Sync the environment as `CONTRIBUTING.md` shows (Set up for development), then run:
+
 ```bash
-uv sync --extra rdf --extra xml --extra dot --extra graph --group bench --group docs
 uv run pytest benchmarks/test_bench.py
 ```
 
@@ -24,15 +25,15 @@ uv run python benchmarks/ab.py 3.2.3 --python 3.12 --gc   # with garbage collect
 ```
 
 Both sides must run on the same interpreter, and the script stops if they did
-not. The working tree's environment keeps the interpreter of the last
-`uv run --python`, which after the test loop over every supported interpreter
-is PyPy, while the base gets uv's default. `--python` pins both sides.
+not. `--python` pins both sides. The working tree's environment keeps the
+interpreter of the last `uv run --python`, which `CONTRIBUTING.md` (Checks
+every pull request must pass) explains.
 
 `ab.py` times with garbage collection off on both sides (pytest-benchmark's
 `--benchmark-disable-gc`), so a collector pause cannot fall in one round and
 not another. A real workload pays those pauses. With collection on,
 construction, the PROV-JSON read, `unified()` and `prov_to_graph()` take 10 to
-43% longer on Python 3.11 and 3.12 (#693). `--gc` leaves collection on for both
+43% longer on Python 3.11 and 3.12. `--gc` leaves collection on for both
 sides. A plain `pytest` run, as in the first block, leaves it on.
 
 The script checks the base ref out into a temporary git worktree with its own

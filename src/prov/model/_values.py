@@ -53,13 +53,13 @@ from prov.identifier import QualifiedName
 if TYPE_CHECKING:
     from prov.model.bundle import ProvBundle
 
-# PROV-N's LANGTAG ([63]) without the "@"; every BCP 47 tag matches it. The
-# lexer builds its "@"-prefixed token pattern from the same string.
+# PROV-N's LANGTAG (from SPARQL) without the "@"; every BCP 47 tag matches it.
+# The lexer builds its "@"-prefixed token pattern from the same string.
 LANGTAG_PATTERN = r"[A-Za-z]+(?:-[A-Za-z0-9]+)*"
 
 # xsd:dateTime's lexical form (XSD 1.1 section 3.3.7): a year of four or more
 # digits, the date, "T", the time, an optional fraction and an optional zone.
-# The PROV-N lexer's DATETIME token ([62]) is the same form.
+# The PROV-N lexer's DATETIME token is the same form.
 XSD_DATETIME_PATTERN = (
     r"-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
     r"(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?"
@@ -124,8 +124,7 @@ def _integer_value(datatype: QualifiedName, text: str) -> int | None:
 
 def _decimal_value(text: str) -> decimal.Decimal | None:
     # Construction from a text the grammar admits is exact in every context
-    # and signals nothing, so the caller's context cannot change the result
-    # (#593, #595).
+    # and signals nothing, so the caller's context cannot change the result.
     return decimal.Decimal(text) if _XSD_DECIMAL_RE.fullmatch(text) else None
 
 

@@ -21,11 +21,51 @@ the registry and the exception classes for reading and writing.
    :members:
 
 .. autofunction:: prov.serializers.get
+```
 
-.. autoclass:: prov.serializers.DoNotExist
-   :members:
-   :show-inheritance:
+## Reading documents
 
+{ref}`auto-detect` shows how to read a document whose format is not known.
+
+```{eval-rst}
+.. autofunction:: prov.read
+```
+
+## Exceptions
+
+The exceptions below derive from {py:class}`prov.Error`. The model's refusals derive from
+{py:class}`~prov.model.ProvException`, and a failure to read or write a document derives
+from {py:class}`~prov.serializers.ProvSerializationError`.
+
+```text
+prov.Error
+|-- ProvException                        (prov.model)
+|   |-- ProvValueError                   also a ValueError
+|   |-- ProvExceptionInvalidQualifiedName
+|   |-- ProvElementIdentifierRequired
+|   |-- ProvMissingFormalAttribute
+|   `-- ProvUnificationError
+|-- ProvSerializationError               (prov.serializers)
+|   |-- ProvJSONException
+|   |-- ProvJSONLDException
+|   |-- ProvNSyntaxError                 also a ProvException
+|   |-- ProvXMLException
+|   |-- ProvRDFException
+|   `-- ProvFormatNotDetected            also a TypeError
+`-- DoNotExist                           (prov.serializers)
+```
+
+{py:class}`~prov.serializers.ProvSerializationError` says what a reader's error carries,
+and code that builds the record gets the model's exception itself.
+{py:class}`~prov.serializers.ProvFormatNotDetected` says when its `__cause__` is a reader's
+error.
+
+With an explicit `format`, input that is not well-formed in the underlying syntax raises the
+parsing library's own error, outside the tree: `json.JSONDecodeError` for the two JSON
+formats, `lxml`'s `XMLSyntaxError`, and rdflib's parser error for the chosen `rdf_format`,
+such as `BadSyntax` for TriG and Turtle.
+
+```{eval-rst}
 .. autoclass:: prov.serializers.ProvSerializationError
    :members:
    :show-inheritance:
@@ -33,22 +73,11 @@ the registry and the exception classes for reading and writing.
 .. autoclass:: prov.serializers.ProvFormatNotDetected
    :members:
    :show-inheritance:
-```
 
-## Reading documents
+.. autoclass:: prov.serializers.DoNotExist
+   :members:
+   :show-inheritance:
 
-{py:func}`prov.read` detects the format of a source by trying each registered
-deserializer in registry order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and returning the
-first non-empty document. The order matters for a non-seekable stream, which only the
-first attempt can read.
-
-```{eval-rst}
-.. autofunction:: prov.read
-```
-
-## PROV-N errors
-
-```{eval-rst}
 .. autoclass:: prov.serializers.provn.ProvNSyntaxError
    :members:
    :show-inheritance:

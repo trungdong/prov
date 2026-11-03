@@ -50,12 +50,13 @@ explanation, and the API reference is generated from the docstrings.
 
 ## Moving from 2.x
 
-For most code the upgrade needs no change. Two things can need attention. Install the
-extras your code uses, and expect `unified()` to raise on records it previously merged
-silently. {doc}`upgrading-3.0` lists the changes that need action and points at the
-changelog for the rest. A pin to an older release such as `prov==2.1.1` or `prov==1.5.1`
-predates the 3.x work and the current support policy; lift it to `prov>=3`, and open an
-issue if the upgrade guide does not cover your case.
+Two changes in 3.0 can need attention. Install the extras your code uses, and expect
+`unified()` to raise on records it previously merged silently. {doc}`upgrading-3.0` lists
+the changes that need action and points at the changelog for the rest. Later 3.x releases
+change more, and {doc}`howto/prepare-for-3-3` takes you on to 3.3.0. A pin to an older
+release such as `prov==2.1.1` or `prov==1.5.1` predates the 3.x work and the current
+support policy; read both guides, lift it to `prov>=3`, and open an issue if they do not
+cover your case.
 
 ## The 2.x line
 
@@ -67,5 +68,4 @@ carry bug fixes back-ported from 3.x. See
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
 releases in order. 3.3.0 requires Python 3.11 or later under the support policy, because
-Python 3.10's support ends on 2026-10-31. On Python 3.10, pip installs the last 3.2.x
-release instead.
+Python 3.10's support ends on 2026-10-31.

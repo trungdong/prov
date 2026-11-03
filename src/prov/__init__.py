@@ -92,11 +92,8 @@ def _head(
 def _rejection_cause(
     head: str | None, errors: dict[str, Exception]
 ) -> Exception | None:
-    """The error of the reader the input's head names, when that reader
-    rejected the input with its own :class:`~prov.serializers.ProvSerializationError`:
-    PROV-JSON or PROV-JSONLD for ``{`` (PROV-JSONLD when the head holds
-    ``"@context"`` or ``"@graph"``), PROV-N for ``document``. ``<`` names no one
-    reader, since PROV-XML and PROV-O both start with it, so it chains nothing."""
+    """The cause to chain, by the rule that
+    :class:`~prov.serializers.ProvFormatNotDetected` states."""
     # Lazy import: prov and the serializers are circularly dependent.
     from prov.serializers import ProvSerializationError
 
@@ -123,10 +120,8 @@ def _detect_and_parse(
 
     Raises:
         ProvFormatNotDetected: If no registered serializer produced a
-            non-empty document from ``src``/``content``. When the content's
-            first character names PROV-JSON, PROV-JSONLD or PROV-N and that
-            reader rejected the input with its own error, that error is the
-            exception's ``__cause__``.
+            non-empty document from ``src``/``content``; its class docstring
+            gives the ``__cause__`` rule.
     """
     # Lazy import: prov and prov.model are circularly dependent.
     from prov._warnings import collect_warnings, warn
@@ -193,10 +188,9 @@ def _detect_and_parse(
             # A parse producing a completely empty document (e.g. rdflib
             # accepts empty input, or the xml deserializer walking a
             # childless foreign root) is treated as not detected. Registered
-            # namespaces are deliberately not consulted: the rdf deserializer
-            # always copies rdflib's own default-bound namespace prefixes onto
-            # the document on every successful parse, so that signal is always
-            # truthy and would defeat this check for the rdf format.
+            # namespaces are deliberately not consulted, because a source that
+            # only declares prefixes (such as a Turtle file holding one
+            # ``@prefix`` line) registers them and still holds no PROV.
     finally:
         rdflib_term_logger.setLevel(previous_level)
 
@@ -227,17 +221,11 @@ def read(
 
     If ``format`` is not given, the format is detected by trying each
     registered deserializer in turn and returning the first that both
-    succeeds and produces a non-empty document (a parse yielding no records
-    or bundles -- e.g. rdflib parsing empty/foreign input to an empty graph
-    -- is treated as "not this format"; registered namespaces are not used
-    as a signal here since the rdf deserializer always registers rdflib's
-    own default-bound namespace prefixes on every successful parse, empty
-    or not). Auto-detection swallows each candidate's error. When every
-    candidate fails and the content's first character names PROV-JSON,
-    PROV-JSONLD or PROV-N, that reader's own error is the
-    :class:`~prov.serializers.ProvFormatNotDetected`'s ``__cause__``, so the
-    traceback shows the rule and its position; pass ``format`` explicitly to
-    get that error on its own.
+    succeeds and produces a non-empty document. A source that parses to no
+    records and no bundles is not that format. Auto-detection swallows each
+    candidate's error, and :class:`~prov.serializers.ProvFormatNotDetected`
+    says when one is its ``__cause__``; pass ``format`` explicitly to get a
+    reader's error on its own.
 
     ``prov``'s own warnings from a candidate that fails or produces an empty
     document are dropped. Those of the chosen candidate are emitted at the
@@ -258,25 +246,29 @@ def read(
         **kwargs: Passed to the deserializer, for example ``profile`` for
             PROV-N or ``rdf_format`` for PROV-O. Each serializer declares
             the options it accepts (``deserialize_options``); with
-            ``format`` given, an undeclared option raises ``TypeError``;
-            with auto-detection, every candidate receives only the options
-            it declares, because an undeclared option would raise ``TypeError``
-            from a reader that does not know it, which auto-detection could
-            not tell from "not this format".
+            ``format`` given, an undeclared option raises ``TypeError``.
+            With auto-detection, every candidate receives only the options
+            it declares, so an undeclared option has no effect, and an
+            unsupported ``profile`` ends in ``ProvFormatNotDetected`` for
+            PROV-N content and has no effect on content in another format.
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.
 
     Raises:
         TypeError: If ``format`` is given and names an option the
-            corresponding deserializer does not declare.
+            corresponding deserializer does not declare. The message names
+            the format and the options it accepts.
+        ValueError: If ``format`` is ``"provn"`` and ``profile`` is not
+            ``"strict"``, ``"default"`` or ``"lenient"``.
         ProvFormatNotDetected: If ``format`` is ``None`` and no registered
             serializer produced a non-empty document from ``source``. It is
-            also a ``TypeError`` and is raised from the rejecting reader's
-            error when the content names one of PROV-JSON, PROV-JSONLD or
-            PROV-N.
+            also a ``TypeError``; see
+            :class:`~prov.serializers.ProvFormatNotDetected` for its
+            ``__cause__``.
     """
-    # Lazy imports to not globber the namespace.
+    # The imports are lazy because prov.model and prov.serializers import this
+    # package.
     from prov.model import ProvDocument
     from prov.serializers import Registry
 

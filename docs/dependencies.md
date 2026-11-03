@@ -1,9 +1,8 @@
 # Dependencies
 
 Why each runtime extra and each dev, bench and docs group entry exists, and why it is
-pinned the way it is. Last checked 2026-10-23 against `pyproject.toml` and `uv.lock` on
-`main` after 3.2.3. Version numbers quoted here drift after that date, so check
-`pyproject.toml` before relying on them.
+pinned the way it is. `pyproject.toml` and `uv.lock` hold the version numbers, and they win
+where this page differs.
 
 ## Runtime dependencies
 
@@ -84,7 +83,7 @@ with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
 
 ## Bench dependency group
 
-`CLAUDE.md` tells agents to sync this group alongside the four extras, because
+`CONTRIBUTING.md` (Set up for development) syncs this group alongside the four extras, because
 `benchmarks/ab.py` and the benchmark suite under `benchmarks/` need it.
 
 | Package | Purpose |
