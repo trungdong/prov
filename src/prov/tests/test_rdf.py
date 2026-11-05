@@ -20,6 +20,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import ConjunctiveGraph, Dataset, Graph
 
 import prov.model as pm
+from prov.constants import PROV
 from prov.model import ProvDocument, ProvException
 from prov.serializers.provrdf import (
     ProvRDFException,
@@ -1020,3 +1021,91 @@ def test_trailing_metacharacter_encode_output_unchanged():
     for ch in _TRAILING_METACHARS:
         expected.add((URIRef(ns + "a" + ch), RDF.type, URIRef(prov + "Entity")))
     assert isomorphic(reparsed, expected)
+
+
+_PREFIXES = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+"""
+_FOAF = "@prefix foaf: <http://xmlns.com/foaf/0.1/> ."
+
+
+def _lookup_between_reads():
+    # A binding added after one decode counts for a lookup after it.
+    graph = Graph().parse(data=_PREFIXES + "ex:e a prov:Entity .", format="turtle")
+    iri = URIRef("http://example.org/sub/x;")
+    first = ProvDocument()
+    serializer = ProvRDFSerializer(document=first)
+    serializer.decode_document(graph, first)
+    graph.bind("exsub", "http://example.org/sub/")
+    serializer.document = ProvDocument()
+    return serializer.decode_rdf_representation(iri, graph).namespace.prefix, "exsub"
+
+
+def _lookup_outside_a_decode():
+    # Outside a decode nothing is held, so a binding added after a lookup counts.
+    graph = Graph().parse(data=_PREFIXES, format="turtle")
+    iri = URIRef("http://example.org/sub/x;")
+    first = ProvDocument()
+    serializer = ProvRDFSerializer(document=first)
+    serializer.decode_container(graph, first)
+    serializer.document = ProvDocument()
+    before = serializer.decode_rdf_representation(iri, graph)
+    graph.bind("exsub", "http://example.org/sub/")
+    serializer.document = ProvDocument()
+    after = serializer.decode_rdf_representation(iri, graph)
+    return (before.namespace.prefix, after.namespace.prefix), ("ex", "exsub")
+
+
+def _lookup_in_bundles_sharing_a_binding():
+    # foaf is a binding rdflib adds to every graph, so the document does not
+    # hold it and each name is resolved against the graph.
+    trig = f"""
+    @prefix prov: <{PROV.uri}> .
+    {_FOAF}
+    <http://example.org/b1> {{ foaf:a1 a prov:Entity . foaf:a2 a prov:Entity . }}
+    <http://example.org/b2> {{ foaf:a3 a prov:Entity . }}
+    """
+    read = ProvDocument.deserialize(content=trig, format="rdf", rdf_format="trig")
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    foaf = expected.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    first, second = expected.bundle("ex:b1"), expected.bundle("ex:b2")
+    first.entity(foaf["a1"])
+    first.entity(foaf["a2"])
+    second.entity(foaf["a3"])
+    return read, expected
+
+
+def _lookup_of_a_colon_less_iri():
+    # The document never compacts a colon-less IRI, so the namespace minted
+    # for the first value is a live binding for the second. SimpleMemory
+    # iterates triples in the order they were added.
+    graph = Graph(store="SimpleMemory")
+    graph.bind("ex", "http://ex.org/")
+    subject = URIRef("http://ex.org/e")
+    graph.add((subject, RDF.type, URIRef(PROV.uri + "Entity")))
+    graph.add((subject, URIRef("http://ex.org/p0"), URIRef("foo/x")))
+    graph.add((subject, URIRef("http://ex.org/p1"), URIRef("foo/a/b")))
+    document = ProvDocument()
+    ProvRDFSerializer(document=document).decode_document(graph, document)
+    (record,) = document.get_records()
+    values = {str(name): str(value) for name, value in record.attributes}
+    return values, {"ex:p0": "ns1:x", "ex:p1": "ns1:a/b"}
+
+
+@pytest.mark.parametrize(
+    "lookup",
+    [
+        pytest.param(_lookup_between_reads, id="between-reads"),
+        pytest.param(_lookup_outside_a_decode, id="outside-a-decode"),
+        pytest.param(_lookup_in_bundles_sharing_a_binding, id="bundles"),
+        pytest.param(_lookup_of_a_colon_less_iri, id="colon-less-iri"),
+    ],
+)
+def test_the_graph_lookup_snapshot_lasts_one_decode(lookup):
+    # decode_document reads the source's bindings once and holds them until it
+    # returns. A call outside it, and an IRI the document cannot compact, read
+    # the bindings as they are then.
+    actual, expected = lookup()
+    assert actual == expected
