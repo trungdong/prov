@@ -1,7 +1,18 @@
 # History
 
-## Unreleased
+## 2.5.4 (2026-11-09)
 
+- Security: the PROV-O reader raises `ProvException` for a relation that
+  repeats a formal attribute, so write one relation per value. 2.5.3 read one
+  record per combination of the values without a warning, so a few hundred
+  bytes of crafted RDF could exhaust memory
+  ([GHSA-pp6h-3q6w-xr98](https://github.com/trungdong/prov/security/advisories/GHSA-pp6h-3q6w-xr98)).
+- `Namespace`'s name cache holds at most 10,000 names, so the shared `prov`
+  and `xsd` namespaces stop growing with every distinct name read (#694).
+- Resolving a full IRI no longer scans every registered namespace and source
+  binding, so reading RDF that declares no prefixes and has one directory per
+  record spends less time in `prov`. The time left grows with rdflib's own
+  prefix minting (#691).
 - Added `prov.model.GenerationRef`, the correctly spelled name for the
   `GenrationRef` type alias used in the `generation` parameter's annotation
   on `wasDerivedFrom`/`wasRevisionOf`/`wasQuotedFrom`/`hadPrimarySource`
@@ -9,7 +20,7 @@
   name, so existing annotations keep resolving; `master` renames it outright
   for 3.0.
 - Documentation: `SECURITY.md` and `README.md` state that the 2.x line now
-  receives security fixes only. 2.5.3 was the last release to carry bug fixes
+  receives security fixes only. 2.5.4 is the last release to carry bug fixes
   back-ported from 3.x, and the 2.6.0 release those files promised will not
   follow.
 - Python 3.15 is supported and tested in CI, so 2.x covers CPython 3.10 to

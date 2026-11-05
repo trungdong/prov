@@ -12,7 +12,7 @@ only. `1.x` and earlier are no longer supported.
 | 2.x     | :white_check_mark: | Security fixes only |
 | < 2.0   | :x:                | None                |
 
-`2.5.3` was the last release to carry bug fixes back-ported from `3.x`, and
+`2.5.4` was the last release to carry bug fixes back-ported from `3.x`, and
 no `2.6.0` release will follow. New features and behaviour-breaking
 corrections were never back-ported and stay on `3.x`.
 
