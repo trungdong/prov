@@ -7,7 +7,7 @@ import datetime
 import io
 import warnings
 from collections import OrderedDict
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable
 from typing import Any, cast
 
 import dateutil.parser
@@ -871,7 +871,7 @@ class ProvRDFSerializer(Serializer):
         record_types = {}  # type: dict[str, pm.QualifiedName]
         PROV_CLS_MAP = {}  # type: dict[str, pm.QualifiedName]
         formal_attributes = {}  # type: dict[str, dict[pm.QualifiedName, pm.QualifiedNameCandidate | datetime.datetime | None]]
-        unique_sets = {}  # type: dict[str, dict[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
+        first_values = {}  # type: dict[tuple[str, pm.QualifiedName], Any]
         for prov_type, _ in PROV_BASE_CLS.items():
             PROV_CLS_MAP[prov_type.uri] = PROV_BASE_CLS[prov_type]
         other_attributes = {}  # type: dict[str, list[tuple[pm.QualifiedNameCandidate, Any]]]
@@ -917,9 +917,6 @@ class ProvRDFSerializer(Serializer):
                     klass = pm.PROV_REC_CLS[prov_obj]
                     formal_attributes[subj] = OrderedDict(
                         [(key, None) for key in klass.FORMAL_ATTRIBUTES]
-                    )
-                    unique_sets[subj] = OrderedDict(
-                        [(key, []) for key in klass.FORMAL_ATTRIBUTES]
                     )
                     add_attr = False or (
                         (isinstance(stmt[0], BNode) or isderivation)
@@ -1021,10 +1018,17 @@ class ProvRDFSerializer(Serializer):
                     pred_new = PROV_ATTR_USED_ENTITY
                 if str(pred_new) in [val.uri for val in formal_attributes[subj]]:
                     qname_key = self.document.mandatory_valid_qname(pred_new)  # type: ignore[union-attr]
-                    formal_attributes[subj][qname_key] = obj1
-                    unique_sets[subj][qname_key].append(obj1)
-                    if len(unique_sets[subj][qname_key]) > 1:
-                        formal_attributes[subj][qname_key] = None
+                    first = first_values.setdefault((subj, qname_key), obj1)
+                    if obj1 is first:
+                        formal_attributes[subj][qname_key] = obj1
+                    else:
+                        # A repeat takes the route of a repeated prov:atTime,
+                        # so the model's rule of one value per formal
+                        # attribute decides. Both values go, because a
+                        # prov:qualified* triple may have overwritten the slot.
+                        other_attributes.setdefault(subj, []).extend(
+                            [(qname_key, first), (qname_key, obj1)]
+                        )
                 else:
                     if "qualified" not in str(pred_new) and "asInBundle" not in str(
                         pred_new
@@ -1039,21 +1043,9 @@ class ProvRDFSerializer(Serializer):
             attrs = None
             if subj in other_attributes:
                 attrs = other_attributes[subj]
-            items_to_walk = []  # type: list[tuple[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
-            for qname, values in unique_sets[subj].items():
-                if values and len(values) > 1:
-                    items_to_walk.append((qname, values))
-            if items_to_walk:
-                for subset in list(walk(items_to_walk)):
-                    for prov_type, value in subset.items():
-                        formal_attributes[subj][prov_type] = value
-                    bundle.new_record(
-                        record_types[subj], subj, formal_attributes[subj].items(), attrs
-                    )
-            else:
-                bundle.new_record(
-                    record_types[subj], subj, formal_attributes[subj].items(), attrs
-                )
+            bundle.new_record(
+                record_types[subj], subj, formal_attributes[subj].items(), attrs
+            )
 
             if attrs is not None:
                 del other_attributes[subj]
@@ -1064,58 +1056,6 @@ class ProvRDFSerializer(Serializer):
                 UserWarning,
                 stacklevel=2,
             )
-
-
-def walk(
-    children: list[tuple[Any, Any]],
-    level: int = 0,
-    path: dict[Any, Any] | None = None,
-    usename: bool = True,
-) -> Generator[dict[Any, Any]]:
-    """Generate all the full paths in a tree, as a dict.
-
-    Args:
-        children: ``(name, iterable)`` pairs; each is one level of the tree,
-            enumerated in order. Each ``iterable`` must be an iterable of
-            values (not a callable) -- it is iterated directly.
-        level: Current recursion depth; only used as the dict key when
-            ``usename`` is ``False``.
-        path: Path accumulated so far; ``None`` (the default) starts a fresh
-            path at the top-level call.
-        usename: If ``True``, key each path dict by the level's ``name``;
-            if ``False``, key it by the level's integer depth instead.
-
-    Yields:
-        One dict per full path through ``children``, mapping each level's
-        key to the value chosen at that level.
-
-    Example:
-        >>> from prov.serializers.provrdf import walk
-        >>> iterables = [('a', [1, 2]), ('b', [3, 4])]
-        >>> [val['a'] for val in walk(iterables)]
-        [1, 1, 2, 2]
-        >>> [val['b'] for val in walk(iterables)]
-        [3, 4, 3, 4]
-    """
-    # Entry point
-    if path is None:
-        path = {}
-
-    # Exit condition
-    if not children:
-        yield path.copy()
-        return
-    # Tree recursion
-    head, tail = children[0], children[1:]
-    name, func = head
-    for child in func:
-        # We can use the arg name or the tree level as a key
-        if usename:
-            path[name] = child
-        else:
-            path[level] = child
-        # Recurse into the next level
-        yield from walk(tail, level + 1, path, usename)
 
 
 def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:

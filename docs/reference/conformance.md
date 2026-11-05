@@ -36,6 +36,9 @@ More caveats apply across many rows rather than to one:
   *test cases* are skipped for the `rdf` target. This is a limitation of
   same-identifier/differing-time relations, not of the relation types themselves —
   `generation`/`usage`/`start`/`end`/`invalidation` round-trip cleanly in the general case.
+  A relation node, identified or blank, that holds several values of one formal attribute
+  raises, because a record holds one value of each. A `prov:Membership` node is the
+  exception, and one record keeps every value.
 - **[#224](https://github.com/trungdong/prov/issues/224)** (XML): the PROV-XML serializer
   silently drops any `other_attributes` entry whose value is the empty string `""`, regardless
   of record type.

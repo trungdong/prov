@@ -211,39 +211,184 @@ def test_decode_document_bundle_iri_without_registered_namespace():
     assert len(bundles[0].get_records()) == 1
 
 
-def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
-    # A hand-authored (non-2.x-encoder-produced) PROV-O document may
-    # legally repeat a formal-attribute predicate on the same qualified-
-    # relation bnode; decode_container()'s walk() helper must expand
-    # that into one new_record() call per combination rather than
-    # silently overwriting (docs/test-gap-checklist.md, T13 item under
-    # provrdf.py: "multi-valued unique-set walking").
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(
+            """
+            ex:e1 prov:qualifiedGeneration ex:gen1 .
+            ex:gen1 a prov:Generation ;
+                prov:activity ex:a1 ;
+                prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
+                    "2013-01-01T00:00:00"^^xsd:dateTime .
+            """,
+            id="identified-mapped-predicate",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage ex:u1 .
+            ex:u1 a prov:Usage ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="identified-qualified-node",
+        ),
+        pytest.param(
+            """
+            ex:d1 a prov:Derivation ;
+                prov:generatedEntity ex:e1, ex:e2 ;
+                prov:usedEntity ex:e3, ex:e4 .
+            """,
+            id="identified-attribute-iris",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage _:u1 .
+            _:u1 a prov:Usage ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="blank-node",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage _:u1 .
+            _:u1 a prov:Usage ;
+                prov:entity ex:e1, ex:e2 ;
+                prov:activity ex:a1, ex:a2 .
+            """,
+            id="blank-node-two-attributes",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage ex:u1 .
+            ex:u1 a prov:Usage ;
+                prov:entity ex:e1, ex:e2 ;
+                prov:collection ex:c1 .
+            """,
+            id="with-collection",
+        ),
+    ],
+)
+def test_decode_repeated_formal_attribute_raises(body):
+    # #217: a record holds one value of each formal attribute, so a subject
+    # repeating one raises, identified or blank. On 2.x the raw
+    # ProvRecord.add_attributes() message surfaces, as for a repeated
+    # prov:atTime.
+    turtle = f"""
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+    {body}
+    """
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_repeat_raises_when_the_qualifier_overwrites_the_slot(monkeypatch):
+    # Sorted by object, the reader meets ex:a0, ex:a1 and ex:u1, so the
+    # qualifier's triple comes last and puts ex:a1 in the slot that held ex:a0.
+    # The repeat still raises, and neither value is dropped.
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
 
-    ex:e1 a prov:Entity .
-    ex:e2 a prov:Entity .
-    ex:a1 a prov:Activity .
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:activity ex:a0, ex:a1 .
+    """
+    original = Graph.__iter__
 
-    _:u1 a prov:Usage ;
-         prov:entity ex:e1 ;
-         prov:entity ex:e2 ;
-         prov:activity ex:a1 .
+    def by_object(self):
+        return iter(sorted(original(self), key=lambda triple: str(triple[2])))
 
-    ex:a1 prov:qualifiedUsage _:u1 .
+    monkeypatch.setattr(Graph, "__iter__", by_object)
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_same_identifier_relations_differing_in_a_party_raises():
+    # The writer collapses two relations that share an identifier onto one
+    # node, which then repeats the party they differ in (C1).
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.usage("ex:a1", "ex:e1", identifier="ex:rel1")
+    document.usage("ex:a1", "ex:e2", identifier="ex:rel1")
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_reads_two_relations_on_one_iri_without_raising():
+    # C1: two relations on one IRI collapse, and the record count is not
+    # pinned. The reader only has to read the document written by prov.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e")
+    document.activity("ex:a")
+    document.usage("ex:a", "ex:e", identifier="ex:g")
+    document.generation("ex:e", "ex:a", identifier="ex:g")
+
+    ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
+
+
+def test_decode_written_collection_usage_with_two_entities_raises():
+    # A document prov writes reaches the refusal too: the collection does not
+    # exempt a node that holds two values of prov:entity.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    usage = document.usage("ex:a1", "ex:e1", identifier="ex:u1")
+    usage.add_attributes(
+        [(pm.PROV_ATTR_COLLECTION, "ex:c1"), (pm.PROV_ATTR_ENTITY, "ex:e2")]
+    )
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_repeats_on_a_membership_node_stay_in_one_record():
+    # prov:collection is a formal attribute of a membership, so the model keeps
+    # every value. The record count stays one per subject, whatever the repeats.
+    values = ", ".join(f"ex:e{i}" for i in range(8))
+    collections = ", ".join(f"ex:c{i}" for i in range(8))
+    turtle = f"""
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:m a prov:Membership ; prov:collection {collections} ; prov:entity {values} .
     """
     doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
-    usages = [r for r in doc.get_records() if r.get_type().localpart == "Usage"]
-    assert len(usages) == 2
-    used_entities = {
-        value
-        for usage in usages
-        for name, value in usage.formal_attributes
-        if name.localpart == "entity"
-    }
-    assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
+    (record,) = doc.get_records()
+    assert len(record.attributes) == 16
+
+
+def test_decode_single_valued_collection_usage_reads_as_one_record():
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:collection ex:c1 .
+    """
+    document = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
+
+    (usage,) = document.get_records()
+    assert {str(name) for name, _ in usage.attributes} >= {"prov:collection"}
 
 
 def test_json_to_ttl_match():
