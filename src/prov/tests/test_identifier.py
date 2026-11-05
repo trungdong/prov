@@ -56,3 +56,25 @@ def test_qname_for_non_contained_uri_returns_none():
 def test_qname_for_non_str_non_identifier_returns_none():
     ns = Namespace("ex", "http://example.org/")
     assert ns.qname(12345) is None
+
+
+def test_namespace_cache_is_bounded(monkeypatch):
+    monkeypatch.setattr(Namespace, "_CACHE_LIMIT", 3)
+    ns = Namespace("ex", "http://example.org/")
+
+    first = ns["a"]
+    assert list(ns._cache) == ["a"]
+    assert ns["b"].localpart == "b"
+    assert list(ns._cache) == ["a", "b"]
+    assert ns["c"].localpart == "c"
+    assert list(ns._cache) == ["a", "b", "c"]
+
+    # A miss at the limit empties the cache, so the new name sits alone.
+    assert ns["d"].localpart == "d"
+    assert list(ns._cache) == ["d"]
+
+    # A name taken before the flush equals, and hashes as, the one after it.
+    again = ns["a"]
+    assert again == first
+    assert hash(again) == hash(first)
+    assert list(ns._cache) == ["d", "a"]
