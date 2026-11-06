@@ -904,6 +904,8 @@ class ProvRDFSerializer(Serializer):
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
 
         Raises:
+            ProvException: If a subject holds two different values of a formal
+                attribute.
             ValueError: If a relation's object term cannot be decoded to a
                 usable attribute value.
 
@@ -1062,16 +1064,14 @@ class ProvRDFSerializer(Serializer):
                 if str(pred_new) in [val.uri for val in formal_attributes[subj]]:
                     qname_key = self.document.mandatory_valid_qname(pred_new)  # type: ignore[union-attr]
                     first = first_values.setdefault((subj, qname_key), obj1)
-                    if obj1 is first:
-                        formal_attributes[subj][qname_key] = obj1
-                    else:
-                        # A repeat takes the route of a repeated prov:atTime,
-                        # so the model's rule of one value per formal
-                        # attribute decides. Both values go, because a
-                        # prov:qualified* triple may have overwritten the slot.
-                        other_attributes.setdefault(subj, []).extend(
-                            [(qname_key, first), (qname_key, obj1)]
+                    if obj1 != first:
+                        # The model would keep every value of a membership,
+                        # and the PROV-N and PROV-JSON writers then drop all
+                        # but one, so the reader refuses a repeat itself.
+                        raise pm.ProvException(
+                            f"Cannot have more than one value for attribute {qname_key}"
                         )
+                    formal_attributes[subj][qname_key] = obj1
                 else:
                     if "qualified" not in str(pred_new) and "asInBundle" not in str(
                         pred_new

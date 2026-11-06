@@ -265,6 +265,21 @@ def test_decode_document_bundle_iri_without_registered_namespace():
             """,
             id="with-collection",
         ),
+        pytest.param(
+            """
+            ex:c1 prov:qualifiedMembership ex:m1 .
+            ex:m1 a prov:Membership ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="membership",
+        ),
+        pytest.param(
+            """
+            ex:m1 a prov:Membership ;
+                prov:collection ex:c1, ex:c2 ;
+                prov:entity ex:e1, ex:e2 .
+            """,
+            id="membership-two-attributes",
+        ),
     ],
 )
 def test_decode_repeated_formal_attribute_raises(body):
@@ -287,7 +302,7 @@ def test_decode_repeated_formal_attribute_raises(body):
 def test_decode_repeat_raises_when_the_qualifier_overwrites_the_slot(monkeypatch):
     # Sorted by object, the reader meets ex:a0, ex:a1 and ex:u1, so the
     # qualifier's triple comes last and puts ex:a1 in the slot that held ex:a0.
-    # The repeat still raises, and neither value is dropped.
+    # The repeat still raises.
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
@@ -357,21 +372,24 @@ def test_decode_written_collection_usage_with_two_entities_raises():
     assert "Cannot have more than one value for attribute" in str(ctx.value)
 
 
-def test_decode_repeats_on_a_membership_node_stay_in_one_record():
-    # prov:collection is a formal attribute of a membership, so the model keeps
-    # every value. The record count stays one per subject, whatever the repeats.
-    values = ", ".join(f"ex:e{i}" for i in range(8))
-    collections = ", ".join(f"ex:c{i}" for i in range(8))
-    turtle = f"""
+def test_decode_agreeing_repeat_reads_as_one_record():
+    # Two spellings of one instant are one value of prov:time.
+    turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
     @prefix ex: <http://example.org/> .
 
-    ex:m a prov:Membership ; prov:collection {collections} ; prov:entity {values} .
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:time "2012-01-01T00:00:00Z"^^xsd:dateTime,
+            "2012-01-01T01:00:00+01:00"^^xsd:dateTime .
     """
-    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    document = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
 
-    (record,) = doc.get_records()
-    assert len(record.attributes) == 16
+    assert len(document.get_records()) == 1
 
 
 def test_decode_single_valued_collection_usage_reads_as_one_record():
