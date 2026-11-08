@@ -556,10 +556,11 @@ default-namespace local part holding `:`, such as `a:b`, has that shape in `prov
 `prov:ref` and `xsd:QName` text. Declare a prefix for the default namespace IRI, such as
 `xmlns:dn="http://example.org/"`, and write the name under it, `dn:a:b`.
 
-Whitespace around a name in `xsd:QName` text or reference text is stripped. 3.2.3 rejected
-it in reference text and, in `xsd:QName` text, read it under an `xmlns` as part of a
-default-namespace local part and raised an error without one. An empty
-`xsd:QName` element raised a `TypeError` in 3.2.3.
+Whitespace around a name in `xsd:QName` or `prov:QUALIFIED_NAME` text or reference text is
+stripped. 3.2.3 rejected it in reference text and, in `xsd:QName` text, read it under an
+`xmlns` as part of a default-namespace local part and raised an error without one. An empty
+`xsd:QName` element raised a `TypeError` in 3.2.3. 3.2.3 kept `prov:QUALIFIED_NAME` text
+as a `Literal`.
 
 ## PROV-O
 
