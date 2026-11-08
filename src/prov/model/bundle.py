@@ -722,7 +722,10 @@ class ProvBundle:
             The matching :class:`ProvRecord` objects, or an empty list if the
             identifier is invalid or unknown.
         """
-        valid_id = self.valid_qualified_name(identifier)
+        try:
+            valid_id = self.valid_qualified_name(identifier)
+        except ProvExceptionInvalidQualifiedName:
+            return []
         return list(self._id_map[valid_id]) if valid_id is not None else []
 
     # Miscellaneous functions
