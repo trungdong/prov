@@ -1081,6 +1081,24 @@ def test_decode_refuses_an_element_and_a_relation_sharing_an_iri(
     assert re.fullmatch(expected, str(ctx.value))
 
 
+@pytest.mark.parametrize("descending", [False, True])
+@pytest.mark.parametrize("cls", ["Generation", "Activity"])
+def test_a_string_naming_a_prov_class_is_a_prov_type_value(
+    sorted_type_triples, descending, cls
+) -> None:
+    # Only an IRI names a class, so the string reads back as the element's
+    # prov:type in either order.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:x", {"prov:type": f"{PROV.uri}{cls}"})
+    turtle = _turtle(document)
+    sorted_type_triples(descending)
+
+    back = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert back == document
+
+
 def _written_generation_with(cls):
     return [
         "activity(ex:a, -, -)",
@@ -2557,3 +2575,13 @@ def test_named_graph_equal_to_the_default_iri_is_read_and_kept() -> None:
     (bundle,) = doc.bundles
     assert bundle.identifier is not None
     assert bundle.identifier.uri == "http://ex.org/"
+
+
+def test_a_location_keeps_the_text_of_an_ill_formed_typed_literal() -> None:
+    document = ex_document()
+    document.entity("ex:e", {pm.PROV_LOCATION: pm.Literal("maybe", pm.XSD_BOOLEAN)})
+    text = document.serialize(format="rdf", rdf_format="turtle")
+
+    # rdflib normalises the text on parse (C10), so the check is on the text
+    assert 'prov:atLocation "maybe"^^xsd:boolean' in text
+    Graph().parse(data=text, format="turtle")

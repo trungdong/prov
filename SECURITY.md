@@ -9,7 +9,7 @@
 | < 2.0   | :x:                | None                |
 
 The latest 3.x release receives all fixes. The most recent 2.x release receives security
-fixes only; 2.5.3 was the last release to carry bug fixes back-ported from 3.x. New
+fixes only; 2.5.4 was the last release to carry bug fixes back-ported from 3.x. New
 features and behaviour-breaking corrections were never back-ported and stay on 3.x.
 Releases before 2.0 receive no fixes.
 

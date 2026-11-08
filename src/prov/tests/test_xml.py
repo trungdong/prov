@@ -1635,3 +1635,22 @@ def test_reader_builds_one_namespace_per_binding(
     assert back == document
     assert constructed
     assert len(constructed) == len(set(constructed))
+
+
+@pytest.mark.parametrize("xsi_type", ["xsd:QName", "prov:QUALIFIED_NAME"])
+def test_a_qualified_name_value_resolves_through_the_element_namespaces(
+    xsi_type: str,
+) -> None:
+    # zz is bound in the XML only, so the value resolves through the nsmap
+    text = (
+        f'<prov:document xmlns:prov="{PROV.uri}" xmlns:ex="http://e/"'
+        ' xmlns:zz="http://z/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"'
+        ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+        '<prov:entity prov:id="ex:e">'
+        f'<ex:k xsi:type="{xsi_type}">zz:x</ex:k>'
+        "</prov:entity></prov:document>"
+    )
+    (record,) = prov.ProvDocument.deserialize(content=text, format="xml").get_records()
+    ((_, value),) = record.attributes
+    assert isinstance(value, QualifiedName)
+    assert value.uri == "http://z/x"

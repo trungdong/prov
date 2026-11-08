@@ -31,15 +31,15 @@ which is gitignored and never committed.
 | `specs/2026-09-12-release-3.2.1-design.md` | 2026-09-12 | 3.2.1 | Complete |
 | `specs/2026-09-12-release-3.2.1-review-fixes-design.md` | 2026-09-12 | 3.2.1 | Complete |
 | `specs/2026-10-13-release-3.2.3-design.md` | 2026-10-13 | 3.2.3 | Complete |
-| `specs/2026-10-20-release-3.3.0-design.md` | 2026-10-20 | 3.3.0 | Complete; PRs 1 to 14 merged, the release step with the release PR |
-| `specs/2026-10-22-release-3.3.0-spec2-equality-typing.md` | 2026-10-22 | 3.3.0 | Complete; PRs 15 and 16 merged, the release step with the release PR |
-| `specs/2026-10-23-docs-restructure-design.md` | 2026-10-23 | 3.3.0 | Complete; merged on `main` |
-| `specs/2026-10-23-release-3.3.0-spec3-names-provn.md` | 2026-10-23 | 3.3.0 | Complete; PRs 17 to 24 merged, the release step with the release PR |
+| `specs/2026-10-20-release-3.3.0-design.md` | 2026-10-20 | 3.3.0 | Complete |
+| `specs/2026-10-22-release-3.3.0-spec2-equality-typing.md` | 2026-10-22 | 3.3.0 | Complete |
+| `specs/2026-10-23-docs-restructure-design.md` | 2026-10-23 | 3.3.0 | Complete |
+| `specs/2026-10-23-release-3.3.0-spec3-names-provn.md` | 2026-10-23 | 3.3.0 | Complete |
 | `specs/2026-10-26-pygments-provn-lexer.md` | 2026-10-26 | 3.3.0 | Complete |
-| `specs/2026-10-27-release-3.3.0-spec4-performance.md` | 2026-10-27 | 3.3.0 | Complete; PRs 24a and 24b merged, the release step with the release PR |
-| `specs/2026-10-28-release-3.3.0-spec5-defects.md` | 2026-10-28 | 3.3.0 | Complete; PRs 26 to 38 merged, the release step moves to spec 7 |
-| `specs/2026-11-01-release-3.3.0-spec6-cli-tools.md` | 2026-11-01 | 3.3.0 | Complete; PRs 39 to 41 merged |
-| `specs/2026-11-02-release-3.3.0-spec7-loose-ends-freeze.md` | 2026-11-02 | 3.3.0 | Approved; PRs 42 and 43 merged as #742 and #750, PR 44's merge is the freeze |
+| `specs/2026-10-27-release-3.3.0-spec4-performance.md` | 2026-10-27 | 3.3.0 | Complete |
+| `specs/2026-10-28-release-3.3.0-spec5-defects.md` | 2026-10-28 | 3.3.0 | Complete |
+| `specs/2026-11-01-release-3.3.0-spec6-cli-tools.md` | 2026-11-01 | 3.3.0 | Complete |
+| `specs/2026-11-02-release-3.3.0-spec7-loose-ends-freeze.md` | 2026-11-02 | 3.3.0 | Complete |
 | `specs/2026-11-02-docs-audit-3.3.0.md` | 2026-11-02 | 3.3.0 | Complete |
 | `triage/2026-07-behaviour-bugs.md` | 2026-07-03 | 3.0.0 | Complete; #34, #77 and #89 fixed |
 | `test-gap-checklist.md` | 2026-07-04 | 2.3.0 | Complete |

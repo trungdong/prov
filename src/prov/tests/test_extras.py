@@ -126,6 +126,13 @@ def test_bundle_get_record_by_id() -> None:
     assert record == document.get_record(EX_NS["e1"])[0]
 
 
+def test_bundle_get_record_with_an_invalid_identifier_returns_an_empty_list() -> None:
+    document = ProvDocument()
+    document.add_namespace(EX_NS)
+
+    assert document.get_record("ex:a b") == []
+
+
 def test_bundle_get_records() -> None:
     document = ProvDocument()
 

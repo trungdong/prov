@@ -60,12 +60,11 @@ cover your case.
 
 ## The 2.x line
 
-The most recent 2.x release receives security fixes only. 2.5.3 was the last release to
+The most recent 2.x release receives security fixes only. 2.5.4 was the last release to
 carry bug fixes back-ported from 3.x. See
 [SECURITY.md](https://github.com/trungdong/prov/blob/main/SECURITY.md).
 
 ## What comes next
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
-releases in order. 3.3.0 requires Python 3.11 or later under the support policy, because
-Python 3.10's support ends on 2026-10-31.
+releases in order.

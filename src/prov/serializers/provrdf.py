@@ -301,6 +301,7 @@ _ELEMENT_ATTR_PREDICATES = {
     PROV["label"]: RDFS.label,
     PROV_ATTR_STARTTIME: _prov_uri("startedAtTime"),
     PROV_ATTR_ENDTIME: _prov_uri("endedAtTime"),
+    PROV_LOCATION: _prov_uri("atLocation"),
 }
 
 #: Relation families that emit both a binary triple and a prov:qualified*
@@ -1156,17 +1157,6 @@ class ProvRDFSerializer(Serializer):
                 # Python value) becomes an RDF term
                 obj = self.encode_rdf_representation(value)
             pred: RdfTerm
-            if attr == PROV_LOCATION:
-                pred = _prov_uri("atLocation")
-                container.add(
-                    (
-                        # elements always carry an identifier here
-                        cast(RdfSubject, identifier),
-                        pred,
-                        self.encode_rdf_representation(obj),
-                    )
-                )
-                continue
             if isinstance(attr, pm.QualifiedName) and attr in _ELEMENT_ATTR_PREDICATES:
                 pred = _ELEMENT_ATTR_PREDICATES[attr]
             else:
@@ -1617,8 +1607,11 @@ class ProvRDFSerializer(Serializer):
             subj = str(stmt[0])
             obj = str(stmt[2])
             try:
-                if obj not in _RECORD_TYPE_OF_CLASS or self._register_record_type(
-                    graph, stmt, subj, obj, state
+                # only an IRI names a class; a literal is a prov:type value
+                if (
+                    not isinstance(stmt[2], URIRef)
+                    or obj not in _RECORD_TYPE_OF_CLASS
+                    or self._register_record_type(graph, stmt, subj, obj, state)
                 ):
                     state.other_attributes.setdefault(subj, []).append(
                         (

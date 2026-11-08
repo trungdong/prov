@@ -1,6 +1,29 @@
 # History
 
-## 3.3.0 (unreleased)
+## 3.3.0 (2026-11-09)
+
+3.3.0 is a minor release that rejects the input 3.2.3 warned about with
+`ProvFutureRejectionWarning`, requires Python 3.11, and adds a Pygments lexer for PROV-N
+and new command-line options. Code that reads PROV it did not write, catches a reader's
+errors or compares literals may need changes, and
+[Upgrading to prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
+gives each case. It also fixes
+[GHSA-pp6h-3q6w-xr98](https://github.com/trungdong/prov/security/advisories/GHSA-pp6h-3q6w-xr98)
+in the PROV-O reader, which 2.5.4 fixes on the 2.x line. Against 3.2.3 on the benchmark
+suite, most operations are faster by up to 30%, but the PROV-JSON and PROV-JSONLD reads
+are 7% to 11% slower, mostly because each attribute value gets its comparison key when
+it is asserted, and `prov_to_graph()` is 27% to 38% slower because it now includes the
+records inside bundles.
+
+These changes need action:
+
+- Install on [Python 3.11 or later](https://prov.readthedocs.io/en/latest/installation.html)
+- Catch `prov.serializers.ProvSerializationError`, or `prov.Error`, around a read
+  ([Exceptions](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#exceptions))
+- Correct the input that raised `ProvFutureRejectionWarning` in 3.2.3, because it now
+  raises an error ([Read the message](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#read-the-message))
+- Index the list that `get_records()` with a class returns, where 3.2.3 returned an
+  iterator ([`get_records()`](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#get-records))
 
 ### Breaking changes
 
@@ -58,6 +81,10 @@ lists each message, the input that causes it and what to write instead.
   in that format, where 3.2.3 wrote PROV-JSON. Errors print one line, Ctrl-C exits 130,
   and `-V` prints the program name and version
   ([#737](https://github.com/trungdong/prov/pull/737))
+- The PROV-O reader raises `ProvRDFException` for an IRI typed as both an element and a
+  relation, such as an element whose `prov:type` names a relation class, where 3.2.3 raised
+  a bare `StopIteration`, lost a record or read the element
+  ([#743](https://github.com/trungdong/prov/issues/743))
 - The PROV-O reader raises `ProvRDFException` for a relation that repeats a formal
   attribute, so write one relation per value, where 3.2.3 read one record per combination
   of the values, without a warning
@@ -110,10 +137,6 @@ lists each message, the input that causes it and what to write instead.
 - PROV-N writes an `xsd:QName` literal value as `'ex:x'` and PROV-O writes the IRI, where
   3.2.3 wrote `"ex:x" %% xsd:QName` and `"ex:x"^^xsd:QName`
   ([#238](https://github.com/trungdong/prov/issues/238))
-- The PROV-O reader raises `ProvRDFException` for an IRI typed as both an element and a
-  relation, such as an element whose `prov:type` names a relation class, where 3.2.3 raised
-  a bare `StopIteration`, lost a record or read the element
-  ([#743](https://github.com/trungdong/prov/issues/743))
 
 The [3.3.0 milestone](https://github.com/trungdong/prov/milestone/10?closed=1) lists every
 fixed issue.

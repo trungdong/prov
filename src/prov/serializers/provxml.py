@@ -765,10 +765,11 @@ def _extract_attributes(
     Each child of ``element`` becomes one ``(QualifiedName, value)`` pair:
     a ``prov:ref`` attribute yields a :class:`~prov.identifier.QualifiedName`
     value, an ``xsi:type`` attribute yields a typed
-    :class:`~prov.model.Literal` (or, for ``xsd:QName``, a
-    :class:`~prov.identifier.QualifiedName`), an ``xml:lang`` attribute
-    yields a language-tagged :class:`~prov.model.Literal`, and a child with
-    no attributes yields its plain text content.
+    :class:`~prov.model.Literal` (or, for ``xsd:QName`` and
+    ``prov:QUALIFIED_NAME``, a :class:`~prov.identifier.QualifiedName`), an
+    ``xml:lang`` attribute yields a language-tagged
+    :class:`~prov.model.Literal`, and a child with no attributes yields its
+    plain text content.
 
     Args:
         element: The PROV-XML record element whose children are its
@@ -809,7 +810,7 @@ def _extract_attributes(
                 datatype = xml_qname_to_QualifiedName(
                     subel, value_str, namespaces=namespaces, scope=scope
                 )
-                if datatype == XSD_QNAME:
+                if datatype in (XSD_QNAME, PROV_QUALIFIEDNAME):
                     _v = xml_qname_to_QualifiedName(
                         subel, _stripped_text(subel), namespaces=namespaces, scope=scope
                     )

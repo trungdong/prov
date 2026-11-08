@@ -59,7 +59,8 @@ in a set or asserts the type `get_attribute()` returns may see a different resul
 | `Literal("05", XSD_INT)` and `Literal("5", XSD_INT)`; `"+5"` and `"5"` as `xsd:long`; `"05"` and `"5"` as `xsd:integer` or `xsd:short`; `"1e0"` and `"1.0E0"` as `xsd:float` | two values | one value ([#527](https://github.com/trungdong/prov/issues/527)) |
 | `"1e1"` and `"10"` as `xsd:decimal` | one value, through `Decimal()` in the caller's context | two values, because `"1e1"` is outside the lexical space and compares as text ([#593](https://github.com/trungdong/prov/issues/593), [#594](https://github.com/trungdong/prov/issues/594), [#595](https://github.com/trungdong/prov/issues/595)) |
 | `NaN` and `NaN` as `xsd:double`, in a record | two values | one value |
-| `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, `" 5"` or `"1_000"` as `xsd:int` | read as `True`, `inf`, `5`, `1000` | kept as a `Literal` with its text, which compares as text |
+| `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, `"1_000"` or `"\u00a05"` (a no-break space before the digit) as `xsd:int` | read as `True`, `inf`, `1000`, `5` | kept as a `Literal` with its text, which compares as text |
+| `" true"` as `xsd:boolean`, with spaces, tabs or line breaks around the text | kept as a `Literal` with its text | read as `True` |
 | `get_attribute()` on `"05" %% xsd:int` or `"1" %% xsd:boolean` | `5`, `True` | `Literal("05", XSD_INT)`, `Literal("1", XSD_BOOLEAN)`; PROV-O still reads `5` and `True` |
 | `Literal(True).value`, `Literal(float("inf")).value`, `Literal(Decimal("1E+2"), XSD_DECIMAL).value`, `Literal(datetime(2012, 1, 1), XSD_DATETIME).value` | `"True"`, `"inf"`, `"1E+2"`, `"2012-01-01 00:00:00"` | `"true"`, `"INF"`, `"100"`, `"2012-01-01T00:00:00"` |
 | A PROV-O relation written as a blank node, under a default namespace | identifier from the blank node's label | no identifier |
@@ -385,12 +386,27 @@ cannot detect it, and passing `format=` reads it with the warnings.
 
 ## Bundles
 
-`prov` 3.3.0 rejects adding a bundle that belongs to another document, and 3.2.3 did not
-warn about it.
+`prov` 3.3.0 rejects adding a bundle that belongs to another document, and
+`prov_to_graph()` takes a document only. 3.2.3 did not warn about either.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in its target document, or `update()` a fresh bundle of the target document from it. `update()` registers every prefixed namespace by itself. A bundle whose bare names use a default namespace needs that default declared first, on the target document or on the fresh bundle, where it was declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
+| `'ProvBundle' object has no attribute 'flattened'` | [#651](https://github.com/trungdong/prov/issues/651) | `prov_to_graph(document.bundle("ex:b"))` | The document, or a document of the bundle's own, copied as {doc}`graphics` shows in its "Draw one bundle" section. |
+
+3.2.3 drew a bundle passed to `prov_to_graph()` as a graph of its records.
+
+## Command line
+
+`prov-convert` detects the input format by default, and it cannot detect a document that
+holds no statements.
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `prov-convert: error: Could not read from the source. To get a proper error message, specify the format with the 'format' parameter.` | [#737](https://github.com/trungdong/prov/pull/737) | `{}` on standard input, or in a file whose extension names no format | The input format, such as `prov-convert -i json`. |
+
+3.2.3 read standard input and a file with any extension as PROV-JSON, so it converted the
+empty document. {py:func}`prov.read` without `format=` refused that input in 3.2.3 too.
 
 ## PROV-N
 
@@ -555,10 +571,11 @@ default-namespace local part holding `:`, such as `a:b`, has that shape in `prov
 `prov:ref` and `xsd:QName` text. Declare a prefix for the default namespace IRI, such as
 `xmlns:dn="http://example.org/"`, and write the name under it, `dn:a:b`.
 
-Whitespace around a name in `xsd:QName` text or reference text is stripped. 3.2.3 rejected
-it in reference text and, in `xsd:QName` text, read it under an `xmlns` as part of a
-default-namespace local part and raised an error without one. An empty
-`xsd:QName` element raised a `TypeError` in 3.2.3.
+Whitespace around a name in `xsd:QName` or `prov:QUALIFIED_NAME` text or reference text is
+stripped. 3.2.3 rejected it in reference text and, in `xsd:QName` text, read it under an
+`xmlns` as part of a default-namespace local part and raised an error without one. An empty
+`xsd:QName` element raised a `TypeError` in 3.2.3. 3.2.3 kept `prov:QUALIFIED_NAME` text
+as a `Literal`.
 
 ## PROV-O
 

@@ -116,6 +116,7 @@ from prov.identifier import (
 )
 from prov.model._values import (
     _LANGTAG,
+    _XML_WHITESPACE,
     XSD_DATETIME_PATTERN,
     _offset_beyond_xsd_bound,
     _xsd_datetime_text,
@@ -1012,15 +1013,17 @@ class ProvRecord:
         spelling of a plain value, or the literal: a text outside the
         datatype's lexical space (#522), a datatype other than the one prov
         writes for the value (#235), a spelling that is not the canonical one
-        (#527) and a datatype with no plain form keep the Literal."""
+        once XML whitespace around it is stripped (#527) and a datatype with
+        no plain form keep the Literal."""
         text = literal.value
         if datatype == XSD_STRING:
             return text
         if datatype == XSD_DATETIME:
             return _datetime_value(text) or literal
-        value = xsd_value(datatype, text)
+        lexical = text.strip(_XML_WHITESPACE)
+        value = xsd_value(datatype, lexical)
         if isinstance(value, (bool, int, float)) and python_value_form(value) == (
-            text,
+            lexical,
             datatype,
         ):
             return value

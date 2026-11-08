@@ -722,7 +722,10 @@ class ProvBundle:
             The matching :class:`ProvRecord` objects, or an empty list if the
             identifier is invalid or unknown.
         """
-        valid_id = self.valid_qualified_name(identifier)
+        try:
+            valid_id = self.valid_qualified_name(identifier)
+        except ProvExceptionInvalidQualifiedName:
+            return []
         return list(self._id_map[valid_id]) if valid_id is not None else []
 
     # Miscellaneous functions
@@ -1939,12 +1942,14 @@ class ProvDocument(ProvBundle):
     def _declare_prefixes_for_bundle_defaults(
         self, bundles: Iterable[ProvBundle]
     ) -> None:
-        """Declare a prefix for each default ``bundles`` have that differs from
-        this document's, so their bare names keep a spelling here: a prefix
-        already bound to the IRI, else one the bundle binds to it, else ``dn``
-        or the next free suffix."""
+        """Declare a prefix for each default ``bundles`` read, their own or
+        else their document's, that differs from this document's, so their
+        bare names keep a spelling here: a prefix already bound to the IRI,
+        else one the bundle binds to it, else ``dn`` or the next free suffix."""
         for bundle in bundles:
-            uri = bundle.default_ns_uri
+            defaults = (s.get_default_namespace() for s in bundle._namespaces._scopes())
+            default = next((d for d in defaults if d is not None), None)
+            uri = default.uri if default is not None else None
             if (
                 uri is None
                 or uri == self.default_ns_uri
