@@ -1,6 +1,6 @@
 # Release 3.3.0: the Pygments lexer for PROV-N (#628)
 
-**Status:** Complete; built in PR #686, ships in 3.3.0.
+**Status:** Complete; shipped in 3.3.0, built in PR #686.
 
 Written 2026-10-26 against `main` 35500e3. Spec 1 (`2026-10-20-release-3.3.0-design.md`,
 section 2) had planned #628 from its issue alone; this file replaces that arrangement so

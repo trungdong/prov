@@ -1,6 +1,29 @@
 # History
 
-## 3.3.0 (unreleased)
+## 3.3.0 (2026-11-09)
+
+3.3.0 is a minor release that rejects the input 3.2.3 warned about with
+`ProvFutureRejectionWarning`, requires Python 3.11, and adds a Pygments lexer for PROV-N
+and new command-line options. Code that reads PROV it did not write, catches a reader's
+errors or compares literals may need changes, and
+[Upgrading to prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
+gives each case. It also fixes
+[GHSA-pp6h-3q6w-xr98](https://github.com/trungdong/prov/security/advisories/GHSA-pp6h-3q6w-xr98)
+in the PROV-O reader, which 2.5.4 fixes on the 2.x line. Against 3.2.3 on the benchmark
+suite, most operations are faster by up to 30%, but the PROV-JSON and PROV-JSONLD reads
+are 7% to 11% slower, mostly because each attribute value gets its comparison key when
+it is asserted, and `prov_to_graph()` is 27% to 38% slower because it now includes the
+records inside bundles.
+
+These changes need action:
+
+- Install on [Python 3.11 or later](https://prov.readthedocs.io/en/latest/installation.html)
+- Catch `prov.serializers.ProvSerializationError`, or `prov.Error`, around a read
+  ([Exceptions](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#exceptions))
+- Correct the input that raised `ProvFutureRejectionWarning` in 3.2.3, because it now
+  raises an error ([Read the message](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#read-the-message))
+- Index the list that `get_records()` with a class returns, where 3.2.3 returned an
+  iterator ([`get_records()`](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#get-records))
 
 ### Breaking changes
 
