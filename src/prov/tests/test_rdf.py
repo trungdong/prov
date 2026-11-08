@@ -2557,3 +2557,13 @@ def test_named_graph_equal_to_the_default_iri_is_read_and_kept() -> None:
     (bundle,) = doc.bundles
     assert bundle.identifier is not None
     assert bundle.identifier.uri == "http://ex.org/"
+
+
+def test_a_location_keeps_the_text_of_an_ill_formed_typed_literal() -> None:
+    document = ex_document()
+    document.entity("ex:e", {pm.PROV_LOCATION: pm.Literal("maybe", pm.XSD_BOOLEAN)})
+    text = document.serialize(format="rdf", rdf_format="turtle")
+
+    # rdflib normalises the text on parse (C10), so the check is on the text
+    assert 'prov:atLocation "maybe"^^xsd:boolean' in text
+    Graph().parse(data=text, format="turtle")
