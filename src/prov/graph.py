@@ -162,7 +162,10 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     nodes inferred by :func:`prov_to_graph`) are skipped. Every edge whose
     ``"relation"`` data is a :class:`~prov.model.ProvRecord` is likewise
     added; edges without relation data are skipped. The new document declares
-    what the records' document declares, so their names keep their spelling.
+    what the first record's document declares, and a prefix for every other
+    default namespace a record's bundle or document reads, as
+    :meth:`~prov.model.ProvDocument.flattened` does, so every name keeps a
+    spelling.
 
     Args:
         g: The graph instance to convert.
@@ -170,13 +173,6 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     Returns:
         A new :class:`~prov.model.ProvDocument` containing the elements and
         relations recovered from ``g``.
-
-    Raises:
-        ProvExceptionInvalidQualifiedName: If the records come from scopes
-            with different default namespaces, such as a graph composed from
-            the graphs of two documents with different defaults, because a
-            bare name of the second scope has no spelling in the first
-            scope's declarations.
     """
     elements = [
         n for n in g.nodes() if isinstance(n, ProvRecord) and n._bundle is not None
@@ -187,12 +183,14 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
         if isinstance(relation := edge_data.get("relation"), ProvRecord)
     ]
     records = [*elements, *relations]
-    source = next((r._bundle for r in records if r._bundle is not None), None)
+    # the document and bundles the records come from, in order, once each
+    scopes = list({id(b): b for r in records if (b := r._bundle) is not None}.values())
     prov_doc = ProvDocument()
-    if source is not None:
+    if scopes:
         # the records' document; its declarations spell their names
-        parent = source._namespaces.parent
-        prov_doc._copy_declarations_from(source if parent is None else parent)
+        parent = scopes[0]._namespaces.parent
+        prov_doc._copy_declarations_from(scopes[0] if parent is None else parent)
+        prov_doc._declare_prefixes_for_bundle_defaults(scopes)
     for record in records:
         prov_doc.add_record(record)
 

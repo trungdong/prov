@@ -265,3 +265,56 @@ def test_bundle_default_namespace_round_trips_through_the_graph(
         "dn": "http://bun.org/",
     }
     assert "entity(dn:inner)" in result.get_provn()
+
+
+@pytest.mark.parametrize("reverse", [False, True], ids=["in-order", "reversed"])
+@pytest.mark.parametrize(
+    "scopes",
+    [("inner",), ("top", "inner"), ("plain", "inner")],
+    ids=["one-bundle", "document-and-bundle", "two-bundles"],
+)
+def test_graph_records_keep_their_iris_across_bundle_defaults(
+    scopes: tuple[str, ...], reverse: bool
+) -> None:
+    # Each bundle default the document does not share gets a prefix, as
+    # flattened() gives it, whichever record the graph holds first.
+    document = ex_document()
+    document.set_default_namespace("http://doc.org/")
+    plain = document.bundle("ex:b1")
+    bundle = document.bundle("ex:b2")
+    bundle.set_default_namespace("http://bun.org/")
+    made = {
+        "inner": bundle.entity("inner"),
+        "top": document.entity("top"),
+        "plain": plain.entity("plain"),
+    }
+    graph = nx.MultiDiGraph()
+    for name in reversed(scopes) if reverse else scopes:
+        graph.add_node(made[name])
+
+    result = graph_to_prov(graph)
+
+    assert {str(record.identifier.uri) for record in result.get_records()} == {
+        str(made[name].identifier.uri) for name in scopes
+    }
+
+
+@pytest.mark.parametrize("with_top", [False, True], ids=["bundle-only", "with-top"])
+def test_graph_records_from_two_documents_keep_their_iris(with_top: bool) -> None:
+    # A second document's default, set on it or read by its bundle, gets a
+    # prefix too, as 3.2.3 gave it.
+    first = ProvDocument()
+    first.set_default_namespace("http://a.org/")
+    second = ex_document()
+    second.set_default_namespace("http://b.org/")
+    records = [first.entity("x"), second.bundle("ex:bb").entity("q")]
+    if with_top:
+        records.append(second.entity("y"))
+    graph = nx.MultiDiGraph()
+    graph.add_nodes_from(records)
+
+    result = graph_to_prov(graph)
+
+    assert {str(record.identifier.uri) for record in result.get_records()} == {
+        str(record.identifier.uri) for record in records
+    }
