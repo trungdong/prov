@@ -58,6 +58,10 @@ lists each message, the input that causes it and what to write instead.
   in that format, where 3.2.3 wrote PROV-JSON. Errors print one line, Ctrl-C exits 130,
   and `-V` prints the program name and version
   ([#737](https://github.com/trungdong/prov/pull/737))
+- The PROV-O reader raises `ProvRDFException` for an IRI typed as both an element and a
+  relation, such as an element whose `prov:type` names a relation class, where 3.2.3 raised
+  a bare `StopIteration`, lost a record or read the element
+  ([#743](https://github.com/trungdong/prov/issues/743))
 - The PROV-O reader raises `ProvRDFException` for a relation that repeats a formal
   attribute, so write one relation per value, where 3.2.3 read one record per combination
   of the values, without a warning
@@ -110,10 +114,6 @@ lists each message, the input that causes it and what to write instead.
 - PROV-N writes an `xsd:QName` literal value as `'ex:x'` and PROV-O writes the IRI, where
   3.2.3 wrote `"ex:x" %% xsd:QName` and `"ex:x"^^xsd:QName`
   ([#238](https://github.com/trungdong/prov/issues/238))
-- The PROV-O reader raises `ProvRDFException` for an IRI typed as both an element and a
-  relation, such as an element whose `prov:type` names a relation class, where 3.2.3 raised
-  a bare `StopIteration`, lost a record or read the element
-  ([#743](https://github.com/trungdong/prov/issues/743))
 
 The [3.3.0 milestone](https://github.com/trungdong/prov/milestone/10?closed=1) lists every
 fixed issue.

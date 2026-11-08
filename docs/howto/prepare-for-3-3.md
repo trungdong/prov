@@ -386,12 +386,27 @@ cannot detect it, and passing `format=` reads it with the warnings.
 
 ## Bundles
 
-`prov` 3.3.0 rejects adding a bundle that belongs to another document, and 3.2.3 did not
-warn about it.
+`prov` 3.3.0 rejects adding a bundle that belongs to another document, and
+`prov_to_graph()` takes a document only. 3.2.3 did not warn about either.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in its target document, or `update()` a fresh bundle of the target document from it. `update()` registers every prefixed namespace by itself. A bundle whose bare names use a default namespace needs that default declared first, on the target document or on the fresh bundle, where it was declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
+| `'ProvBundle' object has no attribute 'flattened'` | [#651](https://github.com/trungdong/prov/issues/651) | `prov_to_graph(document.bundle("ex:b"))` | The document, or a document of the bundle's own, copied as {doc}`graphics` shows in its "Draw one bundle" section. |
+
+3.2.3 drew a bundle passed to `prov_to_graph()` as a graph of its records.
+
+## Command line
+
+`prov-convert` detects the input format by default, and it cannot detect a document that
+holds no statements.
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `prov-convert: error: Could not read from the source. To get a proper error message, specify the format with the 'format' parameter.` | [#737](https://github.com/trungdong/prov/pull/737) | `{}` on standard input, or in a file whose extension names no format | The input format, such as `prov-convert -i json`. |
+
+3.2.3 read standard input and a file with any extension as PROV-JSON, so it converted the
+empty document. {py:func}`prov.read` without `format=` refused that input in 3.2.3 too.
 
 ## PROV-N
 
