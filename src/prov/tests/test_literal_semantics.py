@@ -73,6 +73,10 @@ SAME_VALUE: list[tuple[Literal, Literal]] = [
     (Literal("1.0", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
     (Literal(".5", XSD_DECIMAL), Literal("0.50", XSD_DECIMAL)),
     (Literal(decimal.Decimal("1E+2"), XSD_DECIMAL), Literal("100", XSD_DECIMAL)),
+    (Literal("5", XSD_INT), Literal(" 5 ", XSD_INT)),
+    (Literal("1.0", XSD_DECIMAL), Literal("\t1.0\n", XSD_DECIMAL)),
+    (Literal("1.5", XSD_DOUBLE), Literal("\r1.5 ", XSD_DOUBLE)),
+    (Literal("true", XSD_BOOLEAN), Literal(" true", XSD_BOOLEAN)),
 ]
 
 # Two values: a different asserted datatype (#235), a text outside the lexical
@@ -91,6 +95,8 @@ DIFFERENT_VALUE: list[tuple[Literal, Literal]] = [
     (Literal("1e1", XSD_DECIMAL), Literal("10", XSD_DECIMAL)),
     (Literal("abc", XSD_INT), Literal("abd", XSD_INT)),
     (Literal("1", XSD_INT), Literal("2", XSD_INT)),
+    (Literal("\u00a05", XSD_INT), Literal("5", XSD_INT)),
+    (Literal("\f5", XSD_INT), Literal("5", XSD_INT)),
 ]
 
 
@@ -324,6 +330,7 @@ def test_canonical_text_collapses_to_the_python_value() -> None:
             ("ex:c", Literal("1.5", XSD_DOUBLE)),
             ("ex:d", Literal("5000000000", XSD_LONG)),
             ("ex:e", Literal("INF", XSD_DOUBLE)),
+            ("ex:f", Literal(" 5\n", XSD_INT)),
         ],
     )
     (record,) = document.get_record("ex:e1")
@@ -332,6 +339,7 @@ def test_canonical_text_collapses_to_the_python_value() -> None:
     assert record.get_attribute("ex:c") == {1.5}
     assert record.get_attribute("ex:d") == {5000000000}
     assert record.get_attribute("ex:e") == {float("inf")}
+    assert record.get_attribute("ex:f") == {5}
 
 
 def test_second_spelling_of_a_held_value_is_not_added() -> None:

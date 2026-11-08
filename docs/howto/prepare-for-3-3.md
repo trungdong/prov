@@ -59,7 +59,8 @@ in a set or asserts the type `get_attribute()` returns may see a different resul
 | `Literal("05", XSD_INT)` and `Literal("5", XSD_INT)`; `"+5"` and `"5"` as `xsd:long`; `"05"` and `"5"` as `xsd:integer` or `xsd:short`; `"1e0"` and `"1.0E0"` as `xsd:float` | two values | one value ([#527](https://github.com/trungdong/prov/issues/527)) |
 | `"1e1"` and `"10"` as `xsd:decimal` | one value, through `Decimal()` in the caller's context | two values, because `"1e1"` is outside the lexical space and compares as text ([#593](https://github.com/trungdong/prov/issues/593), [#594](https://github.com/trungdong/prov/issues/594), [#595](https://github.com/trungdong/prov/issues/595)) |
 | `NaN` and `NaN` as `xsd:double`, in a record | two values | one value |
-| `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, `" 5"` or `"1_000"` as `xsd:int` | read as `True`, `inf`, `5`, `1000` | kept as a `Literal` with its text, which compares as text |
+| `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, `"1_000"` or `"\u00a05"` (a no-break space before the digit) as `xsd:int` | read as `True`, `inf`, `1000`, `5` | kept as a `Literal` with its text, which compares as text |
+| `" true"` as `xsd:boolean`, with spaces, tabs or line breaks around the text | kept as a `Literal` with its text | read as `True` |
 | `get_attribute()` on `"05" %% xsd:int` or `"1" %% xsd:boolean` | `5`, `True` | `Literal("05", XSD_INT)`, `Literal("1", XSD_BOOLEAN)`; PROV-O still reads `5` and `True` |
 | `Literal(True).value`, `Literal(float("inf")).value`, `Literal(Decimal("1E+2"), XSD_DECIMAL).value`, `Literal(datetime(2012, 1, 1), XSD_DATETIME).value` | `"True"`, `"inf"`, `"1E+2"`, `"2012-01-01 00:00:00"` | `"true"`, `"INF"`, `"100"`, `"2012-01-01T00:00:00"` |
 | A PROV-O relation written as a blank node, under a default namespace | identifier from the blank node's label | no identifier |

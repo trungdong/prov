@@ -76,6 +76,10 @@ _XSD_DOUBLE_RE = re.compile(
 )
 _XSD_BOOLEANS = {"true": True, "false": False, "1": True, "0": False}
 
+# These datatypes collapse whitespace before the lexical mapping, and none of
+# their lexical forms holds a space, so the collapse is a strip of XML's four.
+_XML_WHITESPACE = " \t\n\r"
+
 _INT32_MAX = 2**31 - 1
 _INT64_MAX = 2**63 - 1
 
@@ -151,10 +155,12 @@ def xsd_value(datatype: QualifiedName | None, text: str) -> object | None:
     ``xsd:integer`` with its twelve subtypes (XSD 1.1 Part 2). ``None`` for
     every other datatype and for a text outside the datatype's lexical space
     or the subtype's range; such a literal compares as text (#527, #593,
-    #594, #595). A NaN is a ``float`` NaN; :func:`key_slot` gives it its key.
+    #594, #595). Leading and trailing spaces, tabs, carriage returns and
+    line feeds are ignored. A NaN is a ``float`` NaN; :func:`key_slot` gives
+    it its key.
     """
     to_value = _XSD_VALUES.get(datatype) if datatype is not None else None
-    return None if to_value is None else to_value(text)
+    return None if to_value is None else to_value(text.strip(_XML_WHITESPACE))
 
 
 _XSD_MAX_OFFSET = datetime.timedelta(hours=14)
