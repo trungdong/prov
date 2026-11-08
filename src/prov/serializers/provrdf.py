@@ -5,7 +5,7 @@ import io
 import re
 import typing
 from collections import OrderedDict
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, cast
 
@@ -348,10 +348,9 @@ class _DecodeState:
     Attributes:
         record_types: Maps a subject to the record type decoded for it.
         formal_attributes: Per subject, the formal attribute values gathered
-            so far (``None`` where still unknown or ambiguous).
-        unique_sets: Per subject, every candidate value seen for each formal
-            attribute -- more than one means the attribute is ambiguous and
-            must be resolved by walking the combinations.
+            so far (``None`` where still unknown).
+        first_values: Maps a subject and a formal attribute to the first value
+            a directly matched predicate gave it. A later value is a repeat.
         other_attributes: Per subject, the non-formal attributes gathered so
             far. Entries are removed as they are consumed, so whatever
             remains at the end could not be converted.
@@ -367,9 +366,7 @@ class _DecodeState:
     formal_attributes: dict[str, dict[pm.QualifiedName, Any]] = field(
         default_factory=dict
     )
-    unique_sets: dict[str, dict[pm.QualifiedName, list[Any]]] = field(
-        default_factory=dict
-    )
+    first_values: dict[tuple[str, pm.QualifiedName], Any] = field(default_factory=dict)
     other_attributes: dict[str, list[pm.AttributePair]] = field(default_factory=dict)
     anonymous: set[str] = field(default_factory=set)
     blank_elements: set[str] = field(default_factory=set)
@@ -395,9 +392,6 @@ class _DecodeState:
                 self.blank_elements.add(subj)
         self.formal_attributes[subj] = OrderedDict(
             [(key, None) for key in klass.FORMAL_ATTRIBUTES]
-        )
-        self.unique_sets[subj] = OrderedDict(
-            [(key, []) for key in klass.FORMAL_ATTRIBUTES]
         )
 
     def identifier_for(self, subj: str, bundle: pm.ProvBundle) -> str | None:
@@ -1904,16 +1898,10 @@ class ProvRDFSerializer(Serializer):
         # when `pred_new` came from `predicate_mapper` (a QualifiedName), but
         # `val.uri` below is always the full URI -- so a PREDICATE_MAP-routed
         # predicate (atTime/startedAtTime/endedAtTime/atLocation/hadRole/...)
-        # never matches here and falls through to `other_attributes` instead
-        # (a single occurrence is still recovered downstream, since
-        # ProvRecord.add_attributes() matches extras against formal
-        # attributes by qname on its own). This is deliberate, not an
-        # oversight: matching it here would route repeated instances of such
-        # a predicate into `unique_sets`, and `walk()` in
-        # `_emit_decoded_records` would then emit more than one record for
-        # the *same* identifier of an identified qualified node, which
-        # C1 on the conformance page (#217) rules out. Do not "fix" this
-        # format mismatch.
+        # never matches here and falls through to `other_attributes` instead.
+        # ProvRecord.add_attributes() matches extras against formal attributes
+        # by qname on its own, so a single occurrence is still recovered and a
+        # repeat raises, as C1 on the conformance page (#217) requires.
         # On a qualified Start/End node, `startedAtTime`/`endedAtTime` have
         # already been rewritten to `prov:time` by the
         # `_DECODE_PREDICATE_REWRITES` loop just above, so the name carried
@@ -1931,12 +1919,16 @@ class ProvRDFSerializer(Serializer):
             return
         if is_formal:
             qname_key = self._resolve_predicate_key(pred_new, graph)
-            state.formal_attributes[subj][qname_key] = obj1
-            state.unique_sets[subj][qname_key].append(obj1)
-            if len(state.unique_sets[subj][qname_key]) > 1:
-                # An ambiguous formal attribute is cleared here and resolved
-                # by walking every combination in _emit_decoded_records().
-                state.formal_attributes[subj][qname_key] = None
+            first = state.first_values.setdefault((subj, qname_key), obj1)
+            if obj1 is first:
+                state.formal_attributes[subj][qname_key] = obj1
+            else:
+                # A repeat takes the mapped predicates' route, so the model's
+                # rule of one value per formal attribute decides. Both values
+                # go, because a qualifier may have overwritten the slot.
+                state.other_attributes.setdefault(subj, []).extend(
+                    [(qname_key, first), (qname_key, obj1)]
+                )
         else:
             key: pm.QualifiedNameCandidate = pred_new
             if isinstance(pred_new, URIRef):
@@ -1951,9 +1943,7 @@ class ProvRDFSerializer(Serializer):
     ) -> None:
         """Add a record to ``bundle`` for every decoded subject.
 
-        A subject whose formal attributes picked up more than one candidate
-        value yields one record per combination of those values. A relation
-        whose subject is a blank node gets no identifier
+        A relation whose subject is a blank node gets no identifier
         (:attr:`_DecodeState.anonymous`).
 
         Args:
@@ -1968,10 +1958,9 @@ class ProvRDFSerializer(Serializer):
 
         Raises:
             ProvRDFException: If a subject carries more than one value for a
-                formal attribute that :attr:`_DecodeState.unique_sets`
-                doesn't track separately (e.g. two ``prov:atTime`` triples
-                on one identified qualified node) -- the documented,
-                permanent PROV-O representational limitation described in
+                formal attribute (e.g. two ``prov:atTime`` triples on one
+                qualified node) -- the documented, permanent PROV-O
+                representational limitation described in
                 ``docs/reference/conformance.md``. Any other ``ProvException``
                 raised while constructing a record (e.g. an unresolvable
                 qualified name) is wrapped in a ``ProvRDFException`` naming
@@ -1981,31 +1970,23 @@ class ProvRDFSerializer(Serializer):
         """
         for subj in state.record_types:
             attrs = state.other_attributes.get(subj)
-            items_to_walk = [
-                (qname, values)
-                for qname, values in state.unique_sets[subj].items()
-                if values and len(values) > 1
-            ]
             try:
                 identifier = state.identifier_for(subj, bundle)
-                for subset in list(walk(items_to_walk)):
-                    for prov_type, value in subset.items():
-                        state.formal_attributes[subj][prov_type] = value
-                    bundle.new_record(
-                        state.record_types[subj],
-                        identifier,
-                        state.formal_attributes[subj].items(),
-                        attrs,
-                    )
+                bundle.new_record(
+                    state.record_types[subj],
+                    identifier,
+                    state.formal_attributes[subj].items(),
+                    attrs,
+                )
             except pm.ProvMissingFormalAttribute as exc:
                 warn(f"subject {subj!r}: {exc}")
             except pm.ProvException as exc:
                 # Only relabel the specific C1 shape (conformance page, #217),
                 # a formal-attribute predicate repeated in `attrs` (see the
                 # duplicate-detection docstring below for why such repeats
-                # land there instead of being walked). Anything else, such as
-                # an unresolvable qualified name, is a genuinely different
-                # failure and keeps its own message, behind the subject.
+                # land there). Anything else, such as an unresolvable
+                # qualified name, is a genuinely different failure and keeps
+                # its own message, behind the subject.
                 duplicate_attr = _repeated_formal_attribute(
                     state.record_types[subj], attrs
                 )
@@ -2115,15 +2096,14 @@ def _repeated_formal_attribute(
     lookup in :meth:`ProvRDFSerializer._decode_attribute_triple`, because
     ``str(pred_new)`` is the short prefixed form, e.g. ``"prov:time"``, and the
     lookup compares it with the full-URI ``val.uri`` of each formal-attribute
-    ``QualifiedName``. The lookup stays as it is, since matching these
-    predicates would make ``walk()`` emit more than one record for the *same*
-    identifier. A second instance of such a predicate on the same identified
-    qualified node therefore lands in ``attrs`` as two same-key entries, and
-    reaches :meth:`~prov.model.records.ProvRecord.add_attributes` as a
-    duplicate plain attribute, which raises ``ProvException``. This function
-    recognises that shape so that callers relabel only it; every other
-    ``ProvException`` (e.g. an unresolvable qualified name) is wrapped in a
-    :class:`ProvRDFException` that names the subject.
+    ``QualifiedName``. A second instance of such a predicate on one subject
+    therefore lands in ``attrs`` as two same-key entries, and so does a repeat
+    of a predicate the lookup matches. Either way the repeat reaches
+    :meth:`~prov.model.records.ProvRecord.add_attributes` as a duplicate plain
+    attribute, which raises ``ProvException``. This function recognises that
+    shape so that callers relabel only it; every other ``ProvException`` (e.g.
+    an unresolvable qualified name) is wrapped in a :class:`ProvRDFException`
+    that names the subject.
 
     Note: on a qualified node, ``Start``/``End`` carry their time as
     ``prov:atTime`` too, matching every other timed relation's generic
@@ -2154,58 +2134,6 @@ def _repeated_formal_attribute(
                 return key_str
             seen.add(key_str)
     return None
-
-
-def walk(
-    children: list[tuple[Any, Any]],
-    level: int = 0,
-    path: dict[Any, Any] | None = None,
-    usename: bool = True,
-) -> Generator[dict[Any, Any]]:
-    """Generate all the full paths in a tree, as a dict.
-
-    Args:
-        children: ``(name, iterable)`` pairs; each is one level of the tree,
-            enumerated in order. Each ``iterable`` must be an iterable of
-            values (not a callable) -- it is iterated directly.
-        level: Current recursion depth; only used as the dict key when
-            ``usename`` is ``False``.
-        path: Path accumulated so far; ``None`` (the default) starts a fresh
-            path at the top-level call.
-        usename: If ``True``, key each path dict by the level's ``name``;
-            if ``False``, key it by the level's integer depth instead.
-
-    Yields:
-        One dict per full path through ``children``, mapping each level's
-        key to the value chosen at that level.
-
-    Example:
-        >>> from prov.serializers.provrdf import walk
-        >>> iterables = [('a', [1, 2]), ('b', [3, 4])]
-        >>> [val['a'] for val in walk(iterables)]
-        [1, 1, 2, 2]
-        >>> [val['b'] for val in walk(iterables)]
-        [3, 4, 3, 4]
-    """
-    # Entry point
-    if path is None:
-        path = {}
-
-    # Exit condition
-    if not children:
-        yield path.copy()
-        return
-    # Tree recursion
-    head, tail = children[0], children[1:]
-    name, func = head
-    for child in func:
-        # We can use the arg name or the tree level as a key
-        if usename:
-            path[name] = child
-        else:
-            path[level] = child
-        # Recurse into the next level
-        yield from walk(tail, level + 1, path, usename)
 
 
 def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:

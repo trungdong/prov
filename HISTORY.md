@@ -58,6 +58,10 @@ lists each message, the input that causes it and what to write instead.
   in that format, where 3.2.3 wrote PROV-JSON. Errors print one line, Ctrl-C exits 130,
   and `-V` prints the program name and version
   ([#737](https://github.com/trungdong/prov/pull/737))
+- The PROV-O reader raises `ProvRDFException` for a relation that repeats a formal
+  attribute, so write one relation per value, where 3.2.3 read one record per combination
+  of the values, without a warning
+  ([GHSA-pp6h-3q6w-xr98](https://github.com/trungdong/prov/security/advisories/GHSA-pp6h-3q6w-xr98))
 
 ### New features
 

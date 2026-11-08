@@ -734,72 +734,129 @@ def test_decode_document_bundle_iri_without_registered_namespace() -> None:
     assert len(bundles[0].get_records()) == 1
 
 
-def test_decode_multi_valued_qualified_relation_produces_cartesian_product() -> None:
-    # A hand-authored (non-2.x-encoder-produced) PROV-O document may
-    # legally repeat a formal-attribute predicate on the same qualified-
-    # relation bnode; decode_container()'s walk() helper must expand
-    # that into one new_record() call per combination rather than
-    # silently overwriting (planning/test-gap-checklist.md, T13 item under
-    # provrdf.py: "multi-valued unique-set walking").
-    turtle = """
-    @prefix prov: <http://www.w3.org/ns/prov#> .
-    @prefix ex: <http://example.org/> .
-
-    ex:e1 a prov:Entity .
-    ex:e2 a prov:Entity .
-    ex:a1 a prov:Activity .
-
-    _:u1 a prov:Usage ;
-         prov:entity ex:e1 ;
-         prov:entity ex:e2 ;
-         prov:activity ex:a1 .
-
-    ex:a1 prov:qualifiedUsage _:u1 .
-    """
-    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
-
-    usages = [r for r in doc.get_records() if r.get_type().localpart == "Usage"]
-    assert len(usages) == 2
-    used_entities = {
-        value
-        for usage in usages
-        for name, value in usage.formal_attributes
-        if name.localpart == "entity"
-    }
-    assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
-
-
-def test_decode_scruffy_qualified_generation_raises_documented_limitation() -> None:
-    # #217, closed as a permanent PROV-O representational limitation (see
-    # docs/reference/conformance.md): PROV-O reifies a relation as a single
-    # qualified node named by its own identifier, so two prov:atTime values
-    # on the *same* identified prov:qualifiedGeneration node cannot be told
-    # apart on decode. Unlike the anonymous-bnode cartesian-product case
-    # above, this identified-node shape must raise rather than silently
-    # fabricate two same-identifier records.
-    turtle = """
-    @prefix prov: <http://www.w3.org/ns/prov#> .
-    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-    @prefix ex: <http://example.org/> .
-
-    ex:e1 a prov:Entity ;
-        prov:qualifiedGeneration ex:gen1 .
-    ex:a1 a prov:Activity .
-
-    ex:gen1 a prov:Generation ;
-        prov:activity ex:a1 ;
-        prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
-            "2013-01-01T00:00:00"^^xsd:dateTime .
-    """
-    with pytest.raises(ProvRDFException) as ctx:
-        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
-
+def _assert_documented_limitation(ctx: pytest.ExceptionInfo) -> None:
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
+    assert "more than one value for formal attribute" in message
     assert "conformance.md" in message
     assert ctx.type is ProvRDFException
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(
+            """
+            ex:e1 prov:qualifiedGeneration ex:gen1 .
+            ex:gen1 a prov:Generation ;
+                prov:activity ex:a1 ;
+                prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
+                    "2013-01-01T00:00:00"^^xsd:dateTime .
+            """,
+            id="identified-mapped-predicate",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage ex:u1 .
+            ex:u1 a prov:Usage ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="identified-qualified-node",
+        ),
+        pytest.param(
+            """
+            ex:d1 a prov:Derivation ;
+                prov:generatedEntity ex:e1, ex:e2 ;
+                prov:usedEntity ex:e3, ex:e4 .
+            """,
+            id="identified-attribute-iris",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage _:u1 .
+            _:u1 a prov:Usage ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="blank-node",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage _:u1 .
+            _:u1 a prov:Usage ;
+                prov:entity ex:e1, ex:e2 ;
+                prov:activity ex:a1, ex:a2 .
+            """,
+            id="blank-node-two-attributes",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage ex:u1 .
+            ex:u1 a prov:Usage ;
+                prov:entity ex:e1, ex:e2 ;
+                prov:collection ex:c1 .
+            """,
+            id="with-collection",
+        ),
+    ],
+)
+def test_decode_repeated_formal_attribute_raises_documented_limitation(body) -> None:
+    # #217, closed as a permanent PROV-O representational limitation (see
+    # docs/reference/conformance.md): a record holds one value of each formal
+    # attribute, so a subject repeating one raises, identified or blank.
+    turtle = f"""
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+    {body}
+    """
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    _assert_documented_limitation(ctx)
+
+
+def test_decode_repeat_raises_when_the_qualifier_overwrites_the_slot(
+    monkeypatch,
+) -> None:
+    # Sorted by object, the reader meets ex:a0, ex:a1 and ex:u1, so the
+    # qualifier's triple comes last and puts ex:a1 in the slot that held ex:a0.
+    # The repeat still raises, and neither value is dropped.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:activity ex:a0, ex:a1 .
+    """
+    original = Graph.__iter__
+
+    def by_object(self):
+        return iter(sorted(original(self), key=lambda triple: str(triple[2])))
+
+    monkeypatch.setattr(Graph, "__iter__", by_object)
+
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    _assert_documented_limitation(ctx)
+
+
+def test_decode_same_identifier_relations_differing_in_a_party_raises() -> None:
+    # The writer collapses two relations that share an identifier onto one
+    # node, which then repeats the party they differ in (C1).
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.usage("ex:a1", "ex:e1", identifier="ex:rel1")
+    document.usage("ex:a1", "ex:e2", identifier="ex:rel1")
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
+
+    _assert_documented_limitation(ctx)
 
 
 @pytest.mark.parametrize(
@@ -837,12 +894,7 @@ def test_decode_scruffy_relations_raise_documented_limitation(
     with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=rdf, format="rdf")
 
-    message = str(ctx.value)
-    assert "documented PROV-O representational limitation" in message
-    assert "conformance.md" in message
-    assert ctx.type is ProvRDFException
-    # The chained original ProvException is preserved, not swallowed.
-    assert isinstance(ctx.value.__cause__, ProvException)
+    _assert_documented_limitation(ctx)
 
 
 # The two sentences as regular expressions, so a blank node's generated label
@@ -1172,6 +1224,28 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
     assert "conformance.md" not in message
     assert message.startswith(
         "subject 'http://example.org/gen1': Invalid Qualified Name:"
+    )
+    assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)
+
+
+def test_decode_agreeing_values_are_not_relabelled_as_scruffy() -> None:
+    # A node that repeats its influencer's value in a prov:activity triple
+    # holds one value of that attribute, so an unrelated failure keeps its own
+    # message, whichever of the two triples the reader meets first.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:activity ex:a1 ;
+        prov:entity "not a name" .
+    """
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert str(ctx.value).startswith(
+        "subject 'http://example.org/u1': Invalid Qualified Name:"
     )
     assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)
 

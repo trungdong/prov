@@ -562,16 +562,20 @@ default-namespace local part and raised an error without one. An empty
 
 ## PROV-O
 
-`prov` 3.3.0 rejects an IRI it cannot split into a namespace and a local part, and an IRI
-typed as both an element and a relation.
+`prov` 3.3.0 rejects an IRI it cannot split into a namespace and a local part, an IRI
+typed as both an element and a relation, and a relation that repeats a formal attribute.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `Cannot split IRI 'urn:example:t=' into a namespace and a local part: it contains no '#' or '/' separator.` | [#665](https://github.com/trungdong/prov/issues/665) | `"1"^^<urn:example:t=>` as a literal's datatype, or `<urn:example:t=>` as a subject, a predicate or the object of a relation | An IRI with a `/` or `#` before its local part, such as `<urn:example:t/x>`. |
 | `subject '…' is typed as both … and …; an element and a relation cannot share an identifier` | [#743](https://github.com/trungdong/prov/issues/743) | `entity(ex:g)` beside `wasGeneratedBy(ex:g; ex:e, ex:a, -)`, or `entity(ex:x, [prov:type='prov:Revision'])`, whose `prov:type` names a PROV relation class | Give the entity and the relation different identifiers, or write the document in another format. For a `prov:type` that names a PROV relation class, use a type outside the PROV namespace. |
+| `Cannot decode '…' as a single … record: more than one value for formal attribute '…'` | [GHSA-pp6h-3q6w-xr98](https://github.com/trungdong/prov/security/advisories/GHSA-pp6h-3q6w-xr98) | `_:u a prov:Usage ; prov:entity ex:e1, ex:e2 .`, or `used(ex:u; ex:a, ex:e1, -)` beside `used(ex:u; ex:a, ex:e2, -)`, which prov writes as one node | One relation per value, each with its own identifier or with none. |
 
 3.2.3 read such a datatype as plain text and lost it, and raised the model's error for an
 untyped relation object. For the other positions it raised a bare `ValueError` with the
 same sentence, which `except ValueError` around a read caught. `ProvRDFException` is not a
 `ValueError`. For an IRI typed as both an element and a relation, 3.2.3 raised a bare
-`StopIteration`, lost a record or read the element.
+`StopIteration`, lost a record or read the element. For a relation that repeats a formal
+attribute, 3.2.3 read one record per combination of the values and did not warn, or raised
+this error for some attributes, such as `prov:atTime`. A relation that 3.2.3 wrote with two
+values of a formal attribute and a `prov:collection` raises too.
