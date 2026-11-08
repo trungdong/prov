@@ -1607,8 +1607,11 @@ class ProvRDFSerializer(Serializer):
             subj = str(stmt[0])
             obj = str(stmt[2])
             try:
-                if obj not in _RECORD_TYPE_OF_CLASS or self._register_record_type(
-                    graph, stmt, subj, obj, state
+                # only an IRI names a class; a literal is a prov:type value
+                if (
+                    not isinstance(stmt[2], URIRef)
+                    or obj not in _RECORD_TYPE_OF_CLASS
+                    or self._register_record_type(graph, stmt, subj, obj, state)
                 ):
                     state.other_attributes.setdefault(subj, []).append(
                         (

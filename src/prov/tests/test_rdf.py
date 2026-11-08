@@ -1081,6 +1081,24 @@ def test_decode_refuses_an_element_and_a_relation_sharing_an_iri(
     assert re.fullmatch(expected, str(ctx.value))
 
 
+@pytest.mark.parametrize("descending", [False, True])
+@pytest.mark.parametrize("cls", ["Generation", "Activity"])
+def test_a_string_naming_a_prov_class_is_a_prov_type_value(
+    sorted_type_triples, descending, cls
+) -> None:
+    # Only an IRI names a class, so the string reads back as the element's
+    # prov:type in either order.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:x", {"prov:type": f"{PROV.uri}{cls}"})
+    turtle = _turtle(document)
+    sorted_type_triples(descending)
+
+    back = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert back == document
+
+
 def _written_generation_with(cls):
     return [
         "activity(ex:a, -, -)",
