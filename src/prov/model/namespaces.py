@@ -3,6 +3,7 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
 from collections.abc import Iterable
+from typing import Any
 
 from prov.constants import PROV, XSD, XSI
 from prov.identifier import Identifier, Namespace, QualifiedName
@@ -12,7 +13,12 @@ DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD, "xsi": XSI}
 
 
 class NamespaceManager(dict[str, Namespace]):
-    """Manages namespaces for PROV documents and bundles."""
+    """Manages namespaces for PROV documents and bundles.
+
+    Register namespaces through :meth:`add_namespace` and
+    :meth:`set_default_namespace`. Any of the dict's own write methods
+    bypasses the manager's index and is unsupported.
+    """
 
     parent = None  # type: NamespaceManager | None
     """Parent :class:`NamespaceManager` this manager is a child of, if any."""
@@ -36,6 +42,7 @@ class NamespaceManager(dict[str, Namespace]):
         dict.__init__(self)
         self._default_namespaces = DEFAULT_NAMESPACES
         self.update(self._default_namespaces)
+        self._reindex()
         self._namespaces = {}  # type: dict[str, Namespace]
 
         if default is not None:
@@ -83,6 +90,29 @@ class NamespaceManager(dict[str, Namespace]):
         """
         self._default = Namespace("", uri)
         self[""] = self._default
+        self._reindex()
+
+    def _index(self, namespace: Namespace) -> None:
+        by_uri = self._uris_by_length.setdefault(len(namespace.uri), {})
+        by_uri.setdefault(namespace.uri, []).append(namespace)
+
+    def _reindex(self) -> None:
+        """Rebuild the length index from the dict's namespaces.
+
+        The index holds every namespace the dict holds, by URI length and then
+        URI. The manager's writers keep it in step with the dict.
+        """
+        self._uris_by_length: dict[int, dict[str, list[Namespace]]] = {}
+        for namespace in self.values():
+            self._index(namespace)
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        # The dict's items are already set when pickle calls this, so a state
+        # from a release without the index gets one built from them. A copy
+        # carries its own index and has no items yet.
+        self.__dict__.update(state)
+        if "_uris_by_length" not in state:
+            self._reindex()
 
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
@@ -102,7 +132,8 @@ class NamespaceManager(dict[str, Namespace]):
             The registered namespace, which may be the existing or renamed one
             rather than the argument.
         """
-        if namespace in self.values():
+        # every namespace is stored under its own prefix
+        if self.get(namespace.prefix) == namespace:
             #  no need to do anything
             return namespace
         if namespace in self._rename_map:
@@ -134,6 +165,7 @@ class NamespaceManager(dict[str, Namespace]):
         # Only now add the namespace to the registry
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
+        self._index(namespace)
         self._uri_map[uri] = namespace
 
         return namespace
@@ -232,10 +264,10 @@ class NamespaceManager(dict[str, Namespace]):
             else:
                 #  assuming it is a URI (with the first part as its scheme)
                 #  check if the URI can be compacted by any of the registered namespaces
-                for namespace in self.values():
-                    if str_value.startswith(namespace.uri):
-                        #  create a QName with the namespace
-                        return namespace[str_value.replace(namespace.uri, "")]
+                compacting = self._compacting_namespace(str_value)
+                if compacting is not None:
+                    #  create a QName with the namespace
+                    return compacting[str_value.replace(compacting.uri, "")]
         elif self._default and isinstance(qname, str):
             # no colon in the identifier and a default namespace is defined,
             # create and return a qualified name in the default namespace
@@ -247,6 +279,23 @@ class NamespaceManager(dict[str, Namespace]):
             return self.parent.valid_qualified_name(qname)
 
         # Default to FAIL
+        return None
+
+    def _compacting_namespace(self, iri: str) -> Namespace | None:
+        """The first namespace in the dict's order whose URI prefixes ``iri``.
+
+        One candidate, the usual case, comes from the length index. Several
+        candidates fall back to a scan in the dict's order.
+        """
+        matches = [
+            namespace
+            for length, by_uri in self._uris_by_length.items()
+            for namespace in by_uri.get(iri[:length], ())
+        ]
+        candidates: Iterable[Namespace] = matches if len(matches) < 2 else self.values()
+        for namespace in candidates:
+            if iri.startswith(namespace.uri):
+                return namespace
         return None
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:

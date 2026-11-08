@@ -1,6 +1,6 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
-from typing import Any
+from typing import Any, ClassVar
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -122,6 +122,10 @@ class QualifiedName(Identifier):
 class Namespace:
     """PROV Namespace."""
 
+    # _cache holds at most this many names. A lookup that misses when
+    # _cache is full clears it, then stores the new name.
+    _CACHE_LIMIT: ClassVar[int] = 10_000
+
     def __init__(self, prefix: str, uri: str):
         """Create a namespace with the given prefix and URI.
 
@@ -206,9 +210,11 @@ class Namespace:
         return f"<{self.__class__.__name__}: {self._prefix} {{{self._uri}}}>"
 
     def __getitem__(self, localpart: str) -> QualifiedName:
-        if localpart in self._cache:
-            return self._cache[localpart]
-        else:
+        cache = self._cache
+        qname = cache.get(localpart)
+        if qname is None:
             qname = QualifiedName(self, localpart)
-            self._cache[localpart] = qname
-            return qname
+            if len(cache) >= self._CACHE_LIMIT:
+                cache.clear()
+            cache[localpart] = qname
+        return qname

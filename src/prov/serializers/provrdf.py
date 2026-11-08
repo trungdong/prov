@@ -7,7 +7,7 @@ import datetime
 import io
 import warnings
 from collections import OrderedDict
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable
 from typing import Any, cast
 
 import dateutil.parser
@@ -186,6 +186,10 @@ def attr2rdf(attr: QualifiedName) -> URIRef:
 class ProvRDFSerializer(Serializer):
     """PROV-O serializer for :class:`~prov.model.ProvDocument`."""
 
+    # The source's (prefix, IRI) bindings, read when ``decode_document`` starts.
+    # None outside it.
+    _held_bindings: tuple[tuple[str, str], ...] | None = None
+
     def serialize(
         self,
         stream: io.IOBase,
@@ -338,9 +342,10 @@ class ProvRDFSerializer(Serializer):
            local parts under a namespace the source declared, which
            ``compute_qname`` refuses to split. (Document namespaces are not
            consulted here: both callers only reach this method after
-           ``valid_identifier`` returned ``None``, which already scanned every
-           document namespace for a URI-prefix match, so any that applied would
-           have resolved there.)
+           ``valid_identifier`` returned ``None``, which already matched every
+           document namespace against the IRI, so any that applied would have
+           resolved there.) Which bindings it reads is set out in
+           :meth:`_source_bindings`.
         2. Otherwise ``compute_qname``, preserving prefix-minting for ordinary
            IRIs under no registered namespace.
         3. If ``compute_qname`` itself raises (a trailing metacharacter under
@@ -366,8 +371,7 @@ class ProvRDFSerializer(Serializer):
         # 1. Longest namespace URI bound in the graph that is a proper prefix
         # of the IRI (see the docstring on why document namespaces are skipped).
         best_prefix, best_uri = None, ""
-        for prefix, uri_ref in graph.namespace_manager.namespaces():
-            uri = str(uri_ref)
+        for prefix, uri in self._source_bindings(graph, iri):
             if uri and len(uri) > len(best_uri) and iri.startswith(uri) and iri != uri:
                 best_prefix, best_uri = prefix, uri
         if best_prefix is not None:
@@ -389,6 +393,28 @@ class ProvRDFSerializer(Serializer):
             prefix, uri = "ns", iri[: sep + 1]
         ns = self.document.add_namespace(prefix, uri)
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
+    def _source_bindings(self, graph: Graph, iri: str) -> tuple[tuple[str, str], ...]:
+        """``graph``'s (prefix, IRI) bindings to resolve ``iri`` against.
+
+        :meth:`decode_document` reads the source's bindings when it starts and
+        holds them until it ends, so a source with many bindings is not walked
+        again for every IRI. A binding the reader mints later is for a
+        namespace already registered on the document, which the caller resolves
+        first for every IRI the document can compact. A colon-less IRI and a
+        ``_:`` IRI are never compacted, so a binding minted mid-decode can be
+        the answer for them. They read the live bindings, as does any call
+        outside :meth:`decode_document`.
+        """
+        if self._held_bindings is not None and ":" in iri and not iri.startswith("_:"):
+            return self._held_bindings
+        return self._live_bindings(graph)
+
+    @staticmethod
+    def _live_bindings(graph: Graph) -> tuple[tuple[str, str], ...]:
+        return tuple(
+            (prefix, str(uri)) for prefix, uri in graph.namespace_manager.namespaces()
+        )
 
     def decode_rdf_representation(self, literal: Any, graph: Graph) -> Any:
         """Decode a single RDF term back to its PROV attribute value representation.
@@ -786,6 +812,9 @@ class ProvRDFSerializer(Serializer):
         it is a plain ``Graph``, not conjunctive), it is decoded directly as
         the document's own records.
 
+        The source's namespace bindings are read once, here, and held until
+        the decode ends (:meth:`_source_bindings`).
+
         Args:
             content: RDF graph (typically a ``ConjunctiveGraph``, as produced
                 by :meth:`encode_document`) to decode.
@@ -798,6 +827,20 @@ class ProvRDFSerializer(Serializer):
         """
         for prefix, url in content.namespaces():
             document.add_namespace(prefix, str(url))
+        self._held_bindings = self._live_bindings(content)
+        try:
+            self._decode_graphs(content, document, relation_mapper, predicate_mapper)
+        finally:
+            self._held_bindings = None
+
+    def _decode_graphs(
+        self,
+        content: ConjunctiveGraph,
+        document: pm.ProvDocument,
+        relation_mapper: dict[URIRef, str],
+        predicate_mapper: dict[URIRef, pm.QualifiedName],
+    ) -> None:
+        """Decode ``content``'s graphs into ``document`` and its bundles."""
         if hasattr(content, "contexts"):
             for graph in content.contexts():
                 if isinstance(graph.identifier, BNode):
@@ -861,6 +904,8 @@ class ProvRDFSerializer(Serializer):
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
 
         Raises:
+            ProvException: If a subject holds two different values of a formal
+                attribute.
             ValueError: If a relation's object term cannot be decoded to a
                 usable attribute value.
 
@@ -871,7 +916,7 @@ class ProvRDFSerializer(Serializer):
         record_types = {}  # type: dict[str, pm.QualifiedName]
         PROV_CLS_MAP = {}  # type: dict[str, pm.QualifiedName]
         formal_attributes = {}  # type: dict[str, dict[pm.QualifiedName, pm.QualifiedNameCandidate | datetime.datetime | None]]
-        unique_sets = {}  # type: dict[str, dict[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
+        first_values = {}  # type: dict[tuple[str, pm.QualifiedName], Any]
         for prov_type, _ in PROV_BASE_CLS.items():
             PROV_CLS_MAP[prov_type.uri] = PROV_BASE_CLS[prov_type]
         other_attributes = {}  # type: dict[str, list[tuple[pm.QualifiedNameCandidate, Any]]]
@@ -917,9 +962,6 @@ class ProvRDFSerializer(Serializer):
                     klass = pm.PROV_REC_CLS[prov_obj]
                     formal_attributes[subj] = OrderedDict(
                         [(key, None) for key in klass.FORMAL_ATTRIBUTES]
-                    )
-                    unique_sets[subj] = OrderedDict(
-                        [(key, []) for key in klass.FORMAL_ATTRIBUTES]
                     )
                     add_attr = False or (
                         (isinstance(stmt[0], BNode) or isderivation)
@@ -1021,10 +1063,15 @@ class ProvRDFSerializer(Serializer):
                     pred_new = PROV_ATTR_USED_ENTITY
                 if str(pred_new) in [val.uri for val in formal_attributes[subj]]:
                     qname_key = self.document.mandatory_valid_qname(pred_new)  # type: ignore[union-attr]
+                    first = first_values.setdefault((subj, qname_key), obj1)
+                    if obj1 != first:
+                        # The model would keep every value of a membership,
+                        # and the PROV-N and PROV-JSON writers then drop all
+                        # but one, so the reader refuses a repeat itself.
+                        raise pm.ProvException(
+                            f"Cannot have more than one value for attribute {qname_key}"
+                        )
                     formal_attributes[subj][qname_key] = obj1
-                    unique_sets[subj][qname_key].append(obj1)
-                    if len(unique_sets[subj][qname_key]) > 1:
-                        formal_attributes[subj][qname_key] = None
                 else:
                     if "qualified" not in str(pred_new) and "asInBundle" not in str(
                         pred_new
@@ -1039,21 +1086,9 @@ class ProvRDFSerializer(Serializer):
             attrs = None
             if subj in other_attributes:
                 attrs = other_attributes[subj]
-            items_to_walk = []  # type: list[tuple[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
-            for qname, values in unique_sets[subj].items():
-                if values and len(values) > 1:
-                    items_to_walk.append((qname, values))
-            if items_to_walk:
-                for subset in list(walk(items_to_walk)):
-                    for prov_type, value in subset.items():
-                        formal_attributes[subj][prov_type] = value
-                    bundle.new_record(
-                        record_types[subj], subj, formal_attributes[subj].items(), attrs
-                    )
-            else:
-                bundle.new_record(
-                    record_types[subj], subj, formal_attributes[subj].items(), attrs
-                )
+            bundle.new_record(
+                record_types[subj], subj, formal_attributes[subj].items(), attrs
+            )
 
             if attrs is not None:
                 del other_attributes[subj]
@@ -1064,58 +1099,6 @@ class ProvRDFSerializer(Serializer):
                 UserWarning,
                 stacklevel=2,
             )
-
-
-def walk(
-    children: list[tuple[Any, Any]],
-    level: int = 0,
-    path: dict[Any, Any] | None = None,
-    usename: bool = True,
-) -> Generator[dict[Any, Any]]:
-    """Generate all the full paths in a tree, as a dict.
-
-    Args:
-        children: ``(name, iterable)`` pairs; each is one level of the tree,
-            enumerated in order. Each ``iterable`` must be an iterable of
-            values (not a callable) -- it is iterated directly.
-        level: Current recursion depth; only used as the dict key when
-            ``usename`` is ``False``.
-        path: Path accumulated so far; ``None`` (the default) starts a fresh
-            path at the top-level call.
-        usename: If ``True``, key each path dict by the level's ``name``;
-            if ``False``, key it by the level's integer depth instead.
-
-    Yields:
-        One dict per full path through ``children``, mapping each level's
-        key to the value chosen at that level.
-
-    Example:
-        >>> from prov.serializers.provrdf import walk
-        >>> iterables = [('a', [1, 2]), ('b', [3, 4])]
-        >>> [val['a'] for val in walk(iterables)]
-        [1, 1, 2, 2]
-        >>> [val['b'] for val in walk(iterables)]
-        [3, 4, 3, 4]
-    """
-    # Entry point
-    if path is None:
-        path = {}
-
-    # Exit condition
-    if not children:
-        yield path.copy()
-        return
-    # Tree recursion
-    head, tail = children[0], children[1:]
-    name, func = head
-    for child in func:
-        # We can use the arg name or the tree level as a key
-        if usename:
-            path[name] = child
-        else:
-            path[level] = child
-        # Recurse into the next level
-        yield from walk(tail, level + 1, path, usename)
 
 
 def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:

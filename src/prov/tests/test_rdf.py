@@ -20,6 +20,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import ConjunctiveGraph, Dataset, Graph
 
 import prov.model as pm
+from prov.constants import PROV
 from prov.model import ProvDocument, ProvException
 from prov.serializers.provrdf import (
     ProvRDFException,
@@ -211,39 +212,202 @@ def test_decode_document_bundle_iri_without_registered_namespace():
     assert len(bundles[0].get_records()) == 1
 
 
-def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
-    # A hand-authored (non-2.x-encoder-produced) PROV-O document may
-    # legally repeat a formal-attribute predicate on the same qualified-
-    # relation bnode; decode_container()'s walk() helper must expand
-    # that into one new_record() call per combination rather than
-    # silently overwriting (docs/test-gap-checklist.md, T13 item under
-    # provrdf.py: "multi-valued unique-set walking").
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(
+            """
+            ex:e1 prov:qualifiedGeneration ex:gen1 .
+            ex:gen1 a prov:Generation ;
+                prov:activity ex:a1 ;
+                prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
+                    "2013-01-01T00:00:00"^^xsd:dateTime .
+            """,
+            id="identified-mapped-predicate",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage ex:u1 .
+            ex:u1 a prov:Usage ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="identified-qualified-node",
+        ),
+        pytest.param(
+            """
+            ex:d1 a prov:Derivation ;
+                prov:generatedEntity ex:e1, ex:e2 ;
+                prov:usedEntity ex:e3, ex:e4 .
+            """,
+            id="identified-attribute-iris",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage _:u1 .
+            _:u1 a prov:Usage ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="blank-node",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage _:u1 .
+            _:u1 a prov:Usage ;
+                prov:entity ex:e1, ex:e2 ;
+                prov:activity ex:a1, ex:a2 .
+            """,
+            id="blank-node-two-attributes",
+        ),
+        pytest.param(
+            """
+            ex:a1 prov:qualifiedUsage ex:u1 .
+            ex:u1 a prov:Usage ;
+                prov:entity ex:e1, ex:e2 ;
+                prov:collection ex:c1 .
+            """,
+            id="with-collection",
+        ),
+        pytest.param(
+            """
+            ex:c1 prov:qualifiedMembership ex:m1 .
+            ex:m1 a prov:Membership ; prov:entity ex:e1, ex:e2 .
+            """,
+            id="membership",
+        ),
+        pytest.param(
+            """
+            ex:m1 a prov:Membership ;
+                prov:collection ex:c1, ex:c2 ;
+                prov:entity ex:e1, ex:e2 .
+            """,
+            id="membership-two-attributes",
+        ),
+    ],
+)
+def test_decode_repeated_formal_attribute_raises(body):
+    # #217: a record holds one value of each formal attribute, so a subject
+    # repeating one raises, identified or blank. On 2.x the raw
+    # ProvRecord.add_attributes() message surfaces, as for a repeated
+    # prov:atTime.
+    turtle = f"""
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+    {body}
+    """
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_repeat_raises_when_the_qualifier_overwrites_the_slot(monkeypatch):
+    # Sorted by object, the reader meets ex:a0, ex:a1 and ex:u1, so the
+    # qualifier's triple comes last and puts ex:a1 in the slot that held ex:a0.
+    # The repeat still raises.
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
 
-    ex:e1 a prov:Entity .
-    ex:e2 a prov:Entity .
-    ex:a1 a prov:Activity .
-
-    _:u1 a prov:Usage ;
-         prov:entity ex:e1 ;
-         prov:entity ex:e2 ;
-         prov:activity ex:a1 .
-
-    ex:a1 prov:qualifiedUsage _:u1 .
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:activity ex:a0, ex:a1 .
     """
-    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    original = Graph.__iter__
 
-    usages = [r for r in doc.get_records() if r.get_type().localpart == "Usage"]
-    assert len(usages) == 2
-    used_entities = {
-        value
-        for usage in usages
-        for name, value in usage.formal_attributes
-        if name.localpart == "entity"
-    }
-    assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
+    def by_object(self):
+        return iter(sorted(original(self), key=lambda triple: str(triple[2])))
+
+    monkeypatch.setattr(Graph, "__iter__", by_object)
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_same_identifier_relations_differing_in_a_party_raises():
+    # The writer collapses two relations that share an identifier onto one
+    # node, which then repeats the party they differ in (C1).
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.usage("ex:a1", "ex:e1", identifier="ex:rel1")
+    document.usage("ex:a1", "ex:e2", identifier="ex:rel1")
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_reads_two_relations_on_one_iri_without_raising():
+    # C1: two relations on one IRI collapse, and the record count is not
+    # pinned. The reader only has to read the document written by prov.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e")
+    document.activity("ex:a")
+    document.usage("ex:a", "ex:e", identifier="ex:g")
+    document.generation("ex:e", "ex:a", identifier="ex:g")
+
+    ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
+
+
+def test_decode_written_collection_usage_with_two_entities_raises():
+    # A document prov writes reaches the refusal too: the collection does not
+    # exempt a node that holds two values of prov:entity.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    usage = document.usage("ex:a1", "ex:e1", identifier="ex:u1")
+    usage.add_attributes(
+        [(pm.PROV_ATTR_COLLECTION, "ex:c1"), (pm.PROV_ATTR_ENTITY, "ex:e2")]
+    )
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
+
+    assert "Cannot have more than one value for attribute" in str(ctx.value)
+
+
+def test_decode_agreeing_repeat_reads_as_one_record():
+    # Two spellings of one instant are one value of prov:time.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:time "2012-01-01T00:00:00Z"^^xsd:dateTime,
+            "2012-01-01T01:00:00+01:00"^^xsd:dateTime .
+    """
+    document = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
+
+    assert len(document.get_records()) == 1
+
+
+def test_decode_single_valued_collection_usage_reads_as_one_record():
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:a1 prov:qualifiedUsage ex:u1 .
+    ex:u1 a prov:Usage ;
+        prov:entity ex:e1 ;
+        prov:collection ex:c1 .
+    """
+    document = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
+
+    (usage,) = document.get_records()
+    assert {str(name) for name, _ in usage.attributes} >= {"prov:collection"}
 
 
 def test_json_to_ttl_match():
@@ -875,3 +1039,91 @@ def test_trailing_metacharacter_encode_output_unchanged():
     for ch in _TRAILING_METACHARS:
         expected.add((URIRef(ns + "a" + ch), RDF.type, URIRef(prov + "Entity")))
     assert isomorphic(reparsed, expected)
+
+
+_PREFIXES = """
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://example.org/> .
+"""
+_FOAF = "@prefix foaf: <http://xmlns.com/foaf/0.1/> ."
+
+
+def _lookup_between_reads():
+    # A binding added after one decode counts for a lookup after it.
+    graph = Graph().parse(data=_PREFIXES + "ex:e a prov:Entity .", format="turtle")
+    iri = URIRef("http://example.org/sub/x;")
+    first = ProvDocument()
+    serializer = ProvRDFSerializer(document=first)
+    serializer.decode_document(graph, first)
+    graph.bind("exsub", "http://example.org/sub/")
+    serializer.document = ProvDocument()
+    return serializer.decode_rdf_representation(iri, graph).namespace.prefix, "exsub"
+
+
+def _lookup_outside_a_decode():
+    # Outside a decode nothing is held, so a binding added after a lookup counts.
+    graph = Graph().parse(data=_PREFIXES, format="turtle")
+    iri = URIRef("http://example.org/sub/x;")
+    first = ProvDocument()
+    serializer = ProvRDFSerializer(document=first)
+    serializer.decode_container(graph, first)
+    serializer.document = ProvDocument()
+    before = serializer.decode_rdf_representation(iri, graph)
+    graph.bind("exsub", "http://example.org/sub/")
+    serializer.document = ProvDocument()
+    after = serializer.decode_rdf_representation(iri, graph)
+    return (before.namespace.prefix, after.namespace.prefix), ("ex", "exsub")
+
+
+def _lookup_in_bundles_sharing_a_binding():
+    # foaf is a binding rdflib adds to every graph, so the document does not
+    # hold it and each name is resolved against the graph.
+    trig = f"""
+    @prefix prov: <{PROV.uri}> .
+    {_FOAF}
+    <http://example.org/b1> {{ foaf:a1 a prov:Entity . foaf:a2 a prov:Entity . }}
+    <http://example.org/b2> {{ foaf:a3 a prov:Entity . }}
+    """
+    read = ProvDocument.deserialize(content=trig, format="rdf", rdf_format="trig")
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    foaf = expected.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    first, second = expected.bundle("ex:b1"), expected.bundle("ex:b2")
+    first.entity(foaf["a1"])
+    first.entity(foaf["a2"])
+    second.entity(foaf["a3"])
+    return read, expected
+
+
+def _lookup_of_a_colon_less_iri():
+    # The document never compacts a colon-less IRI, so the namespace minted
+    # for the first value is a live binding for the second. SimpleMemory
+    # iterates triples in the order they were added.
+    graph = Graph(store="SimpleMemory")
+    graph.bind("ex", "http://ex.org/")
+    subject = URIRef("http://ex.org/e")
+    graph.add((subject, RDF.type, URIRef(PROV.uri + "Entity")))
+    graph.add((subject, URIRef("http://ex.org/p0"), URIRef("foo/x")))
+    graph.add((subject, URIRef("http://ex.org/p1"), URIRef("foo/a/b")))
+    document = ProvDocument()
+    ProvRDFSerializer(document=document).decode_document(graph, document)
+    (record,) = document.get_records()
+    values = {str(name): str(value) for name, value in record.attributes}
+    return values, {"ex:p0": "ns1:x", "ex:p1": "ns1:a/b"}
+
+
+@pytest.mark.parametrize(
+    "lookup",
+    [
+        pytest.param(_lookup_between_reads, id="between-reads"),
+        pytest.param(_lookup_outside_a_decode, id="outside-a-decode"),
+        pytest.param(_lookup_in_bundles_sharing_a_binding, id="bundles"),
+        pytest.param(_lookup_of_a_colon_less_iri, id="colon-less-iri"),
+    ],
+)
+def test_the_graph_lookup_snapshot_lasts_one_decode(lookup):
+    # decode_document reads the source's bindings once and holds them until it
+    # returns. A call outside it, and an IRI the document cannot compact, read
+    # the bindings as they are then.
+    actual, expected = lookup()
+    assert actual == expected
