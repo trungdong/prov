@@ -6,8 +6,9 @@ follows ``prov.serializers.provn_lexer``, so it emits no ``Error`` token on text
 PROV-N reader accepts, and it lexes any other text without failing.
 
 The module imports Pygments and nothing from ``prov``, so it can be submitted to Pygments
-with the import guard removed. It carries its own copies of the name character classes
-and the keyword list, and the test suite pins each copy to its source.
+with the import guard removed. Its patterns use no scoped inline flag such as ``(?s:.)``,
+because Pygments' regexlint cannot parse one. It carries its own copies of the name
+character classes and the keyword list, and the test suite pins each copy to its source.
 """
 
 import re
@@ -156,7 +157,7 @@ class ProvNLexer(RegexLexer):
         "common": [
             include("trivia"),
             (XSD_DATETIME_PATTERN, Literal.Date),
-            (r'"""(?:\\(?s:.)|"(?!"")|[^"\\])*"""', String.Double, "string_tail"),
+            (r'"""(?:\\[\s\S]|"(?!"")|[^"\\])*"""', String.Double, "string_tail"),
             # An unterminated string or quoted name runs to the end of its line, a
             # long string to the end of the text, and an IRI to the first character
             # in \x00-\x20 (a space included), so a bad file lexes in linear time.
