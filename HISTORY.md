@@ -1,6 +1,6 @@
 # History
 
-## 3.3.0 (2026-11-09)
+## 3.3.0 (2026-11-08)
 
 3.3.0 is a minor release that rejects the input 3.2.3 warned about with
 `ProvFutureRejectionWarning`, requires Python 3.11, and adds a Pygments lexer for PROV-N
