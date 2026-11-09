@@ -156,6 +156,30 @@ define the magic yourself:
 c.HighlightMagicsPreprocessor.languages = {"%%provn": "provn"}
 ```
 
+The LaTeX package minted also highlights through Pygments, but it finds a lexer from a
+plugin such as `prov` only through a `latexminted` installed with pip beside it, not the
+one a TeX distribution ships. Install both in a virtual environment and compile with that
+environment active, so that its `latexminted` comes first on `PATH`:
+
+```bash
+python -m pip install latexminted prov
+```
+
+A `minted` environment then names the lexer:
+
+```latex
+\begin{minted}{provn}
+document
+  prefix ex <http://example.org/>
+  entity(ex:report)
+endDocument
+\end{minted}
+```
+
+Overleaf installs no Python packages, so it highlights PROV-N only once the Pygments that
+its minted bundles includes the lexer, which a
+[Pygments pull request](https://github.com/pygments/pygments/pull/3478) proposes.
+
 ## Edge cases
 
 ### Write strictly conformant output
