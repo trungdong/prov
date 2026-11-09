@@ -23,10 +23,8 @@ only if a breaking API change accrues; none is queued.
 - **Python versions.** `prov` supports every CPython version that has not reached end of
   life and drops a version in the first release after its EOL. Python 3.10 reached EOL on
   2026-10-31, so the 3.2.x line is the last with a 3.10 floor and 3.3.0 raised it to 3.11.
-- **2.x.** Security fixes only, on the `2.x` branch; the latest is
-  [2.5.4](https://github.com/trungdong/prov/releases/tag/2.5.4) (2026-11-08). Its public
-  API stayed stable throughout the series: every documented name importable from its
-  historic location, and no behaviour-changing bug fixes.
+- **2.x.** Security fixes only, on the `2.x` branch. [SECURITY.md](SECURITY.md) gives
+  the policy for each release line.
 - **3.0.** The one release that changed the public API. The
   [Upgrading to 3.0](docs/upgrading-3.0.md) guide lists every change and what to do
   about it.
