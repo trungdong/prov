@@ -156,7 +156,7 @@ class ProvNLexer(RegexLexer):
         "common": [
             include("trivia"),
             (XSD_DATETIME_PATTERN, Literal.Date),
-            (r'"""(?:\\(?s:.)|"(?!"")|[^"\\])*"""', String.Double, "string_tail"),
+            (r'"""(?:\\[\s\S]|"(?!"")|[^"\\])*"""', String.Double, "string_tail"),
             # An unterminated string or quoted name runs to the end of its line, a
             # long string to the end of the text, and an IRI to the first character
             # in \x00-\x20 (a space included), so a bad file lexes in linear time.
