@@ -1,6 +1,6 @@
 # History
 
-## 2.5.4 (2026-11-09)
+## 2.5.4 (2026-11-08)
 
 - Security: the PROV-O reader raises `ProvException` for a relation that
   repeats a formal attribute, so write one relation per value. 2.5.3 read one
