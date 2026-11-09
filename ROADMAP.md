@@ -24,7 +24,7 @@ only if a breaking API change accrues; none is queued.
   life and drops a version in the first release after its EOL. Python 3.10 reached EOL on
   2026-10-31, so the 3.2.x line is the last with a 3.10 floor and 3.3.0 raised it to 3.11.
 - **2.x.** Security fixes only, on the `2.x` branch; the latest is
-  [2.5.3](https://github.com/trungdong/prov/releases/tag/2.5.3) (2026-08-08). Its public
+  [2.5.4](https://github.com/trungdong/prov/releases/tag/2.5.4) (2026-11-08). Its public
   API stayed stable throughout the series: every documented name importable from its
   historic location, and no behaviour-changing bug fixes.
 - **3.0.** The one release that changed the public API. The
@@ -35,7 +35,7 @@ only if a breaking API change accrues; none is queued.
 
 | Version | Date | Theme |
 |---|---|---|
-| [3.3.0](https://github.com/trungdong/prov/releases/tag/3.3.0) | 2026-11-09 | Polish: the input 3.2.3 warned about is rejected, with the [Upgrading to prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html) guide; literals compared by value; bundles that declare only their own namespaces; wrapped PROV-N output; a Pygments lexer for PROV-N; format detection and reader and writer options in `prov-convert` and `prov-compare`; **Python 3.10 dropped** |
+| [3.3.0](https://github.com/trungdong/prov/releases/tag/3.3.0) | 2026-11-08 | Polish: the input 3.2.3 warned about is rejected, with the [Upgrading to prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html) guide; literals compared by value; bundles that declare only their own namespaces; wrapped PROV-N output; a Pygments lexer for PROV-N; format detection and reader and writer options in `prov-convert` and `prov-compare`; **Python 3.10 dropped** |
 | [3.2.3](https://github.com/trungdong/prov/releases/tag/3.2.3) | 2026-10-19 | Point release: `ProvFutureRejectionWarning` for input that 3.3.0 rejects or reads differently, with the [Prepare for prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html) guide; PROV-N, PROV-JSON and PROV-JSONLD reader and writer fixes; Python 3.15 support |
 | [3.2.2](https://github.com/trungdong/prov/releases/tag/3.2.2) | 2026-09-18 | Point release: attribute arguments type-check for callers under strict mypy and pyright ([#474](https://github.com/trungdong/prov/issues/474)); `add_attributes` accepts a generator; non-`dict` mappings are read through `items()` |
 | [3.2.1](https://github.com/trungdong/prov/releases/tag/3.2.1) | 2026-09-13 | Point release: PROV-N parser corrections from a by-eye verification against ProvToolbox and PLEAD documents; `argparse.FileType` removed from the CLI |
