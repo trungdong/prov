@@ -131,6 +131,10 @@ docs = [
 # keep it lifted only if mypy stays green.
 constraint-dependencies = ["numpy<2.5"]
 
+[tool.uv.dependency-groups]
+# Keeps a vulnerable soupsieve 2.x out of uv.lock; docs/dependencies.md explains.
+docs = { requires-python = ">=3.11.5" }
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"
