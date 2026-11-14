@@ -126,11 +126,11 @@ constraint, lift it, run `uv run mypy src`, and keep the lift only if mypy stays
 That becomes possible once numpy gates the new syntax on `python_version` or this
 project's mypy floor rises to 3.12.
 
-## `[tool.uv]` environments
+## The `docs` group's Python floor
 
-`python_full_version >= '3.11.5'`. The lock file resolves only for these interpreters, so
-`uv sync` fails on Python 3.11.0 to 3.11.4. `soupsieve` arrives in the `docs` group through
-`furo` and `beautifulsoup4`. Its 4.x line fixes advisories that affect 2.x, and it needs
-Python 3.11.5. Without this setting, uv keeps a vulnerable 2.x in the lock file for the
-older 3.11 patch releases. `requires-python` stays `>=3.11`, so installing `prov` is
-unaffected. Remove the setting when `requires-python` reaches 3.12.
+The `docs` group needs Python 3.11.5 or later (`[tool.uv.dependency-groups]`), so
+`uv sync --group docs` fails on Python 3.11.0 to 3.11.4. `soupsieve` arrives in the group
+through `furo` and `beautifulsoup4`, and only its 4.x line, which needs Python 3.11.5, fixes
+the advisories against 2.x. Without the floor, uv keeps a vulnerable 2.x in the lock file
+for the older 3.11 patch releases. The other groups and `requires-python` keep `>=3.11`.
+Remove the floor when `requires-python` reaches 3.12.
