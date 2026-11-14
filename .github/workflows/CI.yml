@@ -136,8 +136,16 @@ jobs:
     # `-W error::DeprecationWarning:prov` escapes and anchors the module
     # field, so it matches only warnings raised in prov/__init__.py and is a
     # silent no-op for every submodule. The ini-style path treats the module
-    # field as a regular expression, so `prov` matches every submodule. It
-    # is not added to pyproject.toml because rdflib's warning surface is not
+    # field as a regular expression, so `prov` matches every submodule.
+    #
+    # The regular expression is anchored at the end. pytest.warns re-emits
+    # an unmatched warning without a module name, and Python 3.15 then tries
+    # the pattern at every dotted segment of the file path. A bare `prov`
+    # matches the checkout directory in rdflib's path
+    # (`...work.prov.prov..venv...rdflib.graph`) and turns rdflib's own
+    # deprecations into failures. `prov(\.\w+)*\Z` matches only a path or
+    # module name that ends in a prov module. The filter is
+    # not added to pyproject.toml because rdflib's warning surface is not
     # a stability contract and must not redden every contributor's run.
     name: own-warnings guard (non-blocking)
     runs-on: ubuntu-latest
@@ -154,7 +162,7 @@ jobs:
           HYPOTHESIS_PROFILE: ci
         run: |
           uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
-          uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
+          uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov(\\.\\w+)*\\Z\nerror::PendingDeprecationWarning:prov(\\.\\w+)*\\Z\nerror::FutureWarning:prov(\\.\\w+)*\\Z'
 
   benchmark:
     # Non-blocking regression check. benchmarks/ab.py times the first parent
