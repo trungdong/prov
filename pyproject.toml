@@ -131,6 +131,12 @@ docs = [
 # keep it lifted only if mypy stays green.
 constraint-dependencies = ["numpy<2.5"]
 
+# soupsieve 4, which fixes advisories in 2.x, needs Python 3.11.5. Locking only
+# for 3.11.5 and later keeps a vulnerable 2.x out of uv.lock. Users are not
+# affected: requires-python stays >=3.11. Remove this once requires-python
+# reaches 3.12.
+environments = ["python_full_version >= '3.11.5'"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"
