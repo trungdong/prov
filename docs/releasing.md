@@ -53,8 +53,12 @@ Then the checks only a release runs:
 ```bash
 # prov must raise no DeprecationWarning, PendingDeprecationWarning or FutureWarning
 # of its own; the ini-style filter is deliberate, the -W form silently
-# ignores submodules
-uv run --python 3.15 --extra rdf --extra xml --extra dot --extra graph pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
+# ignores submodules; CI.yml's own-warnings job explains the anchored pattern
+m='prov(\.\w+)*\Z'
+uv run --python 3.15 --extra rdf --extra xml --extra dot --extra graph pytest -q -o "filterwarnings=
+error::DeprecationWarning:$m
+error::PendingDeprecationWarning:$m
+error::FutureWarning:$m"
 
 # Speed against the previous release, on one machine; advisory, but a release should
 # not ship an unexplained regression. The per-change CI job compares each change with
