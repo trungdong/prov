@@ -8,6 +8,10 @@
   under two keys, such as `prov:activity` and `p:activity` with `p` bound to the PROV
   namespace, where 3.3.0 kept the last value without a message
   ([#774](https://github.com/trungdong/prov/issues/774))
+- The PROV-JSONLD reader reads statement types and formal attributes only under their bare
+  terms, and any `prefix:local` key, `prov:` included, as a qualified name with an array of
+  values, where 3.3.0 also read `prov:Entity` and `prov:activity` as the bare terms
+  ([#783](https://github.com/trungdong/prov/issues/783))
 
 ### Fixes
 

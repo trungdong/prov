@@ -468,18 +468,6 @@ def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> No
         raise ProvJSONLDException(f"prefix {prefix!r}, IRI {value!r}: {exc}") from exc
 
 
-def _strip_prov_prefix(term: str) -> str:
-    """Return ``term`` with a leading ``"prov:"`` (ProvToolbox spelling) removed.
-
-    Args:
-        term: The JSON-LD term to strip.
-
-    Returns:
-        ``term`` without its ``"prov:"`` prefix, or unchanged if it has none.
-    """
-    return term[5:] if term.startswith("prov:") else term
-
-
 def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     """Return the ``"@id"`` text of a ``{"@id": ...}`` node reference.
 
@@ -529,9 +517,8 @@ def decode_jsonld_value(
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
             reference or a ``{"@value": ..., ...}`` value object.
         bundle: Bundle used to resolve an IRI or a datatype.
-        term: The unprefixed JSON-LD term ``value`` was read from (e.g.
-            ``"type"``, ``"ex:price"``), used to decide how a bare string is
-            interpreted.
+        term: The key ``value`` was read from, as written (e.g. ``"type"``,
+            ``"ex:price"``), used to decide how a bare string is interpreted.
         attr: The attribute ``value`` belongs to, named in the model's error
             and in the warning.
         record: The statement's ``"@id"`` as written, or a description of the
@@ -636,13 +623,12 @@ def _decode_statement_type(item: dict[str, Any]) -> tuple[QualifiedName, str]:
         raise ProvJSONLDException(
             f'Every @graph statement needs a string "@type"; found {item!r}'
         )
-    stripped_type = _strip_prov_prefix(type_term)
-    rec_type = JSONLD_TYPE_TERMS.get(stripped_type)
+    rec_type = JSONLD_TYPE_TERMS.get(type_term)
     if rec_type is None:
         hint = " (the submission defines no Mention term)"
         raise ProvJSONLDException(
             f"{type_term!r} is not a PROV-JSONLD statement type"
-            + (hint if stripped_type == "Mention" else "")
+            + (hint if type_term == "Mention" else "")
         )
     return rec_type, type_term
 
@@ -686,7 +672,7 @@ def _decode_statement_attributes(
     for key, value in item.items():
         if key in ("@type", "@id"):
             continue
-        attr = formal_by_term.get(_strip_prov_prefix(key))
+        attr = formal_by_term.get(key)
         if attr is not None and not isinstance(value, list):
             if attr in PROV_ATTRIBUTE_LITERALS:
                 attributes[attr] = _decode_formal_time(value, key)
@@ -705,15 +691,13 @@ def _decode_statement_attributes(
                 f"The formal attribute {key!r} takes a single value, not an "
                 f"array; found {value!r}"
             )
-        stripped = _strip_prov_prefix(key)
-        term = stripped if stripped in SPECIAL_TERM_ATTRS else key
-        qname = SPECIAL_TERM_ATTRS.get(term) or bundle.mandatory_valid_qname(key)
+        qname = SPECIAL_TERM_ATTRS.get(key) or bundle.mandatory_valid_qname(key)
         if not isinstance(value, list):
             raise ProvJSONLDException(
                 f"The attribute {key!r} must be an array of values; found {value!r}"
             )
         other_attributes.extend(
-            (qname, decode_jsonld_value(v, bundle, term, attr=qname, record=record))
+            (qname, decode_jsonld_value(v, bundle, key, attr=qname, record=record))
             for v in value
         )
     return attributes, other_attributes, members
@@ -826,9 +810,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
     for item in graph:
         item = _expect_object(item, "A @graph statement")
         type_term = item.get("@type")
-        is_bundle = (
-            isinstance(type_term, str) and _strip_prov_prefix(type_term) == "Bundle"
-        )
+        is_bundle = isinstance(type_term, str) and type_term == "Bundle"
         if not is_bundle:
             decode_jsonld_statement(item, document)
             continue

@@ -9,7 +9,6 @@ decoder can read other implementations' output, not just its own.
 | File                              | Source                                                                                      | Retrieved  |
 |------------------------------------|-----------------------------------------------------------------------------------------------|------------|
 | `submission-example-3.jsonld`      | Example 1, §3 of <https://www.w3.org/submissions/prov-jsonld/> (the W3C member submission)    | 2026-08-07 |
-| `provtoolbox-mini-primer.jsonld`   | ProvToolbox `modules-core/prov-jsonld/src/test/resources/mini-primer.jsonld` @ `a145a9e`      | 2026-08-07 |
 | `provtoolbox-node-reference.jsonld` | ProvToolbox `modules-core/prov-jsonld/src/test/resources/prov-jsonld-7/node-reference.jsonld` @ `21a37e0` | 2026-10-16 |
 | `provtoolbox-string.jsonld` | ProvToolbox `modules-core/prov-jsonld/src/test/resources/prov-jsonld-7/string.jsonld` @ `21a37e0` | 2026-10-16 |
 | `provtoolbox-string-with-colon.jsonld` | ProvToolbox `modules-core/prov-jsonld/src/test/resources/prov-jsonld-7/string-with-colon.jsonld` @ `21a37e0` | 2026-10-16 |
@@ -18,16 +17,6 @@ decoder can read other implementations' output, not just its own.
 Primer's "Derek's article" scenario in the submission's compacted shape (bare
 `@type` and term names such as `"Entity"` and `"generatedEntity"`, resolved
 against the context URL `https://openprovenance.org/prov-jsonld/context.jsonld`).
-
-`provtoolbox-mini-primer.jsonld` is the same scenario in ProvToolbox's older
-`prov:`-prefixed dialect (`"@type": "prov:Entity"`, and a context URL of
-`http://openprovenance.org/prov-jsonld.json`). The decoder reads that spelling
-by design (`_strip_prov_prefix` in `src/prov/serializers/provjsonld.py`). The
-file differs from the submission example in `ex:derek`'s `foaf:mbox`, an empty
-plain string (`{"@value": ""}`) in the upstream file, which the test's expected
-document reproduces. It also carries a trailing tab on its `"@language" : "EN"`
-line, kept so the file stays byte-identical to upstream, which is why
-`.pre-commit-config.yaml` excludes this directory from the whitespace hooks.
 
 The three `provtoolbox-*` fixtures from `prov-jsonld-7/` are copied verbatim from
 ProvToolbox at commit `21a37e0` (tagged `ProvToolbox-2.2.5`). They pin the
@@ -47,7 +36,7 @@ node reference, `{"@id": "ex:shed"}`. `provtoolbox-string.jsonld` holds
 World Wide Web Consortium (MIT, ERCIM, Keio, Beihang) and included unmodified
 for the sole purpose of interop testing in this project's test suite.
 
-`provtoolbox-mini-primer.jsonld` and the three `prov-jsonld-7/` fixtures are
+The three `prov-jsonld-7/` fixtures are
 redistributed from ProvToolbox
 (<https://github.com/trungdong/ProvToolbox>), an MIT-licensed project
 (copyright King's College London and the University of Southampton),

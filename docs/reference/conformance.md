@@ -211,7 +211,10 @@ one of the statement's own arguments are errors.
   registers all three on the document or bundle whose context references it, so they are
   among its namespaces in every format it is written to. A document's own declaration of one
   wins.
-- ProvToolbox's `prov:`-prefixed spellings of the type and special terms are accepted.
+- A statement type and a formal attribute are read under their bare terms only, as the
+  schema defines them. Any `prefix:local` key, `prov:` included, is a qualified name whose
+  value is an array. When that name is a formal attribute of the statement, the model reads
+  it as that attribute, keeping one of two equal values and rejecting two different ones.
 - An array-valued `entity` on a `Membership` statement, which the submission (section 4.18)
   allows and ProvToolbox always writes, decodes to one `hadMember` per member, each with
   the statement's `@id` and attributes; an empty array raises `ProvJSONLDException`.
