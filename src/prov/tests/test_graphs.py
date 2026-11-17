@@ -60,6 +60,21 @@ def test_round_trip_of_a_graph_of_inferred_endpoints_under_a_default() -> None:
     assert result == document.unified()
 
 
+@pytest.mark.parametrize(
+    ("make_argument", "type_name"),
+    [
+        (lambda document: document.bundle("ex:b"), "ProvBundle"),
+        (lambda _: None, "NoneType"),
+    ],
+    ids=["bundle", "none"],
+)
+def test_prov_to_graph_rejects_anything_but_a_document(
+    document, make_argument, type_name
+) -> None:
+    with pytest.raises(TypeError, match=f"must be a ProvDocument, not {type_name}$"):
+        prov_to_graph(make_argument(document))
+
+
 def test_relation_with_missing_end_is_skipped_with_warning(document) -> None:
     # A generation record with no activity: one endpoint is None, so the
     # relation cannot become an edge. The drop is reported, not silent.

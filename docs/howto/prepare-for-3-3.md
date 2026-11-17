@@ -392,7 +392,7 @@ cannot detect it, and passing `format=` reads it with the warnings.
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the bundle belongs to another document; a bundle is not moved between documents` | [#649](https://github.com/trungdong/prov/pull/649) | `d2.add_bundle(d1.bundle("ex:b"))` | Build the bundle in its target document, or `update()` a fresh bundle of the target document from it. `update()` registers every prefixed namespace by itself. A bundle whose bare names use a default namespace needs that default declared first, on the target document or on the fresh bundle, where it was declared in the source. {doc}`graphics` shows this in its "Draw one bundle" section. |
-| `'ProvBundle' object has no attribute 'flattened'` | [#651](https://github.com/trungdong/prov/issues/651) | `prov_to_graph(document.bundle("ex:b"))` | The document, or a document of the bundle's own, copied as {doc}`graphics` shows in its "Draw one bundle" section. |
+| `prov_to_graph() argument must be a ProvDocument, not ProvBundle` (3.3.0: `'ProvBundle' object has no attribute 'flattened'`) | [#651](https://github.com/trungdong/prov/issues/651) | `prov_to_graph(document.bundle("ex:b"))` | The document, or a document of the bundle's own, copied as {doc}`graphics` shows in its "Draw one bundle" section. |
 
 3.2.3 drew a bundle passed to `prov_to_graph()` as a graph of its records.
 

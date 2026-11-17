@@ -100,6 +100,8 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
         relations as edges.
 
     Raises:
+        TypeError: If ``prov_document`` is not a
+            :class:`~prov.model.ProvDocument`.
         ProvUnificationError: Propagated, unhandled, from
             :meth:`~prov.model.ProvDocument.unified`, when records that
             share an identifier, in the document or across its bundles,
@@ -111,6 +113,11 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
             element type cannot be inferred (its attribute has no
             :data:`INFERRED_ELEMENT_CLASS` entry).
     """
+    if not isinstance(prov_document, ProvDocument):
+        raise TypeError(
+            "prov_to_graph() argument must be a ProvDocument, "
+            f"not {type(prov_document).__name__}"
+        )
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.flattened().unified()
     node_map: dict[QualifiedName | None, ProvRecord] = {}
