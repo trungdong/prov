@@ -1,0 +1,137 @@
+# Test-suite audit rubric
+
+The audit asks one question of each test function in `src/prov/tests/`. Does the test earn its place, or is it there only because it was there before?
+
+The unit is the test function. A parametrised test is one unit, and each of its parameter axes is a separate question. `README.md` in this folder describes how an audit runs. This file holds the rules every layer of the audit follows.
+
+## The two checks
+
+A test stays as it is when it passes both checks.
+
+1. **Reason.** The test pins a contract that someone can name. A contract is one of these:
+   - a row on `docs/reference/conformance.md` or a rule of a PROV specification;
+   - a promise of the public API (a documented behaviour, an exception class, a frozen name);
+   - a tracked issue or advisory whose fix the test guards;
+   - a compatibility fixture (for example, files written by an earlier release);
+   - a settled ruling recorded in a spec under `planning/specs/`.
+2. **Unique job.** A fault exists that this test catches and no other test catches. Name the fault in one clause.
+
+## Verdicts
+
+| Verdict | When to give it |
+|---|---|
+| `keep` | The test passes both checks. |
+| `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`). Every input and every assertion stays. |
+| `narrow` | The test is sound, but one parameter axis or several rows do not change the behaviour under test. Name the axis or the rows. |
+| `delete` | Another named test fails whenever this test fails. Name that test. |
+| `rewrite` | The test pins an incidental detail (exact message wording that no document promises, a private attribute, an internal call order) and not the contract, or it passes with and without the code it guards. Say what the assertion misses. The audit records it and does not act on it. |
+| `query` | The test does a unique job, but no contract can be found, or the code it reaches is unreachable through the public API. The maintainer names the contract, or the test and its code go together in a separate change. |
+| `protected` | The test is in a protected class below. Do not judge it. |
+
+Give `delete` only when you can name the test that takes over the job. When in doubt between `delete` and `merge`, give `merge`. When in doubt between `merge` and `keep`, give `keep` with confidence `low`.
+
+## Protected classes
+
+Do not propose a change to these. Mark them `protected`.
+
+- A test that asserts a known-lossy raise or skip: the PROV-O gap and the PROV-JSONLD Mention gap (C1 and C2 on the conformance page), `SCRUFFY_TARGETS`, `MENTION_TARGETS`.
+- Every test in `test_public_api.py`.
+- `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind` and any test that pins the serializer registry order.
+- `test_written_by_3_2_3.py` and `fixtures/written-by-3.2.3/`.
+- The order and the content of `ATTRIBUTE_VALUES` in `attribute_values.py`, and of `examples.py`.
+- `strategies.py` and `test_property_roundtrip.py`.
+
+## Rules for reading the evidence
+
+- Coverage shows that a line ran. It does not show that a test checked the result. A test whose arcs sit inside another test's arcs is a candidate, and you must still read both tests. Most of the suite's test functions cover no arc of their own.
+- The round-trip tests and the Hypothesis property test run most of the package. They are never, on coverage alone, the test that takes over the job of a specific test. A specific test names its behaviour and gives a clear failure, and that has value.
+- An issue reference in `provenance.tsv` is a lead. It counts as a Reason only when the test's own text, its first commit or the issue itself describes the test's input.
+- A test that guards a tracked issue keeps its place unless a sibling guards the same issue with an assertion at least as strict.
+- Two tests that reach the same code through different public entry points (for example a reader and the CLI) are not duplicates.
+- An error-path test is a duplicate only when the sibling raises from the same statement for the same cause.
+
+## Rules for each verdict
+
+1. **A contract reached through a private name.** When the behaviour is a real contract and the test reaches it through a private function or class, give `keep` and name the private name in Note. Give `rewrite` only when the thing pinned is itself incidental.
+2. **How close a takeover test must be.** A takeover test must give the code the same input shape as the candidate. These differences can hide a fault, so they block `delete` and block dropping a row: which attribute holds the value, a list against a single value, the list length, the order of items, the depth of a repeated key, a second key beside the first.
+3. **When a row may go.** A row may go only when it differs from a kept row in the record type or the section name alone, and the source has no branch on that name between the entry point and the statement under test. A row with its own message format, its own branch or its own input shape stays.
+4. **When separate functions merge.** Functions merge into one parametrised test when their bodies are the same apart from the input values and the expected values. The merged body has no branch on a parameter. Every input and every assertion of the originals stays, in its original form. When a merge needs a branch, the verdict is `keep`.
+5. **A merge must be better, not only shorter.** A reader finds the behaviour as quickly as before, a failure still names the case that broke, and the merged function does not mix behaviours that deserve their own names. A merge that saves lines and hides intent is a `keep`.
+6. **Tests that assert only "does not raise".** Give `keep` when the test sits beside a rejecting rule and guards against over-rejection. Name the rule in Reason.
+7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit does not move tests.
+8. **No removal without an attempted refutation.** A `delete`, a `merge` or a dropped row goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
+
+## Ledger row
+
+The classifier writes one row for each test function, in file order.
+
+| Column | Content |
+|---|---|
+| Test | The function name |
+| Items | The number of collected items |
+| Pins | The behaviour the test pins, in one sentence |
+| Reason | The contract and its source (issue number, conformance row, spec section, docs page), or `none found` |
+| Sibling | The nearest test that covers similar ground, as `module::function`, or `-` |
+| Verdict | One verdict from the table above |
+| Confidence | `high`, `medium` or `low` |
+| Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. Otherwise empty |
+
+## The layers of judgement
+
+Each module passes through these layers in order. A later layer reads everything the earlier layers wrote.
+
+| Layer | Who | What it produces |
+|---|---|---|
+| 1. Evidence | Scripts | `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv` for the whole suite |
+| 2. Classifier | Sonnet agent | The ledger: one verdict for each test function, and a proposal for each `merge`, `narrow` and `delete` |
+| 3. Verifier | Sonnet agent in its own worktree | For each `delete` and each dropped row, the faults planted and whether the suite without the candidate catches them. For each `merge`, the merged test built as a patch, with proof that its inputs, assertions and covered arcs equal those of the originals |
+| 4. Coverage and mutation check | Sonnet agent with coverage contexts and mutmut | For the proposals the verifier did not refute: the arcs in `src/prov` that only the candidates cover (there must be none), and whether any detected mutant becomes undetected (items deselected for a removal, the patch applied for a merge) |
+| 5. Judge | Opus agent, read-only | The final list, with a ruling and a recorded reason for every proposal |
+| 6. Maintainer | The maintainer | Accepts or amends the judge's list. Nothing changes in the suite before this |
+| 7. Register | Script and a Sonnet agent | One row for each test function of the module in `register/`, with the ruling, the reason and a fingerprint |
+
+Rules for the judge:
+
+- The judge rules on every proposal the classifier made, including the ones the verifier refuted. Each ruling comes with one reason a later reader can check against the code.
+- The judge reads the tests and the source itself. It does not take the classifier's or the verifier's description as fact.
+- A removal needs all four of these. The verifier found no plausible separating fault. The candidates cover no arc of their own. The mutation check found no newly undetected mutant. The judge can name the test or the rows that keep the behaviour pinned.
+- A merge needs all three of these. The verifier found no lost input or assertion. The mutation check found no mutant that changed status. The judge confirms rules 4 and 5 from the patch.
+- When the verifier called a separating fault contrived, the judge decides whether it is.
+- The judge may keep a test that every earlier layer cleared, for example because an issue or a document promises exactly that input. It gives the source.
+- The judge may flag a `keep` it doubts. It does not add a removal that has not been through the verifier.
+- When in doubt, the judge rules `keep`.
+
+## The register
+
+`register/<module>.tsv` holds the standing ruling for each test function, so that a later audit judges only the tests that are new or changed.
+
+| Column | Content |
+|---|---|
+| `function` | The test function |
+| `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed` |
+| `ruled_by` | The highest layer that examined the test: `classifier`, `verifier`, `judge` or `maintainer` |
+| `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
+| `audit_commit` | The commit the ruling was made against |
+| `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
+| `reason` | The contract the test pins and the fault only it catches |
+
+Rules for a register row:
+
+- Write the reason for a reader who has not seen the ledger. Say what the test pins, and what would go unnoticed without it.
+- Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists. A reader can then follow the reason to its source.
+- When the reason depends on how the code is written, name the function or the class in backticks, for example `_decode_time`. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed.
+- A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
+- A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
+- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it.
+
+`scripts/register.py check` sorts every test function into one of these groups.
+
+| Group | Meaning | What a later audit does |
+|---|---|---|
+| Unchanged | The fingerprint matches and no named definition changed | Nothing. The ruling stands |
+| Changed | The fingerprint differs | The test goes through the layers again |
+| New | The function has no row | The test goes through the layers |
+| Source moved | The fingerprint matches, but a definition the reason names changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? |
+| Gone | A row has no function and its ruling is not `removed` | Mark the row `removed` with the reason, or delete it when the test was renamed |
+
+A new test that duplicates an old one is the test that fails the unique-job check, so an old ruling is not reopened because a test was added.

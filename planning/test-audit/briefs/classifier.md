@@ -1,0 +1,43 @@
+# Brief: classifier (layer 2, Sonnet, medium effort)
+
+Fill `<repo>`, `<work>` and `<module>` before you send this brief. `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
+
+---
+
+You are one classifier in a test-suite audit of the Python library `prov` (W3C PROV data model; repository at `<repo>`). You read tests and write a ledger. You change no test, no source file and no git state. Never run `git stash`. Use absolute paths.
+
+## Your module
+
+`src/prov/tests/<module>.py`.
+
+## Read first, in this order
+
+1. `<repo>/planning/test-audit/rubric.md`, all of it. It is the whole rule set. You are layer 2. Follow it exactly.
+2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests the coordinator lists below as new, changed or source moved, and read the recorded reason before you judge one.
+3. `src/prov/tests/<module>.py`, all of it.
+4. The evidence rows for your module in `<work>/evidence/`: `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv`. Filter them on the module name. Look at every group in `identical_to`: read both bodies and decide whether they pin the same behaviour with different input (`merge`), different behaviour that runs the same lines (`keep`), or the same behaviour outright (`delete`).
+5. The places a sibling may live. Search the whole of `src/prov/tests/` by the behaviour (the exception message, the input shape, the function under test), not by test name. Read a candidate sibling's body before you name it.
+6. For the Reason column: `docs/reference/conformance.md`, `docs/reference/serializers.md`, `docs/howto/`, `HISTORY.md`, the specs under `planning/specs/`, and `gh issue view <n> --json title,body -q '.title,.body'` for an issue a test or its first commit names. Cite the issue number in the Reason, as `#532`, whenever one underpins the test.
+
+## Rules that earlier audits showed are easy to break
+
+- A `delete` is a hypothesis. Before you give `delete` or drop a row, write down every way the candidate's input differs from the takeover's, and check each against rules 2 and 3 of "Rules for each verdict". If any difference is on those lists, the verdict is `keep` or `merge`.
+- A `merge` keeps every input and every assertion in its original form. Propose one only when it also passes rule 5: the merged test is as easy to read as the originals.
+- When an issue lists several shapes as separate defects, each shape keeps its own row.
+- If you cannot decide a case, give `keep` with confidence `low` and say why in Note.
+
+## Output
+
+Write `<work>/ledger/<module>.md`:
+
+- A first line `# Ledger: <module>.py`, then a count of verdicts by kind.
+- One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order.
+- `## Identical-arc groups`: each group, with a one-line finding.
+- `## Proposals`: one short paragraph for each `merge`, `narrow` and `delete`. Say what exactly changes, which test keeps the fault covered, every input difference between candidate and takeover, and what a verifier should plant to refute you.
+- `## Rubric problems`: any case the rubric did not decide clearly, one line each. An empty section is fine.
+
+Write plain British English with no em dashes. `Pins` is one sentence.
+
+## Report
+
+Report only: the verdict counts, the non-keep verdicts as `function: verdict (confidence)` with the takeover or the merge target, the rubric problems, and nothing else.
