@@ -1281,6 +1281,28 @@ def test_alternate_triple_follows_dm_argument_order() -> None:
     assert triples.index("alt1>") < triples.index("alt2>")
 
 
+def test_an_identified_alternate_keeps_its_parties_and_drops_its_identifier() -> None:
+    # PROV-O has no qualified form for alternateOf, so the parties survive and
+    # the identifier does not (#759).
+    document = ex_document()
+    document.new_record(
+        PROV["Alternate"],
+        "ex:a1",
+        {PROV["alternate1"]: "ex:x", PROV["alternate2"]: "ex:y"},
+    )
+    expected = ex_document()
+    expected.alternate("ex:x", "ex:y")
+
+    with pytest.warns(pm.ProvWarning, match="drops the identifier ex:a1"):
+        written = document.serialize(format="rdf", rdf_format="nt11")
+
+    assert "a1>" not in written
+    assert (
+        ProvDocument.deserialize(content=written, format="rdf", rdf_format="nt11")
+        == expected
+    )
+
+
 def test_decode_qualified_start_started_at_time_lands_in_formal_time() -> None:
     # #299: some PROV-O producers put the time on a qualified prov:Start
     # node using the binary prov:startedAtTime predicate (which prov's own
