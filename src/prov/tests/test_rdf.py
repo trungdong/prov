@@ -1293,7 +1293,14 @@ def test_an_identified_alternate_keeps_its_parties_and_drops_its_identifier() ->
     expected = ex_document()
     expected.alternate("ex:x", "ex:y")
 
-    assert roundtrip_document(document, "rdf") == expected
+    with pytest.warns(pm.ProvWarning, match="drops the identifier ex:a1"):
+        written = document.serialize(format="rdf", rdf_format="nt11")
+
+    assert "a1>" not in written
+    assert (
+        ProvDocument.deserialize(content=written, format="rdf", rdf_format="nt11")
+        == expected
+    )
 
 
 def test_decode_qualified_start_started_at_time_lands_in_formal_time() -> None:

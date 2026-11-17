@@ -91,8 +91,9 @@ bare in the document's default, or a rebinding of the identifier's prefix, is re
 | Mention (PROV-Links) | {py:class}`~prov.model.ProvMention`, a {py:class}`~prov.model.ProvSpecialization` | `mention()` / `mentionOf()` | `mentionOf`, or `prov:mentionOf` with `strict=True` | ✓ | ✓ | ✓ | ✗ C2 |
 
 `alternate(a, b)` is written as the triple `a prov:alternateOf b`, PROV-DM's argument order.
-PROV-O has no qualified form for `alternateOf`, so the RDF writer drops the identifier of
-an `alternateOf` that has one, as a strict PROV-N write does.
+PROV-O has no qualified form for `alternateOf`, so the RDF writer drops its identifier with
+a {py:class}`~prov.model.ProvWarning`, as a strict PROV-N write does, and drops its extra
+attributes.
 
 ## Component 6: Collections
 

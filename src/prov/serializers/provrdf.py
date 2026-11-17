@@ -210,6 +210,11 @@ _QUALIFIED_ONLY_RELATIONS = frozenset(
     }
 )
 
+#: Relation types written only as their binary ``subject predicate object``
+#: triple, because PROV-O has no qualified form for them: their identifier and
+#: extra attributes are not written (#759, #712).
+_BINARY_ONLY_RELATIONS = frozenset({PROV_ALTERNATE})
+
 #: ``prov:type`` values that rename a derivation's qualification node, e.g. a
 #: derivation typed ``prov:Revision`` is qualified via ``prov:qualifiedRevision``
 #: and typed ``prov:Revision`` rather than ``prov:Derivation``.
@@ -1117,19 +1122,15 @@ class ProvRDFSerializer(Serializer):
 
         for record in bundle._records:
             rec_type = record.get_type()
-            rec_id: URIRef | None
-            # PROV-O has no qualified form for alternateOf, so an alternateOf
-            # is written as its binary triple and its identifier is dropped
-            # (#759).
-            if (
-                hasattr(record, "identifier")
-                and record.identifier
-                and rec_type != PROV_ALTERNATE
-            ):
+            rec_id: URIRef | None = None
+            if record.identifier and rec_type in _BINARY_ONLY_RELATIONS:
+                warn(
+                    f"PROV-O drops the identifier {record.identifier} of {record},"
+                    " because PROV-O gives it no qualified form"
+                )
+            elif record.identifier:
                 rec_id = URIRef(str(real_or_anon_id(record)))
                 container.add((rec_id, RDF.type, URIRef(rec_type.uri)))
-            else:
-                rec_id = None
             if not record.attributes:
                 continue
             if record.is_relation():
@@ -1274,9 +1275,7 @@ class ProvRDFSerializer(Serializer):
                 used_objects,
                 has_qualifiers,
             )
-        if rec_type in [PROV_ALTERNATE]:
-            # alternateOf emits only its binary triple, so any extra
-            # attributes it carries are dropped.
+        if rec_type in _BINARY_ONLY_RELATIONS:
             return identifier, True
         if subj and (has_qualifiers or identifier):
             return (

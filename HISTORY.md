@@ -14,7 +14,8 @@
   own, where in 3.3.0 a namespace added to the copy also changed how the original resolved
   names ([#747](https://github.com/trungdong/prov/issues/747))
 - The PROV-O writer keeps both parties of an `alternateOf` that has an identifier and drops
-  the identifier, which PROV-O cannot hold, where 3.3.0 wrote neither party
+  the identifier with a `ProvWarning`, because PROV-O cannot hold it, where 3.3.0 wrote
+  neither party
   ([#759](https://github.com/trungdong/prov/issues/759))
 
 ## 3.3.0 (2026-11-08)
