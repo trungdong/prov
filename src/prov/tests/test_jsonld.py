@@ -236,28 +236,6 @@ def _roundtrip(doc: ProvDocument, **kwargs: Any) -> ProvDocument:
     )
 
 
-def test_deserialize_accepts_provtoolbox_prefixed_terms() -> None:
-    text = json.dumps(
-        {
-            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
-            "@graph": [
-                {
-                    "@type": "prov:Entity",
-                    "@id": "ex:e1",
-                    "prov:type": ["prov:Collection"],
-                }
-            ],
-        }
-    )
-    doc = ProvDocument.deserialize(content=text, format="jsonld")
-    expected = ex_document()
-    expected.entity(
-        "ex:e1",
-        (("prov:type", expected.valid_qualified_name("prov:Collection")),),
-    )
-    assert doc == expected
-
-
 #: The namespaces a document referencing the submission context registers (#724).
 _SUBMISSION_NAMESPACES = {
     "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
@@ -546,6 +524,30 @@ def test_roundtrip_context_embed_registers_only_the_submission_prefixes() -> Non
         ({"@context": [], "@graph": [["not-an-object"]]}, "object"),
         ({"@context": [], "@graph": [{"@type": "Frobnication"}]}, "Frobnication"),
         ({"@context": [], "@graph": [{"@type": "Mention"}]}, "Mention"),
+        # #783: a statement type and a formal attribute are bare terms only
+        (
+            {"@context": [], "@graph": [{"@type": "prov:Entity", "@id": "ex:e"}]},
+            "'prov:Entity' is not a PROV-JSONLD statement type",
+        ),
+        (
+            statement_dict(
+                "Generation", "ex:g", entity="ex:e", **{"prov:activity": "ex:a"}
+            ),
+            "The attribute 'prov:activity' must be an array of values",
+        ),
+        (
+            statement_dict(
+                "Generation",
+                "ex:g",
+                entity="ex:e",
+                activity="ex:a",
+                **{"prov:activity": ["ex:b"]},
+            ),
+            re.escape(
+                "prov:Generation 'ex:g': Cannot have more than one value for "
+                "attribute prov:activity"
+            ),
+        ),
         ({"@context": [], "@graph": [{"@type": "Entity"}]}, "@id"),
         (
             statement_dict("Generation", entity=["ex:e1", "ex:e2"]),
@@ -609,6 +611,27 @@ def test_roundtrip_context_embed_registers_only_the_submission_prefixes() -> Non
 def test_deserialize_malformed(payload, match) -> None:
     with pytest.raises(ProvJSONLDException, match=match):
         ProvDocument.deserialize(content=json.dumps(payload), format="jsonld")
+
+
+@pytest.mark.parametrize(
+    "terms",
+    [
+        {"prov:activity": ["ex:a"]},
+        {"activity": "ex:a", "prov:activity": ["ex:a"]},
+    ],
+    ids=["prov key alone", "term and prov key with one value"],
+)
+def test_deserialize_prov_key_is_an_attribute_for_the_model(
+    terms: dict[str, Any],
+) -> None:
+    # #783: a prefix:local key, prov: included, is a qualified name with values.
+    # The model reads prov:activity as the formal activity and keeps one of two
+    # equal values; two different values are its error, in the table above.
+    text = statement_of("Generation", "ex:g", entity="ex:e", **terms)
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    expected = ex_document()
+    expected.generation("ex:e", "ex:a", identifier="ex:g")
+    assert doc == expected
 
 
 def test_deserialize_repeated_key_raises() -> None:
@@ -768,46 +791,6 @@ def _expected_primer_document() -> ProvDocument:
 def test_interop_submission_example() -> None:
     doc = prov.read(FIXTURE_DIR / "submission-example-3.jsonld", format="jsonld")
     assert doc == _expected_primer_document()
-    assert _roundtrip(doc) == doc
-
-
-def _expected_provtoolbox_primer_document() -> ProvDocument:
-    """Build the document ``provtoolbox-mini-primer.jsonld`` is expected to decode to.
-
-    Differs from :func:`_expected_primer_document` in ``ex:derek``'s
-    ``foaf:mbox``: the ProvToolbox fixture (as vendored) carries an empty
-    string there rather than the submission example's mailto value -- see
-    ``src/prov/tests/jsonld/README.md``.
-    """
-    doc = ProvDocument()
-    doc.add_namespace("xsd", "http://www.w3.org/2001/XMLSchema#")
-    doc.add_namespace("dcterms", "http://purl.org/dc/terms/")
-    doc.add_namespace("ex", "http://example/")
-    doc.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
-    doc.entity("ex:dataSet1")
-    doc.entity(
-        "ex:article1",
-        (("dcterms:title", Literal("Crime rises in cities", langtag="EN")),),
-    )
-    doc.wasDerivedFrom("ex:article1", "ex:dataSet1")
-    doc.agent(
-        "ex:derek",
-        (
-            ("foaf:mbox", ""),
-            ("prov:type", doc.valid_qualified_name("prov:Person")),
-            ("foaf:givenName", "Derek"),
-        ),
-    )
-    doc.wasAssociatedWith("ex:compose", "ex:derek")
-    doc.activity("ex:compose")
-    doc.used("ex:compose", "ex:dataSet1")
-    doc.wasGeneratedBy("ex:article1", "ex:compose")
-    return doc
-
-
-def test_interop_provtoolbox_mini_primer() -> None:
-    doc = prov.read(FIXTURE_DIR / "provtoolbox-mini-primer.jsonld", format="jsonld")
-    assert doc == _expected_provtoolbox_primer_document()
     assert _roundtrip(doc) == doc
 
 
@@ -1099,21 +1082,23 @@ def test_deserialize_blank_node_reference_is_dropped_with_a_warning(
 
 
 @pytest.mark.parametrize(
-    ("value", "expected"),
+    ("key", "value", "expected"),
     [
-        pytest.param("_:b1", ["_:b1"], id="bare-attr"),
-        pytest.param({"@value": None}, [], id="null-value"),
+        pytest.param("ex:attr", "_:b1", ["_:b1"], id="bare-attr"),
+        pytest.param("ex:attr", {"@value": None}, [], id="null-value"),
+        # #783: only the bare type term is @id-typed, not the prov:type key
+        pytest.param("prov:type", "ex:T", ["ex:T"], id="prov-type-key"),
     ],
 )
 def test_deserialize_bare_blank_label_stays_text_and_null_value_warns_nothing(
-    value: Any, expected: list[str]
+    key: str, value: Any, expected: list[str]
 ) -> None:
     # A bare string under a non-@id-typed attribute stays text, and a null value
     # object reads as the model reads None: neither is a dropped reference.
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         doc = ProvDocument.deserialize(
-            content=statement_of("Entity", "ex:e1", **{"ex:attr": [value]}),
+            content=statement_of("Entity", "ex:e1", **{key: [value]}),
             format="jsonld",
         )
     (entity,) = doc.get_records()

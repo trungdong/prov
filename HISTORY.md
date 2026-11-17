@@ -8,6 +8,11 @@
   under two keys, such as `prov:activity` and `p:activity` with `p` bound to the PROV
   namespace, where 3.3.0 kept the last value without a message
   ([#774](https://github.com/trungdong/prov/issues/774))
+- The PROV-JSONLD reader takes `"@type"` and a formal attribute's single value only under
+  the bare term, such as `"Entity"` or `"activity"`, and reads any other key as a qualified
+  name whose bare strings stay strings, as
+  [the upgrade guide](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#upgrade-provjsonld)
+  details ([#783](https://github.com/trungdong/prov/issues/783))
 
 ### Fixes
 

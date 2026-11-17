@@ -168,8 +168,8 @@ def encode_jsonld_value(
             ``float``, ``Decimal``, ``date`` or :class:`datetime.datetime`),
             which is written as a typed value object. A value with no form is
             written as its ``str()``.
-        term: The unprefixed JSON-LD term ``value`` is being encoded under
-            (e.g. ``"type"``, ``"ex:price"``), used to decide whether a
+        term: The key ``value`` is being encoded under, as written (e.g.
+            ``"type"``, ``"ex:price"``), used to decide whether a
             :class:`~prov.identifier.QualifiedName` value is emitted as a
             bare string (``@id``-typed terms, see :data:`ID_TYPED_TERMS`) or
             as a ``{"@id": ...}`` node reference.
@@ -468,18 +468,6 @@ def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> No
         raise ProvJSONLDException(f"prefix {prefix!r}, IRI {value!r}: {exc}") from exc
 
 
-def _strip_prov_prefix(term: str) -> str:
-    """Return ``term`` with a leading ``"prov:"`` (ProvToolbox spelling) removed.
-
-    Args:
-        term: The JSON-LD term to strip.
-
-    Returns:
-        ``term`` without its ``"prov:"`` prefix, or unchanged if it has none.
-    """
-    return term[5:] if term.startswith("prov:") else term
-
-
 def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     """Return the ``"@id"`` text of a ``{"@id": ...}`` node reference.
 
@@ -529,9 +517,8 @@ def decode_jsonld_value(
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
             reference or a ``{"@value": ..., ...}`` value object.
         bundle: Bundle used to resolve an IRI or a datatype.
-        term: The unprefixed JSON-LD term ``value`` was read from (e.g.
-            ``"type"``, ``"ex:price"``), used to decide how a bare string is
-            interpreted.
+        term: The key ``value`` was read from, as written (e.g. ``"type"``,
+            ``"ex:price"``), used to decide how a bare string is interpreted.
         attr: The attribute ``value`` belongs to, named in the model's error
             and in the warning.
         record: The statement's ``"@id"`` as written, or a description of the
@@ -616,15 +603,14 @@ def _decode_formal_time(value: Any, key: str) -> datetime.datetime:
     return parsed
 
 
-def _decode_statement_type(item: dict[str, Any]) -> tuple[QualifiedName, str]:
+def _decode_statement_type(item: dict[str, Any]) -> QualifiedName:
     """Resolve a statement object's ``"@type"`` to a PROV record type.
 
     Args:
         item: The statement object (one ``@graph`` entry).
 
     Returns:
-        A ``(record type, the raw "@type" string)`` pair; the raw string is
-        carried through for the messages of later errors about ``item``.
+        The record type, whose local part is the ``"@type"`` term.
 
     Raises:
         ProvJSONLDException: If ``"@type"`` is missing or not a string, or
@@ -636,15 +622,14 @@ def _decode_statement_type(item: dict[str, Any]) -> tuple[QualifiedName, str]:
         raise ProvJSONLDException(
             f'Every @graph statement needs a string "@type"; found {item!r}'
         )
-    stripped_type = _strip_prov_prefix(type_term)
-    rec_type = JSONLD_TYPE_TERMS.get(stripped_type)
+    rec_type = JSONLD_TYPE_TERMS.get(type_term)
     if rec_type is None:
         hint = " (the submission defines no Mention term)"
         raise ProvJSONLDException(
             f"{type_term!r} is not a PROV-JSONLD statement type"
-            + (hint if stripped_type == "Mention" else "")
+            + (hint if type_term == "Mention" else "")
         )
-    return rec_type, type_term
+    return rec_type
 
 
 def _decode_statement_attributes(
@@ -653,7 +638,7 @@ def _decode_statement_attributes(
     rec_type: QualifiedName,
     formal_by_term: dict[str, QualifiedName],
 ) -> tuple[dict[QualifiedNameCandidate, Any], list[AttributePair], list[Any] | None]:
-    """Split one statement object's keys into formal, non-formal and Membership members.
+    """Split one statement object's keys into bare formal terms, other keys and members.
 
     Args:
         item: The statement object, as passed to :func:`decode_jsonld_statement`.
@@ -663,21 +648,23 @@ def _decode_statement_attributes(
 
     Returns:
         A ``(attributes, other_attributes, members)`` triple: ``attributes``
-        holds every single-valued formal attribute, ``other_attributes``
-        every non-formal attribute value, and ``members`` is ``None`` unless
-        ``rec_type`` is ``Membership`` and its ``entity`` is a JSON array, in
-        which case it holds that array's raw (still-encoded) values.
+        holds the value of every bare formal term, ``other_attributes`` every
+        value under any other key (a special term or a ``prefix:local`` name,
+        which the model reads as a formal attribute when it names one), and
+        ``members`` is ``None`` unless ``rec_type`` is ``Membership`` and its
+        ``entity`` is a JSON array, in which case it holds that array's raw
+        (still-encoded) values.
 
     Raises:
         ProvJSONLDException: If a formal attribute's value is an array
             (formal attributes take a single value, except a Membership's
-            ``entity``, which may be a non-empty array); or if a non-formal
-            attribute's value is not a JSON array; or if a formal time is not
-            an ``xsd:dateTime`` string.
+            ``entity``, which may be a non-empty array); or if the value
+            under any other key is not a JSON array; or if a formal time is
+            not an ``xsd:dateTime`` string.
         ProvExceptionInvalidQualifiedName: If no namespace resolves a
-            formal attribute's value, a non-formal attribute's key or a
-            non-formal value's node reference (an ``@id``-typed bare string
-            or a datatype); see :func:`decode_jsonld_statement`.
+            formal attribute's value, another key or a value's node
+            reference (an ``@id``-typed bare string or a datatype); see
+            :func:`decode_jsonld_statement`.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
@@ -686,7 +673,7 @@ def _decode_statement_attributes(
     for key, value in item.items():
         if key in ("@type", "@id"):
             continue
-        attr = formal_by_term.get(_strip_prov_prefix(key))
+        attr = formal_by_term.get(key)
         if attr is not None and not isinstance(value, list):
             if attr in PROV_ATTRIBUTE_LITERALS:
                 attributes[attr] = _decode_formal_time(value, key)
@@ -705,15 +692,13 @@ def _decode_statement_attributes(
                 f"The formal attribute {key!r} takes a single value, not an "
                 f"array; found {value!r}"
             )
-        stripped = _strip_prov_prefix(key)
-        term = stripped if stripped in SPECIAL_TERM_ATTRS else key
-        qname = SPECIAL_TERM_ATTRS.get(term) or bundle.mandatory_valid_qname(key)
+        qname = SPECIAL_TERM_ATTRS.get(key) or bundle.mandatory_valid_qname(key)
         if not isinstance(value, list):
             raise ProvJSONLDException(
                 f"The attribute {key!r} must be an array of values; found {value!r}"
             )
         other_attributes.extend(
-            (qname, decode_jsonld_value(v, bundle, term, attr=qname, record=record))
+            (qname, decode_jsonld_value(v, bundle, key, attr=qname, record=record))
             for v in value
         )
     return attributes, other_attributes, members
@@ -745,9 +730,9 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             type without an ``"@id"``; if a formal attribute's value is an
             array (formal attributes take a single value, except a
             Membership's ``entity``, which may be a non-empty array and
-            yields one record per member); or if a non-formal attribute's
-            value is not a JSON array. The model resolves every name, so a
-            name no namespace resolves is the model's
+            yields one record per member); or if the value under a key other
+            than a bare formal term is not a JSON array. The model resolves
+            every name, so a name no namespace resolves is the model's
             ``ProvExceptionInvalidQualifiedName``. Every error raised while
             reading the statement, the reader's own and the model's, carries
             the statement's label, with the model's error as the
@@ -759,14 +744,14 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         ProvWarning: If the model refuses the statement for a missing party
             (``ProvMissingFormalAttribute``); the statement is skipped.
     """
-    rec_type, type_term = _decode_statement_type(item)
+    rec_type = _decode_statement_type(item)
     cls = PROV_REC_CLS[rec_type]
     formal_by_term = FORMAL_ATTRS_BY_TERM[cls]
     is_element = issubclass(cls, ProvElement)
     rec_id = item.get("@id")
     if rec_id is None and is_element:
         raise ProvJSONLDException(
-            f'A {type_term} statement requires an "@id"; found {item!r}'
+            f'A {rec_type.localpart} statement requires an "@id"; found {item!r}'
         )
     if not is_element and isinstance(rec_id, str) and rec_id.startswith("_:"):
         rec_id = None
@@ -825,11 +810,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         )
     for item in graph:
         item = _expect_object(item, "A @graph statement")
-        type_term = item.get("@type")
-        is_bundle = (
-            isinstance(type_term, str) and _strip_prov_prefix(type_term) == "Bundle"
-        )
-        if not is_bundle:
+        if item.get("@type") != "Bundle":
             decode_jsonld_statement(item, document)
             continue
         bundle_id = item.get("@id")

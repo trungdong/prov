@@ -166,12 +166,7 @@ def test_qualified_name_under_extension_key_validates_against_prov_jsonld_schema
 def test_interop_fixtures_validate_against_prov_jsonld_schema(
     prov_jsonld_validator: "Validator", fixture: str
 ) -> None:
-    """The vendored fixtures in the submission's dialect satisfy the vendored schema.
-
-    ``provtoolbox-mini-primer.jsonld`` is left out: it predates the
-    submission and spells statement types ``"prov:Entity"``, which the
-    schema's anchored ``@type`` patterns reject.
-    """
+    """The vendored fixtures in the submission's dialect satisfy the vendored schema."""
     container = json.loads((FIXTURE_DIR / fixture).read_text())
     errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
     assert not errors, "\n".join(str(e) for e in errors)
