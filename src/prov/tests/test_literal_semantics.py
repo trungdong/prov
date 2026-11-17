@@ -441,12 +441,8 @@ class _Stamp(datetime.datetime):
     pass
 
 
-# enum.StrEnum, which Python 3.10 lacks
-class _Letter(str, enum.Enum):
-    A = "a"
-
-    def __str__(self) -> str:
-        return str(self.value)
+class _Text(str):
+    pass
 
 
 # Literal(value) spells a Python value in XSD form (E7).
@@ -551,7 +547,7 @@ def _only_key(value: object) -> tuple[Any, ...]:
         pytest.param(1.5, Literal("1.5", XSD_DOUBLE), True, id="float"),
         pytest.param(float("nan"), Literal("NaN", XSD_DOUBLE), True, id="nan"),
         pytest.param(_Level.LOW, 5, True, id="int-subclass"),
-        pytest.param(_Letter.A, "a", True, id="str-subclass"),
+        pytest.param(_Text("a"), "a", True, id="str-subclass"),
         pytest.param(
             _Stamp(2012, 1, 1),
             datetime.datetime(2012, 1, 1),

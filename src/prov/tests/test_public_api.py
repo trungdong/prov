@@ -23,7 +23,6 @@ import json
 import os
 import subprocess  # nosec B404
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -361,10 +360,11 @@ def test_names_importable() -> None:
 
 
 @pytest.mark.parametrize("seed", ["1", "2"])
-def test_attribute_constants_keep_one_order_under_every_hash_seed(
-    seed: str, tmp_path: Path
-) -> None:
+def test_attribute_constants_keep_one_order_under_every_hash_seed(seed: str) -> None:
+    # The child drops the working directory from sys.path, as -P does on 3.11+.
     code = (
+        "import sys\n"
+        "del sys.path[0]\n"
         "import json\n"
         "from prov.constants import PROV_ID_ATTRIBUTES_MAP, PROV_RECORD_ATTRIBUTES\n"
         "print(json.dumps([\n"
@@ -372,12 +372,8 @@ def test_attribute_constants_keep_one_order_under_every_hash_seed(
         "    list(PROV_ID_ATTRIBUTES_MAP.values()),\n"
         "]))\n"
     )
-    # -c puts the working directory first on sys.path, so the child runs in an
-    # empty one; Python 3.10 has no -P to leave it out.
-
     child = subprocess.run(  # nosec B603 - nosemgrep
         [sys.executable, "-c", code],
-        cwd=tmp_path,
         env={**os.environ, "PYTHONHASHSEED": seed},
         capture_output=True,
         text=True,

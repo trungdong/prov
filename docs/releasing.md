@@ -248,6 +248,10 @@ On conda-forge, the bot's bump PR changes the version, not the floor. On that PR
 rerender; if the recipe has no such line, add it, since without one it inherits
 conda-forge's global pin.
 
+Lowering the floor touches the same places in reverse. On the conda-forge bump PR, set
+`python_min` to the lowered floor, and once the restored version's `pytest` check has run
+on `main`, make it a required check again.
+
 After publishing, two checks beyond section 5:
 
 ```bash

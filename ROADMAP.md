@@ -22,8 +22,8 @@ only if a breaking API change accrues; none is queued.
 
 - **Python versions.** `prov` supports every CPython version that has not reached end of
   life. It keeps a version past its end of life while that version is the default Python
-  of a Debian stable release or of an Ubuntu LTS release in standard support. It drops the
-  version in the first release after the later of those dates. Python 3.10, the default in
+  of the current Debian stable release or of an Ubuntu LTS release in standard support. It
+  drops the version in the first release after both have ended. Python 3.10, the default in
   Ubuntu 22.04 LTS, is supported until May 2027, 3.11 until its end of life in October 2027
   and 3.12, the default in Ubuntu 24.04 LTS, until May 2029. prov 3.3.0 alone requires 3.11.
 - **2.x.** Security fixes only, on the `2.x` branch. [SECURITY.md](SECURITY.md) gives

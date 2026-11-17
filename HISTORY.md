@@ -25,7 +25,9 @@
 
 - `prov` supports Python 3.10 again, until Ubuntu 22.04 LTS leaves standard support in May
   2027, under the widened
-  [support policy](https://github.com/trungdong/prov/blob/main/ROADMAP.md#support-policy)
+  [support policy](https://github.com/trungdong/prov/blob/main/ROADMAP.md#support-policy).
+  On 3.10, an upgrade from 3.2.3 meets the changes in
+  [Upgrading to prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
   ([#778](https://github.com/trungdong/prov/issues/778))
 
 ## 3.3.0 (2026-11-08)

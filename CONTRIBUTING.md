@@ -81,7 +81,7 @@ a volunteer-driven project.
 
 ```bash
 # All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
-# reusing a PyPy 3.11 environment left by the previous run.
+# choosing a PyPy 3.11 interpreter or environment for that run.
 for py in 3.10 cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
 done
