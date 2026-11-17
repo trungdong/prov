@@ -17,7 +17,7 @@ import dataclasses
 import functools
 import hashlib
 import re
-import subprocess
+import subprocess  # nosec B404
 import sys
 from collections import defaultdict
 from collections.abc import Sequence
@@ -71,7 +71,7 @@ def fail(message: str) -> NoReturn:
 
 
 def git(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # nosec B603 B607 - nosemgrep
         ["git", "-C", str(ROOT), *args],
         capture_output=True,
         text=True,
@@ -112,7 +112,7 @@ def collect_ids(path: Path) -> dict[str, list[str]]:
     """Map each test function to its sorted collected item ids."""
     rel = path.relative_to(ROOT).as_posix()
     command = [sys.executable, "-m", "pytest", "--collect-only", "-q"]
-    proc = subprocess.run(
+    proc = subprocess.run(  # nosec B603 - nosemgrep
         [*command, "-p", "no:cacheprovider", rel],
         cwd=ROOT,
         capture_output=True,

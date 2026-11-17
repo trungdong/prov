@@ -37,7 +37,7 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python pl
 uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check <module>
 ```
 
-Every function must come out `unchanged`. A row reported as `source moved` straight after stamping means the reason names a definition ambiguously; reword it.
+Stamp once, after the test change is in place, and do not commit. The rows then name the commit the branch started from, which stays in its history. Every function must come out `unchanged`. A row reported as `source moved` straight after stamping means the reason names a definition ambiguously; reword it.
 
 ## Report
 

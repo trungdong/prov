@@ -23,7 +23,7 @@ from __future__ import annotations
 import argparse
 import ast
 import re
-import subprocess
+import subprocess  # nosec B404
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -36,7 +36,7 @@ Item = tuple[str, str, int, str]
 
 
 def git(repo: Path, *args: str) -> tuple[int, str]:
-    r = subprocess.run(
+    r = subprocess.run(  # nosec B603 B607 - nosemgrep
         ["git", "-C", str(repo), *args],
         capture_output=True,
         text=True,
