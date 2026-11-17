@@ -513,9 +513,8 @@ as `prov:activity` and `p:activity` with `p` bound to the PROV namespace. The me
 names the record, as in
 `record 'ex:g': Cannot have more than one value for attribute p:activity`; write the
 attribute under one key. Two keys with the same single value read as one attribute. On
-`hadMember`, the first `prov:entity` key gives the members and each later key adds its
-values to every membership record, so the keys read only when they name one member.
-3.3.0 kept the last value without a message
+`hadMember`, the keys that name `prov:entity` read only when together they name one
+member. 3.3.0 kept the last value without a message
 ([#774](https://github.com/trungdong/prov/issues/774)).
 
 (upgrade-provjsonld)=

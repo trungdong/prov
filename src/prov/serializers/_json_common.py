@@ -199,7 +199,10 @@ def _add_memberships(
         identifier: The membership's identifier, or ``None``.
         attributes: The membership's formal attributes other than
             ``prov:entity``.
-        other_attributes: The membership's other attributes.
+        other_attributes: The membership's other attributes, which may
+            include further ``prov:entity`` pairs; each record lists its
+            member first, so the model keeps that member and rejects a
+            different one.
         members: The resolved members, one record each.
     """
     for member in dict.fromkeys(members):

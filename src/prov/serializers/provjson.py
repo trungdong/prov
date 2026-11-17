@@ -550,8 +550,8 @@ def _decode_record_instance(
     Raises:
         ProvJSONException: For an attribute name, a formal attribute value, a
             member or an attribute value the reader rejects; the how-to
-            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 adds, with
-            their messages.
+            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 adds,
+            with their messages.
     """
     attributes: list[AttributePair] = []
     other_attributes: list[AttributePair] = []
@@ -561,7 +561,9 @@ def _decode_record_instance(
     # A second prefix or a default namespace bound to the PROV namespace gives a
     # formal attribute a second key. Its value goes to the model as one more
     # pair, and the model keeps one of two equal values and rejects two
-    # different ones; on a membership, every member record gets the pair (#774).
+    # different ones. On a membership, a later key's members go after each
+    # record's member pair, so every record keeps its own member and the error
+    # names the later key (#774).
     for attr_name, values in element.items():
         if attr_name in PROV_ATTRIBUTES_ID_MAP:
             attr: QualifiedName = PROV_ATTRIBUTES_ID_MAP[attr_name]
