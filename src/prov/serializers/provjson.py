@@ -18,7 +18,6 @@ from prov.model import (
     ProvException,
     ProvMissingFormalAttribute,
     ProvRecord,
-    QualifiedNameCandidate,
     first,
     parse_xsd_datetime,
 )
@@ -483,8 +482,6 @@ def _decode_record_group(
             attribute's typed-literal representation is missing its required
             ``"$"`` key; if a formal attribute has more than one value,
             other than the members of ``hadMember``; if a formal attribute is
-            given under two keys, such as ``prov:activity`` and ``p:activity``
-            with ``p`` bound to the PROV namespace; if a formal attribute is
             written as an empty JSON array; or if a time attribute's value is
             neither a string nor an ``xsd:dateTime`` value object with a
             well-formed ``"$"``
@@ -553,36 +550,32 @@ def _decode_record_instance(
     Raises:
         ProvJSONException: For an attribute name, a formal attribute value, a
             member or an attribute value the reader rejects; the how-to
-            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 and 3.3.1
-            add, with their messages.
+            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 adds, with
+            their messages.
     """
-    attributes: dict[QualifiedNameCandidate, Any] = {}
+    attributes: list[AttributePair] = []
     other_attributes: list[AttributePair] = []
     members: list[QualifiedName] | None = None
     is_membership = rec_type == PROV_MEMBERSHIP
 
-    # The key each formal attribute was read from, because a second prefix or a
-    # default namespace bound to the PROV namespace spells one attribute under
-    # a second key (#774).
-    formal_keys: dict[QualifiedName, str] = {}
+    # A second prefix or a default namespace bound to the PROV namespace gives a
+    # formal attribute a second key. Its value goes to the model as one more
+    # pair, and the model keeps one of two equal values and rejects two
+    # different ones; on a membership, every member record gets the pair (#774).
     for attr_name, values in element.items():
         if attr_name in PROV_ATTRIBUTES_ID_MAP:
             attr: QualifiedName = PROV_ATTRIBUTES_ID_MAP[attr_name]
         else:
             attr = _resolve_name(bundle, attr_name, rec_id, attr_name)
-        if attr in PROV_ATTRIBUTES:
-            if attr in formal_keys:
-                raise ProvJSONException(
-                    f"{_position(rec_id, attr_name)}the attribute is also given "
-                    f"as {formal_keys[attr]!r}"
-                )
-            formal_keys[attr] = attr_name
-            if is_membership and attr == PROV_ATTR_ENTITY:
-                members = _decode_members(rec_id, attr_name, values, bundle)
+        if is_membership and attr == PROV_ATTR_ENTITY:
+            decoded = _decode_members(rec_id, attr_name, values, bundle)
+            if members is None:
+                members = decoded
             else:
-                attributes[attr] = _decode_formal_attribute(
-                    rec_id, attr_name, attr, values, bundle
-                )
+                other_attributes.extend((attr, member) for member in decoded)
+        elif attr in PROV_ATTRIBUTES:
+            value = _decode_formal_attribute(rec_id, attr_name, attr, values, bundle)
+            attributes.append((attr, value))
         else:
             other_attributes.extend(
                 (attr, decode_json_representation(value, bundle, attr_name, rec_id))

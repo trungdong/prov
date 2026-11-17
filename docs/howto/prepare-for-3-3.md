@@ -508,10 +508,14 @@ value-object checks first, so an unknown key, a `$` or `type` that is not a stri
 an undeclared datatype gives that check's message; a value object of any other
 datatype, or with a `lang`, is not an `xsd:dateTime`.
 
-`prov` 3.3.1 also rejects a formal attribute given under two keys, such as `prov:activity`
-and `p:activity` with `p` bound to the PROV namespace, even when both hold the same value.
-The message is `the attribute is also given as 'prov:activity'`; write the attribute
-under one key. 3.3.0 kept the last value without a message
+`prov` 3.3.1 also rejects a formal attribute given different values under two keys, such
+as `prov:activity` and `p:activity` with `p` bound to the PROV namespace. The message
+names the record, as in
+`record 'ex:g': Cannot have more than one value for attribute p:activity`; write the
+attribute under one key. Two keys with the same single value read as one attribute. On
+`hadMember`, the first `prov:entity` key gives the members and each later key adds its
+values to every membership record, so the keys read only when they name one member.
+3.3.0 kept the last value without a message
 ([#774](https://github.com/trungdong/prov/issues/774)).
 
 (upgrade-provjsonld)=
