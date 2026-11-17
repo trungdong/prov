@@ -41,34 +41,20 @@ def _write(document, tmp_path, fmt, filename, **kwargs):
 # -- explicit format= for each serializer ---------------------------------
 
 
-def test_read_explicit_json_format(document, tmp_path) -> None:
-    path = _write(document, tmp_path, "json", "doc.json")
-    result = prov.read(str(path), format="json")
-    assert result == document
-
-
-def test_read_explicit_xml_format(document, tmp_path) -> None:
-    path = _write(document, tmp_path, "xml", "doc.xml")
-    result = prov.read(str(path), format="xml")
-    assert result == document
-
-
-def test_read_explicit_rdf_format(document, tmp_path) -> None:
-    # Default rdf_format is "trig" on both the write and read sides.
-    path = _write(document, tmp_path, "rdf", "doc.rdf")
-    result = prov.read(str(path), format="rdf")
-    assert result == document
-
-
-def test_read_explicit_jsonld_format(document, tmp_path) -> None:
-    path = _write(document, tmp_path, "jsonld", "doc.jsonld")
-    result = prov.read(str(path), format="jsonld")
-    assert result == document
-
-
-def test_read_explicit_format_is_lowercased(document, tmp_path) -> None:
-    path = _write(document, tmp_path, "json", "doc-upper.json")
-    result = prov.read(str(path), format="JSON")
+@pytest.mark.parametrize(
+    ("fmt", "spelling"),
+    [
+        pytest.param("json", "json", id="json"),
+        pytest.param("xml", "xml", id="xml"),
+        # Default rdf_format is "trig" on both the write and read sides.
+        pytest.param("rdf", "rdf", id="rdf"),
+        pytest.param("jsonld", "jsonld", id="jsonld"),
+        pytest.param("json", "JSON", id="format-is-lowercased"),
+    ],
+)
+def test_read_explicit_format(document, tmp_path, fmt: str, spelling: str) -> None:
+    path = _write(document, tmp_path, fmt, f"doc-{spelling}.{fmt}")
+    result = prov.read(str(path), format=spelling)
     assert result == document
 
 
@@ -91,31 +77,22 @@ def test_read_accepts_file_object(document, tmp_path) -> None:
 # -- format=None auto-detection -------------------------------------------
 
 
-def test_read_auto_detects_json(document, tmp_path) -> None:
-    path = _write(document, tmp_path, "json", "auto.json")
-    result = prov.read(str(path))
-    assert result == document
-
-
-def test_read_auto_detects_rdf(document, tmp_path) -> None:
-    # rdf is attempted (as trig, the default) right after json, so a
-    # trig-serialized document round trips through auto-detection.
-    path = _write(document, tmp_path, "rdf", "auto.rdf")
-    result = prov.read(str(path))
-    assert result == document
-
-
-def test_read_auto_detects_xml(document, tmp_path) -> None:
-    # #239: the rdf candidate raises rdflib's BadSyntax (a SyntaxError) on
-    # XML input; read() must treat any candidate failure as "try the next
-    # format" so the xml deserializer is reached.
-    path = _write(document, tmp_path, "xml", "auto.xml")
-    result = prov.read(str(path))
-    assert result == document
-
-
-def test_read_auto_detects_jsonld(document, tmp_path) -> None:
-    path = _write(document, tmp_path, "jsonld", "auto.jsonld")
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        pytest.param("json", id="json"),
+        # rdf is attempted (as trig, the default) right after json, so a
+        # trig-serialized document round trips through auto-detection.
+        pytest.param("rdf", id="rdf"),
+        # #239: the rdf candidate raises rdflib's BadSyntax (a SyntaxError) on
+        # XML input; read() must treat any candidate failure as "try the next
+        # format" so the xml deserializer is reached.
+        pytest.param("xml", id="xml"),
+        pytest.param("jsonld", id="jsonld"),
+    ],
+)
+def test_read_auto_detects(document, tmp_path, fmt: str) -> None:
+    path = _write(document, tmp_path, fmt, f"auto.{fmt}")
     result = prov.read(str(path))
     assert result == document
 
@@ -148,24 +125,11 @@ def test_read_auto_detect_swallows_any_deserializer_error() -> None:
 # -- raw-content strings/bytes (not a file path) ----------------------------
 
 
-def test_read_accepts_raw_content_string_with_explicit_format(document) -> None:
-    content = document.serialize(format="json")
-    assert prov.read(content, format="json") == document
-
-
-def test_read_auto_detects_raw_content_string(document) -> None:
-    content = document.serialize(format="json")
-    assert prov.read(content) == document
-
-
-def test_read_accepts_raw_content_bytes_with_explicit_format(document) -> None:
-    content = document.serialize(format="json").encode()
-    assert prov.read(content, format="json") == document
-
-
-def test_read_auto_detects_raw_content_bytes(document) -> None:
-    content = document.serialize(format="json").encode()
-    assert prov.read(content) == document
+@pytest.mark.parametrize("fmt", ["json", None], ids=["explicit-format", "auto-detect"])
+@pytest.mark.parametrize("to_content", [str, str.encode], ids=["str", "bytes"])
+def test_read_accepts_raw_content(document, to_content, fmt: str | None) -> None:
+    content = to_content(document.serialize(format="json"))
+    assert prov.read(content, format=fmt) == document
 
 
 def test_read_accepts_bytes_file_path(document, tmp_path) -> None:
@@ -196,8 +160,13 @@ def test_read_garbage_content_raises_type_error() -> None:
     with pytest.raises(TypeError) as ctx:
         _ = prov.read("no/such/file.json")
     assert ctx.type is ProvFormatNotDetected
-    assert str(ctx.value).startswith("Could not read from the source.")
+    message = str(ctx.value)
+    assert message.startswith("Could not read from the source.")
     assert ctx.value.__cause__ is None
+    # The message names both remedies: the format= parameter, and the
+    # raw-content reading of a str that names no file.
+    assert "specify the format" in message
+    assert "raw content" in message
 
 
 # -- a rejected input reports the reader's error as the TypeError's cause ----
@@ -386,14 +355,6 @@ def test_read_explicit_format_valid_raw_content_emits_no_warning(document) -> No
         assert prov.read(content, format="json") == document
 
 
-def test_read_auto_detect_nonexistent_path_type_error_has_both_hints() -> None:
-    with pytest.raises(TypeError) as ctx:
-        prov.read("no/such/file.json")
-    message = str(ctx.value)
-    assert "specify the format" in message
-    assert "raw content" in message
-
-
 def test_read_auto_detects_provn() -> None:
     text = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
     document = prov.read(text)
@@ -555,20 +516,16 @@ def _warn_unrelated() -> None:
     warnings.warn("unrelated", UserWarning, stacklevel=1)
 
 
-def test_read_auto_detect_drops_a_failed_candidates_warnings() -> None:
+@pytest.mark.parametrize(
+    "candidate",
+    [
+        pytest.param(_warns_then_fails, id="failed"),
+        pytest.param(_warns_then_returns_empty, id="empty"),
+    ],
+)
+def test_read_auto_detect_drops_a_non_winners_warnings(candidate) -> None:
     with (
-        mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_fails),
-        warnings.catch_warnings(record=True) as caught,
-    ):
-        warnings.simplefilter("always")
-        document = prov.read(_PROVN)
-    assert _identifiers(document) == ["ex:e1"]
-    assert _prov_messages(caught) == []
-
-
-def test_read_auto_detect_drops_an_empty_candidates_warnings() -> None:
-    with (
-        mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_returns_empty),
+        mock.patch.object(ProvJSONSerializer, "deserialize", candidate),
         warnings.catch_warnings(record=True) as caught,
     ):
         warnings.simplefilter("always")
