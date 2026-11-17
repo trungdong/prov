@@ -115,7 +115,8 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     """
     if not isinstance(prov_document, ProvDocument):
         raise TypeError(
-            f"prov_to_graph() needs a ProvDocument, not {type(prov_document).__name__}"
+            "prov_to_graph() argument must be a ProvDocument, "
+            f"not {type(prov_document).__name__}"
         )
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.flattened().unified()
