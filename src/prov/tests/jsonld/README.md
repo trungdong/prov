@@ -36,8 +36,7 @@ node reference, `{"@id": "ex:shed"}`. `provtoolbox-string.jsonld` holds
 World Wide Web Consortium (MIT, ERCIM, Keio, Beihang) and included unmodified
 for the sole purpose of interop testing in this project's test suite.
 
-The three `prov-jsonld-7/` fixtures are
-redistributed from ProvToolbox
-(<https://github.com/trungdong/ProvToolbox>), an MIT-licensed project
-(copyright King's College London and the University of Southampton),
-included unmodified for the same purpose.
+The three `prov-jsonld-7/` fixtures are redistributed from ProvToolbox
+(<https://github.com/trungdong/ProvToolbox>), an MIT-licensed project (copyright King's
+College London and the University of Southampton), included unmodified for the same
+purpose.

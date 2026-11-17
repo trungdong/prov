@@ -524,7 +524,7 @@ def test_roundtrip_context_embed_registers_only_the_submission_prefixes() -> Non
         ({"@context": [], "@graph": [["not-an-object"]]}, "object"),
         ({"@context": [], "@graph": [{"@type": "Frobnication"}]}, "Frobnication"),
         ({"@context": [], "@graph": [{"@type": "Mention"}]}, "Mention"),
-        # #783: a statement type is its bare term only
+        # #783: a statement type and a formal attribute are bare terms only
         (
             {"@context": [], "@graph": [{"@type": "prov:Entity", "@id": "ex:e"}]},
             "'prov:Entity' is not a PROV-JSONLD statement type",
@@ -1082,21 +1082,23 @@ def test_deserialize_blank_node_reference_is_dropped_with_a_warning(
 
 
 @pytest.mark.parametrize(
-    ("value", "expected"),
+    ("key", "value", "expected"),
     [
-        pytest.param("_:b1", ["_:b1"], id="bare-attr"),
-        pytest.param({"@value": None}, [], id="null-value"),
+        pytest.param("ex:attr", "_:b1", ["_:b1"], id="bare-attr"),
+        pytest.param("ex:attr", {"@value": None}, [], id="null-value"),
+        # #783: only the bare type term is @id-typed, not the prov:type key
+        pytest.param("prov:type", "ex:T", ["ex:T"], id="prov-type-key"),
     ],
 )
 def test_deserialize_bare_blank_label_stays_text_and_null_value_warns_nothing(
-    value: Any, expected: list[str]
+    key: str, value: Any, expected: list[str]
 ) -> None:
     # A bare string under a non-@id-typed attribute stays text, and a null value
     # object reads as the model reads None: neither is a dropped reference.
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         doc = ProvDocument.deserialize(
-            content=statement_of("Entity", "ex:e1", **{"ex:attr": [value]}),
+            content=statement_of("Entity", "ex:e1", **{key: [value]}),
             format="jsonld",
         )
     (entity,) = doc.get_records()
