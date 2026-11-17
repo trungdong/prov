@@ -20,7 +20,9 @@ from prov.tests.conftest import SHARED_TARGETS
 EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")
 
-_TIME_2012 = datetime.datetime(2012, 12, 3, 21, 8, 16, 686000, tzinfo=datetime.UTC)
+_TIME_2012 = datetime.datetime(
+    2012, 12, 3, 21, 8, 16, 686000, tzinfo=datetime.timezone.utc
+)
 
 # The scruffy documents below hold two relations that share one identifier
 # but differ in prov:time. PROV-O cannot represent them: both times land on

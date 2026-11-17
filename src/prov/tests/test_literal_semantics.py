@@ -441,8 +441,8 @@ class _Stamp(datetime.datetime):
     pass
 
 
-class _Letter(enum.StrEnum):
-    A = "a"
+class _Text(str):
+    pass
 
 
 # Literal(value) spells a Python value in XSD form (E7).
@@ -494,8 +494,8 @@ def test_literal_spells_a_python_value_in_xsd_form(
         (_OddFloat(1.5), 1.5),
         (_Stamp(2012, 1, 1), datetime.datetime(2012, 1, 1)),
         (
-            _Stamp(2012, 1, 1, tzinfo=datetime.UTC),
-            datetime.datetime(2012, 1, 1, tzinfo=datetime.UTC),
+            _Stamp(2012, 1, 1, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2012, 1, 1, tzinfo=datetime.timezone.utc),
         ),
     ],
     ids=["int", "float", "datetime", "aware-datetime"],
@@ -523,7 +523,7 @@ def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
     assert len(both.extra_attributes) == 1
 
 
-_AWARE_DT = datetime.datetime(2012, 1, 1, tzinfo=datetime.UTC)
+_AWARE_DT = datetime.datetime(2012, 1, 1, tzinfo=datetime.timezone.utc)
 
 
 _VALUE_SET = type(
@@ -547,7 +547,7 @@ def _only_key(value: object) -> tuple[Any, ...]:
         pytest.param(1.5, Literal("1.5", XSD_DOUBLE), True, id="float"),
         pytest.param(float("nan"), Literal("NaN", XSD_DOUBLE), True, id="nan"),
         pytest.param(_Level.LOW, 5, True, id="int-subclass"),
-        pytest.param(_Letter.A, "a", True, id="str-subclass"),
+        pytest.param(_Text("a"), "a", True, id="str-subclass"),
         pytest.param(
             _Stamp(2012, 1, 1),
             datetime.datetime(2012, 1, 1),

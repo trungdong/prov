@@ -223,8 +223,9 @@ If `gh pr merge` refuses the bot's PR for "base branch policy", see Troubleshoot
 
 ## Raising the Python floor
 
-Raise the floor once per interpreter end of life, in its own PR, first in the release's
-series, so that every later PR builds on the new floor. The places that name the floor:
+Raise the floor once per interpreter, when the support policy in `ROADMAP.md` drops it,
+in its own PR, first in the release's series, so that every later PR builds on the new
+floor. The places that name the floor:
 
 - `pyproject.toml`: `requires-python`, the classifier line for the dropped version,
   ruff's `target-version` and the comment on its `UP` rules, and mypy's
@@ -246,6 +247,10 @@ On conda-forge, the bot's bump PR changes the version, not the floor. On that PR
 `{% set python_min = "X.Y" %}` at the top of `recipe/meta.yaml` to the new floor and
 rerender; if the recipe has no such line, add it, since without one it inherits
 conda-forge's global pin.
+
+Lowering the floor touches the same places in reverse. On the conda-forge bump PR, set
+`python_min` to the lowered floor, and once the restored version's `pytest` check has run
+on `main`, make it a required check again.
 
 After publishing, two checks beyond section 5:
 

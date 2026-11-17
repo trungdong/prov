@@ -51,6 +51,11 @@ is the first release with the API `prov.graph` relies on. The `matplotlib` floor
 defensive modern baseline, not a verified minimum. The interactive `plot()` path is not
 exercised in CI because the test environment has no display backend.
 
+On Python 3.10, `matplotlib` brings Pillow 12.3, the last release that supports 3.10, and
+known Pillow advisories are fixed only in 13.0. `uv.lock` therefore holds Pillow 12.3 for
+3.10, and Codacy's Trivy findings against it are ignored. No gate installs the `plot`
+extra, and a user on 3.10 who installs it gets the same Pillow from pip.
+
 ### `pygments`
 
 The floor is 2.13, the first release that finds plugins through `importlib.metadata`.
@@ -77,6 +82,7 @@ Never installed for end users.
 | `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
 | `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so the module binds it to a typed alias and carries no `type: ignore`. |
+| `typing-extensions>=4.6` | `assert_type` for `test_typing.py`, because Python 3.10's `typing` lacks it. At the 3.10 target, type checkers also read `Self` from it in `records.py`; that import never runs, so `prov` keeps no runtime dependency. The floor is the one mypy itself requires. |
 
 Build backend requirements live under `[build-system]`, and the interpreter matrix is run
 with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
@@ -129,8 +135,8 @@ project's mypy floor rises to 3.12.
 ## The `docs` group's Python floor
 
 The `docs` group needs Python 3.11.5 or later (`[tool.uv.dependency-groups]`), so
-`uv sync --group docs` fails on Python 3.11.0 to 3.11.4. `soupsieve` arrives in the group
-through `furo` and `beautifulsoup4`, and only its 4.x line, which needs Python 3.11.5, fixes
-the advisories against 2.x. Without the floor, uv keeps a vulnerable 2.x in the lock file
-for the older 3.11 patch releases. The other groups and `requires-python` keep `>=3.11`.
-Remove the floor when `requires-python` reaches 3.12.
+`uv sync --group docs` fails on Python 3.10 and on 3.11.0 to 3.11.4. `soupsieve` arrives
+in the group through `furo` and `beautifulsoup4`, and only its 4.x line, which needs
+Python 3.11.5, fixes the advisories against 2.x. Without the floor, uv keeps a vulnerable
+2.x in the lock file for those interpreters. The other groups and `requires-python` keep
+`>=3.10.7`. Remove the floor when `requires-python` reaches 3.12.

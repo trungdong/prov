@@ -23,7 +23,6 @@ import json
 import os
 import subprocess  # nosec B404
 import sys
-import tomllib
 
 import pytest
 
@@ -362,7 +361,10 @@ def test_names_importable() -> None:
 
 @pytest.mark.parametrize("seed", ["1", "2"])
 def test_attribute_constants_keep_one_order_under_every_hash_seed(seed: str) -> None:
+    # The child drops the working directory from sys.path, as -P does on 3.11+.
     code = (
+        "import sys\n"
+        "del sys.path[0]\n"
         "import json\n"
         "from prov.constants import PROV_ID_ATTRIBUTES_MAP, PROV_RECORD_ATTRIBUTES\n"
         "print(json.dumps([\n"
@@ -371,7 +373,7 @@ def test_attribute_constants_keep_one_order_under_every_hash_seed(seed: str) -> 
         "]))\n"
     )
     child = subprocess.run(  # nosec B603 - nosemgrep
-        [sys.executable, "-P", "-c", code],
+        [sys.executable, "-c", code],
         env={**os.environ, "PYTHONHASHSEED": seed},
         capture_output=True,
         text=True,
@@ -428,6 +430,7 @@ in ``pyproject.toml`` in the same commit; a new module never joins.
 
 
 def test_mypy_override_list_only_shrinks() -> None:
+    tomllib = pytest.importorskip("tomllib", reason="tomllib needs Python 3.11")
     pyproject = REPO_ROOT / "pyproject.toml"
     if not pyproject.is_file():
         pytest.skip("pyproject.toml is not part of the installed package")

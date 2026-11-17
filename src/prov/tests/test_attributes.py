@@ -67,7 +67,9 @@ def test_sub_minute_utc_offset_round_trips_as_utc(fmt: str) -> None:
     expected = ProvDocument()
     expected.activity(
         EX_NS["a"],
-        startTime=datetime.datetime(2026, 9, 12, 10, 0, 0, tzinfo=datetime.UTC),
+        startTime=datetime.datetime(
+            2026, 9, 12, 10, 0, 0, tzinfo=datetime.timezone.utc
+        ),
     )
     assert "+00:00:30" not in document.serialize(format=fmt)
     assert roundtrip_document(document, fmt) == expected

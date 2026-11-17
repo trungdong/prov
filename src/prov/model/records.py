@@ -8,6 +8,7 @@ import io
 import logging
 import os
 import re
+import sys
 import typing
 import uuid
 from collections import defaultdict
@@ -28,7 +29,6 @@ from typing import (
     ClassVar,
     Final,
     Protocol,
-    Self,
     TypeVar,
     Union,
     cast,
@@ -130,6 +130,11 @@ from prov.model._values import (
     xsd_value,
 )
 
+if sys.version_info >= (3, 11):
+    from typing import Self
+elif TYPE_CHECKING:
+    from typing_extensions import Self
+
 if TYPE_CHECKING:
     from prov.model.bundle import ProvBundle
 
@@ -204,6 +209,14 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     end_of_day = _XSD_HOUR24_RE.search(text) is not None
     if end_of_day:
         text = _XSD_HOUR24_RE.sub("T00:00:00", text)
+
+    if sys.version_info < (3, 11):
+        # fromisoformat on Python 3.10 takes neither "Z" nor a fraction other
+        # than 3 or 6 digits long, so write both in the form it takes.
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        text = re.sub(r"\.[0-9]+", lambda m: m.group().ljust(7, "0"), text, count=1)
+
     try:
         parsed = datetime.datetime.fromisoformat(text)
         if end_of_day:

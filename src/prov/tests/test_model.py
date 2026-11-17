@@ -399,7 +399,7 @@ def test_conflicting_duplicate_value_with_naive_vs_aware_datetime(doc) -> None:
     # deferred per planning/test-gap-checklist.md). This still exercises
     # the duplicate-value ProvException with two "different" datetimes.
     activity = doc.activity("ex:a4", startTime=datetime.datetime(2020, 1, 1))
-    aware_time = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
+    aware_time = datetime.datetime(2020, 1, 1, tzinfo=datetime.timezone.utc)
     with pytest.raises(ProvException):
         activity.add_attributes({"prov:startTime": aware_time})
 

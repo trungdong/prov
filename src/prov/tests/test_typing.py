@@ -6,12 +6,14 @@ joins the override list in ``pyproject.toml``.
 """
 
 import io
+import sys
+import typing
 from collections.abc import ValuesView
 from pathlib import Path
 from types import MappingProxyType
-from typing import assert_type
 
 import pytest
+from typing_extensions import Self, assert_type
 
 from prov import read
 from prov.model import (
@@ -139,6 +141,11 @@ def test_chaining_methods_keep_the_subclass_type() -> None:
     tracked = Tracked(document, document.valid_qualified_name("ex:t"))
     assert_type(tracked.wasGeneratedBy(activity), Tracked)
     assert isinstance(tracked.wasGeneratedBy(activity), Tracked)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 11), reason="typing.Self needs Python 3.11")
+def test_chaining_methods_resolve_their_hints_at_runtime() -> None:
+    assert typing.get_type_hints(ProvEntity.wasGeneratedBy)["return"] is Self
 
 
 def test_namespace_arguments_accept_any_mapping() -> None:
