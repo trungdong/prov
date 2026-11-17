@@ -622,6 +622,20 @@ def test_a_copied_or_old_manager_compacts(
     assert str(copied.valid_qualified_name("http://d.org/z")) == "z"
 
 
+def test_a_shallow_copy_of_a_manager_owns_its_declarations() -> None:
+    original = NamespaceManager()
+    original.add_namespace(Namespace("ex", "http://example.org/"))
+    clone = copy.copy(original)
+    clone.add_namespace(Namespace("other", "http://other.example/"))
+    # The clone's read of a plain string fills its resolve cache.
+    assert _answer(clone, "other:y") == ("other", "http://other.example/y")
+
+    assert [ns.prefix for ns in original.get_registered_namespaces()] == ["ex"]
+    assert original.valid_qualified_name("http://other.example/x") is None
+    assert original.valid_qualified_name("other:y") is None
+    assert _answer(clone, "http://example.org/a") == ("ex", "http://example.org/a")
+
+
 def _namespace_added() -> tuple[ProvDocument, ProvBundle]:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://ex.org/")

@@ -176,6 +176,18 @@ class NamespaceManager(dict[str, Namespace]):
         if "_uris_by_length" not in state:
             self._reindex()
 
+    def __copy__(self) -> NamespaceManager:
+        # The copy shares the namespaces and the parent but owns every index
+        # and cache, so declaring on one manager leaves the other unchanged.
+        clone = type(self).__new__(type(self))
+        dict.update(clone, self)
+        clone.__dict__.update(
+            (name, value.copy() if isinstance(value, dict) else value)
+            for name, value in self.__dict__.items()
+        )
+        clone._reindex()
+        return clone
+
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
         return self._default
