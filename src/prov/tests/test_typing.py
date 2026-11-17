@@ -9,9 +9,9 @@ import io
 from collections.abc import ValuesView
 from pathlib import Path
 from types import MappingProxyType
-from typing import assert_type
 
 import pytest
+from typing_extensions import assert_type
 
 from prov import read
 from prov.model import (

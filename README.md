@@ -10,7 +10,7 @@
 
 A Python implementation of the [W3C PROV Data Model](https://www.w3.org/TR/prov-dm/), with
 import and export in PROV-N, PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF). It is
-MIT-licensed, needs Python 3.11 or later, and is documented at <https://prov.readthedocs.io/>.
+MIT-licensed, needs Python 3.10 or later, and is documented at <https://prov.readthedocs.io/>.
 
 ## Install
 

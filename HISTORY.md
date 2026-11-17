@@ -21,6 +21,13 @@
   submission context binds when a document references it, so names under them resolve,
   where 3.3.0 rejected them as undeclared ([#724](https://github.com/trungdong/prov/issues/724))
 
+### Project
+
+- `prov` supports Python 3.10 again, until Ubuntu 22.04 LTS leaves standard support in May
+  2027, under the widened
+  [support policy](https://github.com/trungdong/prov/blob/main/ROADMAP.md#support-policy)
+  ([#778](https://github.com/trungdong/prov/issues/778))
+
 ## 3.3.0 (2026-11-08)
 
 3.3.0 is a minor release that rejects the input 3.2.3 warned about with

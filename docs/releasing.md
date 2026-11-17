@@ -223,8 +223,9 @@ If `gh pr merge` refuses the bot's PR for "base branch policy", see Troubleshoot
 
 ## Raising the Python floor
 
-Raise the floor once per interpreter end of life, in its own PR, first in the release's
-series, so that every later PR builds on the new floor. The places that name the floor:
+Raise the floor once per interpreter, when the support policy in `ROADMAP.md` drops it,
+in its own PR, first in the release's series, so that every later PR builds on the new
+floor. The places that name the floor:
 
 - `pyproject.toml`: `requires-python`, the classifier line for the dropped version,
   ruff's `target-version` and the comment on its `UP` rules, and mypy's

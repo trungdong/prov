@@ -16,6 +16,7 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -28,7 +29,7 @@ classifiers = [
     "Topic :: Security",
     "Topic :: System :: Logging",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 # No unconditional runtime dependencies as of 3.0.
 dependencies = []
 
@@ -108,6 +109,7 @@ dev = [
     "ruff>=0.15.20",
     "types-networkx>=3.4.2.20250509",
     "types-Pygments>=2.21.0.20260819",
+    "typing-extensions>=4.6",
 ]
 bench = [
     "pytest-benchmark>=5.1.0",
@@ -137,7 +139,7 @@ docs = { requires-python = ">=3.11.5" }
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py310"
 extend-exclude = ["build"]  # dist/.eggs are already in ruff's default excludes
 
 [tool.ruff.lint]
@@ -149,7 +151,7 @@ select = [
     "C4",  # flake8-comprehensions
     "I",   # isort (import sorting)
     "SIM", # flake8-simplify
-    "UP",  # pyupgrade (3.11-safe)
+    "UP",  # pyupgrade (3.10-safe)
     "RUF", # ruff-specific rules
 ]
 ignore = [
@@ -201,7 +203,7 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 strict = true
 
 # Test modules that do not yet pass strict mypy. The list only shrinks. A PR

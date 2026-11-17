@@ -8,6 +8,7 @@ import io
 import logging
 import os
 import re
+import sys
 import typing
 import uuid
 from collections import defaultdict
@@ -28,7 +29,6 @@ from typing import (
     ClassVar,
     Final,
     Protocol,
-    Self,
     TypeVar,
     Union,
     cast,
@@ -131,6 +131,8 @@ from prov.model._values import (
 )
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
+
     from prov.model.bundle import ProvBundle
 
 logger = logging.getLogger(__name__)
@@ -160,6 +162,7 @@ _XSD_DATETIME_RE = re.compile(XSD_DATETIME_PATTERN)
 _XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Z+-])")
 # A datetime holds microseconds; a longer fraction has no value here (#514).
 _XSD_LONG_FRACTION_RE = re.compile(r"\.[0-9]{7,}")
+_XSD_FRACTION_RE = re.compile(r"\.[0-9]+")
 
 
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
@@ -204,6 +207,14 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     end_of_day = _XSD_HOUR24_RE.search(text) is not None
     if end_of_day:
         text = _XSD_HOUR24_RE.sub("T00:00:00", text)
+
+    # fromisoformat on Python 3.10 takes neither "Z" nor a fraction other than
+    # 3 or 6 digits long, so write both in the form it takes.
+    if sys.version_info < (3, 11):
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        text = _XSD_FRACTION_RE.sub(lambda m: m.group().ljust(7, "0"), text, count=1)
+
     try:
         parsed = datetime.datetime.fromisoformat(text)
         if end_of_day:

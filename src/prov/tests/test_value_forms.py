@@ -62,7 +62,7 @@ CONVERTED: list[tuple[Any, Literal]] = [
     (datetime.date(2026, 1, 1), Literal("2026-01-01", XSD_DATE)),
     (datetime.time(10, 30), Literal("10:30:00", XSD_TIME)),
     (
-        datetime.time(10, 30, 15, 500000, tzinfo=datetime.UTC),
+        datetime.time(10, 30, 15, 500000, tzinfo=datetime.timezone.utc),
         Literal("10:30:15.500000+00:00", XSD_TIME),
     ),
     (datetime.timedelta(hours=1), Literal("PT1H", XSD["duration"])),

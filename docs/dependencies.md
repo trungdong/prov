@@ -77,6 +77,7 @@ Never installed for end users.
 | `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
 | `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so the module binds it to a typed alias and carries no `type: ignore`. |
+| `typing-extensions>=4.6` | `assert_type` for `test_typing.py`, because Python 3.10's `typing` lacks it. The floor is the one mypy itself requires. |
 
 Build backend requirements live under `[build-system]`, and the interpreter matrix is run
 with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
@@ -129,8 +130,8 @@ project's mypy floor rises to 3.12.
 ## The `docs` group's Python floor
 
 The `docs` group needs Python 3.11.5 or later (`[tool.uv.dependency-groups]`), so
-`uv sync --group docs` fails on Python 3.11.0 to 3.11.4. `soupsieve` arrives in the group
+`uv sync --group docs` fails on Python 3.10 and on 3.11.0 to 3.11.4. `soupsieve` arrives in the group
 through `furo` and `beautifulsoup4`, and only its 4.x line, which needs Python 3.11.5, fixes
 the advisories against 2.x. Without the floor, uv keeps a vulnerable 2.x in the lock file
-for the older 3.11 patch releases. The other groups and `requires-python` keep `>=3.11`.
+for those interpreters. The other groups and `requires-python` keep `>=3.10`.
 Remove the floor when `requires-python` reaches 3.12.

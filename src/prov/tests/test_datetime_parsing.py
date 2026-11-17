@@ -20,7 +20,7 @@ from prov.serializers.provrdf import ProvRDFException
 from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
 from prov.tests.format_errors import READER_ERRORS
 
-UTC = datetime.UTC
+UTC = datetime.timezone.utc
 
 
 @pytest.mark.parametrize(
