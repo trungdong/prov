@@ -49,14 +49,17 @@ a volunteer-driven project.
    [docs/dependencies.md](https://github.com/trungdong/prov/blob/main/docs/dependencies.md)
    explains what each dependency is for.
 
-4. Install the pre-commit hooks:
+4. Install [pre-commit](https://pre-commit.com/) as a uv tool, and then its hooks:
 
    ```bash
-   uv run pre-commit install
+   uv tool install pre-commit
+   pre-commit install
    ```
 
    The hooks run ruff (lint and format) and hygiene checks (trailing whitespace,
-   end-of-file newlines, YAML and TOML validation) on every commit.
+   end-of-file newlines, YAML and TOML validation) on every commit. pre-commit builds
+   each hook's own environment, so it stays outside the project virtualenv and keeps
+   working whichever interpreter that virtualenv was last synced with.
 
 5. Create a branch:
 
