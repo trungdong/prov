@@ -51,6 +51,11 @@ is the first release with the API `prov.graph` relies on. The `matplotlib` floor
 defensive modern baseline, not a verified minimum. The interactive `plot()` path is not
 exercised in CI because the test environment has no display backend.
 
+On Python 3.10, `matplotlib` brings Pillow 12.3, the last release that supports 3.10, and
+known Pillow advisories are fixed only in 13.0. `uv.lock` therefore holds Pillow 12.3 for
+3.10, and Codacy's Trivy findings against it are ignored. No gate installs the `plot`
+extra, and a user on 3.10 who installs it gets the same Pillow from pip.
+
 ### `pygments`
 
 The floor is 2.13, the first release that finds plugins through `importlib.metadata`.
