@@ -134,4 +134,4 @@ The `docs` group needs Python 3.11.5 or later (`[tool.uv.dependency-groups]`), s
 in the group through `furo` and `beautifulsoup4`, and only its 4.x line, which needs
 Python 3.11.5, fixes the advisories against 2.x. Without the floor, uv keeps a vulnerable
 2.x in the lock file for those interpreters. The other groups and `requires-python` keep
-`>=3.10`. Remove the floor when `requires-python` reaches 3.12.
+`>=3.10.7`. Remove the floor when `requires-python` reaches 3.12.

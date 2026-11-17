@@ -1,6 +1,7 @@
 # Installation
 
-`prov` needs Python 3.10 or later. On Python 3.9, pip installs 2.2.0 instead.
+`prov` needs Python 3.10.7 or later. On an earlier Python 3.10, pip installs 3.2.3 instead,
+and on Python 3.9, 2.2.0.
 
 ```bash
 python -m pip install prov

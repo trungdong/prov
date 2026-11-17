@@ -29,7 +29,9 @@ classifiers = [
     "Topic :: Security",
     "Topic :: System :: Logging",
 ]
-requires-python = ">=3.10"
+# 3.10.7 added sys.get_int_max_str_digits, which the PROV-N lexer and the
+# xsd:decimal writer call.
+requires-python = ">=3.10.7"
 # No unconditional runtime dependencies as of 3.0.
 dependencies = []
 
