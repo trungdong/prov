@@ -508,6 +508,12 @@ value-object checks first, so an unknown key, a `$` or `type` that is not a stri
 an undeclared datatype gives that check's message; a value object of any other
 datatype, or with a `lang`, is not an `xsd:dateTime`.
 
+`prov` 3.3.1 also rejects a formal attribute given under two keys, such as `prov:activity`
+and `p:activity` with `p` bound to the PROV namespace, even when both hold the same value.
+The message is `the attribute is also given as 'prov:activity'`; write the attribute
+under one key. 3.3.0 kept the last value without a message
+([#774](https://github.com/trungdong/prov/issues/774)).
+
 (upgrade-provjsonld)=
 
 ## PROV-JSONLD

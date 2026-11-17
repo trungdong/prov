@@ -419,7 +419,7 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             keyword; if a record's content is not a JSON object or a list of
             JSON objects; or for any record key, attribute name or value the
             reader rejects. The how-to (``docs/howto/prepare-for-3-3.md``)
-            lists the errors 3.3.0 adds, with their messages.
+            lists the errors 3.3.0 and 3.3.1 add, with their messages.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -483,6 +483,8 @@ def _decode_record_group(
             attribute's typed-literal representation is missing its required
             ``"$"`` key; if a formal attribute has more than one value,
             other than the members of ``hadMember``; if a formal attribute is
+            given under two keys, such as ``prov:activity`` and ``p:activity``
+            with ``p`` bound to the PROV namespace; if a formal attribute is
             written as an empty JSON array; or if a time attribute's value is
             neither a string nor an ``xsd:dateTime`` value object with a
             well-formed ``"$"``
@@ -551,19 +553,30 @@ def _decode_record_instance(
     Raises:
         ProvJSONException: For an attribute name, a formal attribute value, a
             member or an attribute value the reader rejects; the how-to
-            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 adds,
-            with their messages.
+            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 and 3.3.1
+            add, with their messages.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
     members: list[QualifiedName] | None = None
     is_membership = rec_type == PROV_MEMBERSHIP
+
+    # The key each formal attribute was read from, because a second prefix or a
+    # default namespace bound to the PROV namespace spells one attribute under
+    # a second key (#774).
+    formal_keys: dict[QualifiedName, str] = {}
     for attr_name, values in element.items():
         if attr_name in PROV_ATTRIBUTES_ID_MAP:
             attr: QualifiedName = PROV_ATTRIBUTES_ID_MAP[attr_name]
         else:
             attr = _resolve_name(bundle, attr_name, rec_id, attr_name)
         if attr in PROV_ATTRIBUTES:
+            if attr in formal_keys:
+                raise ProvJSONException(
+                    f"{_position(rec_id, attr_name)}the attribute is also given "
+                    f"as {formal_keys[attr]!r}"
+                )
+            formal_keys[attr] = attr_name
             if is_membership and attr == PROV_ATTR_ENTITY:
                 members = _decode_members(rec_id, attr_name, values, bundle)
             else:
