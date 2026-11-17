@@ -60,6 +60,13 @@ def test_round_trip_of_a_graph_of_inferred_endpoints_under_a_default() -> None:
     assert result == document.unified()
 
 
+def test_prov_to_graph_rejects_a_bundle_with_a_type_error(document) -> None:
+    bundle = document.bundle("ex:b")
+
+    with pytest.raises(TypeError, match="ProvDocument"):
+        prov_to_graph(bundle)
+
+
 def test_relation_with_missing_end_is_skipped_with_warning(document) -> None:
     # A generation record with no activity: one endpoint is None, so the
     # relation cannot become an edge. The drop is reported, not silent.

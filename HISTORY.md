@@ -7,6 +7,9 @@
 - `prov-convert` leaves an existing output file as it was when the write fails, including
   when the output is the input file, where 3.3.0 could leave it empty or partial
   ([#745](https://github.com/trungdong/prov/issues/745))
+- `prov.graph.prov_to_graph()` raises `TypeError` when given anything other than a
+  `ProvDocument`, such as a bundle, where 3.3.0 raised `AttributeError`
+  ([#746](https://github.com/trungdong/prov/issues/746))
 
 ## 3.3.0 (2026-11-08)
 
