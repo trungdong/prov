@@ -206,6 +206,11 @@ one of the statement's own arguments are errors.
 
 - The decoder accepts the submission's compacted shape only. It is not a JSON-LD processor:
   no expansion, no remote contexts.
+- In a document that references the submission context, the `rdf`, `rdfs` and `provext`
+  prefixes it binds resolve without a declaration, as `prov` and `xsd` do. The reader
+  registers all three on the document or bundle whose context references it, so they are
+  among its namespaces in every format it is written to. A document's own declaration of one
+  wins.
 - ProvToolbox's `prov:`-prefixed spellings of the type and special terms are accepted.
 - An array-valued `entity` on a `Membership` statement, which the submission (section 4.18)
   allows and ProvToolbox always writes, decodes to one `hadMember` per member, each with

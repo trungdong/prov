@@ -21,6 +21,7 @@ from prov.model import (
 from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
+    load_vendored_context,
 )
 
 from .conftest import (
@@ -257,6 +258,14 @@ def test_deserialize_accepts_provtoolbox_prefixed_terms() -> None:
     assert doc == expected
 
 
+#: The namespaces a document referencing the submission context registers (#724).
+_SUBMISSION_NAMESPACES = {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "provext": "https://openprovenance.org/ns/provext#",
+}
+
+
 def test_deserialize_mixed_context_registers_namespace_prefixes() -> None:
     # A third-party context object can carry plain prefix strings alongside
     # one inline term definition (a dict value) without being the vendored
@@ -278,8 +287,128 @@ def test_deserialize_mixed_context_registers_namespace_prefixes() -> None:
     expected.entity("ex:e1")
     assert doc == expected
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
-        "ex": EX_URI
+        "ex": EX_URI,
+        **_SUBMISSION_NAMESPACES,
     }
+
+
+_RDF_URI = _SUBMISSION_NAMESPACES["rdf"]
+_SUBMISSION_PREFIX_USES = {
+    "rdf-datatype": {"ex:a": [{"@value": "<b>x</b>", "@type": "rdf:HTML"}]},
+    "rdfs-key": {"rdfs:label": [{"@value": "x"}]},
+    "provext-reference": {"ex:a": [{"@id": "provext:x"}]},
+}
+
+
+@pytest.mark.parametrize(
+    "attributes", _SUBMISSION_PREFIX_USES.values(), ids=_SUBMISSION_PREFIX_USES
+)
+def test_deserialize_resolves_a_prefix_the_submission_context_binds(
+    attributes: dict[str, Any],
+) -> None:
+    text = json.dumps(
+        {
+            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+            "@graph": [{"@type": "Entity", "@id": "ex:e", **attributes}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    assert len(doc.get_records()) == 1
+
+
+_CONTEXTS_BINDING_RDF = {
+    "url": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+    "embedded": [{"ex": EX_URI}, load_vendored_context()],
+    "iri-under-another-prefix": [{"ex": EX_URI, "r": _RDF_URI}, JSONLD_CONTEXT_URL],
+}
+
+
+@pytest.mark.parametrize(
+    "context", _CONTEXTS_BINDING_RDF.values(), ids=_CONTEXTS_BINDING_RDF
+)
+def test_deserialize_resolves_rdf_under_each_context(context: list[Any]) -> None:
+    text = json.dumps(
+        {
+            "@context": context,
+            "@graph": [{"@type": "Entity", "@id": "ex:e", "ex:a": [{"@id": "rdf:x"}]}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    ((_, value),) = next(iter(doc.get_records())).extra_attributes
+    assert value.uri == _RDF_URI + "x"
+
+
+_BUNDLE_SCOPES = {
+    "document-references": (
+        [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+        [{"ex": EX_URI}],
+        _RDF_URI,
+    ),
+    "bundle-references": (
+        [{"ex": EX_URI}],
+        [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+        _RDF_URI,
+    ),
+    "bundle-binds-its-own": (
+        [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+        [{"ex": EX_URI, "rdf": "http://other.example/"}],
+        "http://other.example/",
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("document_context", "bundle_context", "rdf_uri"),
+    _BUNDLE_SCOPES.values(),
+    ids=_BUNDLE_SCOPES,
+)
+def test_deserialize_resolves_rdf_in_a_bundle(
+    document_context: list[Any], bundle_context: list[Any], rdf_uri: str
+) -> None:
+    text = json.dumps(
+        {
+            "@context": document_context,
+            "@graph": [
+                {
+                    "@type": "Bundle",
+                    "@id": "ex:b",
+                    "@context": bundle_context,
+                    "@graph": [
+                        {"@type": "Entity", "@id": "ex:e", "ex:a": [{"@id": "rdf:x"}]}
+                    ],
+                }
+            ],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    (bundle,) = doc.bundles
+    ((_, value),) = next(iter(bundle.get_records())).extra_attributes
+    assert value.uri == rdf_uri + "x"
+
+
+def test_deserialize_keeps_a_document_binding_of_a_submission_prefix() -> None:
+    text = json.dumps(
+        {
+            "@context": [{"rdf": "http://other.example/"}, JSONLD_CONTEXT_URL],
+            "@graph": [{"@type": "Entity", "@id": "rdf:e"}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    (record,) = doc.get_records()
+    assert record.identifier.uri == "http://other.example/e"
+
+
+def test_deserialize_without_the_submission_context_leaves_its_prefixes_undeclared() -> (
+    None
+):
+    text = json.dumps(
+        {
+            "@context": [{"ex": EX_URI}],
+            "@graph": [{"@type": "Entity", "@id": "ex:e", "ex:a": [{"@id": "rdf:x"}]}],
+        }
+    )
+    with pytest.raises(ProvJSONLDException, match="prefix 'rdf' is not declared"):
+        ProvDocument.deserialize(content=text, format="jsonld")
 
 
 def test_deserialize_empty_context_key_declares_the_default_namespace() -> None:
@@ -358,7 +487,8 @@ def test_deserialize_context_with_version_registers_namespace_prefixes() -> None
     expected.entity("ex:e1")
     assert doc == expected
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
-        "ex": EX_URI
+        "ex": EX_URI,
+        **_SUBMISSION_NAMESPACES,
     }
     assert doc.default_ns_uri is None
 
@@ -385,16 +515,16 @@ def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixe
     expected.entity("ex:e1")
     assert doc == expected
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
-        "ex": EX_URI
+        "ex": EX_URI,
+        **_SUBMISSION_NAMESPACES,
     }
 
 
-def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
+def test_roundtrip_context_embed_registers_only_the_submission_prefixes() -> None:
     # The embedded submission context (context="embed") must still be
-    # recognised as a whole and skipped -- not treated as a namespace map --
-    # or its own prov/xsd/rdfs/rdf prefix strings would get registered on
-    # the bundle, changing what deserialize() produces (see the docstring of
-    # _is_embedded_submission_context).
+    # recognised as a whole -- not treated as a namespace map -- so it
+    # registers the prefixes the submission context binds and none of its
+    # terms (see the docstring of _is_embedded_submission_context).
     doc = ex_document()
     doc.entity("ex:e1")
     doc.activity("ex:a1", "2011-11-16T16:05:00")
@@ -403,7 +533,10 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
         content=doc.serialize(format="jsonld", context="embed"), format="jsonld"
     )
     assert roundtripped == doc
-    assert {ns.prefix for ns in roundtripped.get_registered_namespaces()} == {"ex"}
+    assert {ns.prefix for ns in roundtripped.get_registered_namespaces()} == {
+        "ex",
+        *_SUBMISSION_NAMESPACES,
+    }
 
 
 @pytest.mark.parametrize(
