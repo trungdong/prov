@@ -15,8 +15,10 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 import contextlib
 import inspect
 import io
+import os
 import re
 import shutil
+import stat
 import subprocess  # nosec B404
 import sys
 import warnings
@@ -550,6 +552,103 @@ def test_convert_writes_over_an_existing_output_file(
         target.write_bytes(b"KEEP ME")
     assert convert_main([*flags, str(infile), str(target)]) == 0
     assert _read_back(target, fmt) == primer_example()
+
+
+def _fail_after_writing(prov_doc, out_stream, *args, **kwargs) -> NoReturn:
+    out_stream.write(b"partial")
+    raise RuntimeError("boom")
+
+
+@pytest.mark.parametrize(
+    "target_name",
+    [
+        pytest.param("doc.json", id="same-path-as-the-input"),
+        pytest.param("out.json", id="existing-file"),
+        pytest.param("new.json", id="new-file"),
+    ],
+)
+def test_a_failed_write_leaves_the_output_directory_as_it_was(
+    infile, tmp_path, monkeypatch, capsys, target_name
+) -> None:
+    (tmp_path / "out.json").write_bytes(b"KEEP ME")
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    monkeypatch.setattr("prov.scripts.convert._write_output", _fail_after_writing)
+    assert convert_main([str(infile), str(tmp_path / target_name)]) == 2
+    assert capsys.readouterr().err == "prov-convert: error: boom\n"
+    assert {path.name: path.read_bytes() for path in tmp_path.iterdir()} == before
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file modes")
+def test_the_output_file_keeps_its_mode_or_takes_the_umask_default(
+    infile, tmp_path
+) -> None:
+    existing = tmp_path / "existing.json"
+    existing.write_bytes(b"old")
+    existing.chmod(0o640)
+    reference = tmp_path / "reference"
+    reference.write_bytes(b"")
+    created = tmp_path / "created.json"
+    assert convert_main([str(infile), str(existing)]) == 0
+    assert convert_main([str(infile), str(created)]) == 0
+    assert stat.S_IMODE(existing.stat().st_mode) == 0o640
+    assert stat.S_IMODE(created.stat().st_mode) == stat.S_IMODE(
+        reference.stat().st_mode
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symbolic links need privileges")
+def test_writing_through_a_symbolic_link_replaces_its_target(infile, tmp_path) -> None:
+    target = tmp_path / "target.json"
+    target.write_bytes(b"old")
+    link = tmp_path / "link.json"
+    link.symlink_to(target)
+    assert convert_main([str(infile), str(link)]) == 0
+    assert link.is_symlink()
+    assert _read_back(target, "json") == primer_example()
+
+
+@pytest.mark.skipif(not os.path.exists(os.devnull), reason="no null device")
+def test_convert_writes_to_a_device_directly(infile) -> None:
+    assert convert_main(["-f", "json", str(infile), os.devnull]) == 0
+
+
+@pytest.mark.skipif(not os.path.exists("/dev/stdout"), reason="no /dev/stdout")
+def test_convert_writes_to_a_descriptor_path_directly(infile, capfd) -> None:
+    assert convert_main(["-f", "json", str(infile), "/dev/stdout"]) == 0
+    written = capfd.readouterr().out
+    assert ProvDocument.deserialize(content=written, format="json") == primer_example()
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
+)
+def test_an_output_file_in_a_read_only_directory_is_written_in_place(
+    infile, tmp_path
+) -> None:
+    directory = tmp_path / "read-only"
+    directory.mkdir()
+    target = directory / "out.json"
+    target.write_bytes(b"old")
+    directory.chmod(0o555)
+    try:
+        assert convert_main([str(infile), str(target)]) == 0
+    finally:
+        directory.chmod(0o755)
+    assert _read_back(target, "json") == primer_example()
+    assert [path.name for path in directory.iterdir()] == ["out.json"]
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
+)
+def test_a_read_only_output_file_exits_2_and_is_kept(infile, tmp_path) -> None:
+    target = tmp_path / "out.json"
+    target.write_bytes(b"KEEP ME")
+    target.chmod(0o444)
+    with pytest.raises(SystemExit) as ctx:
+        convert_main([str(infile), str(target)])
+    assert ctx.value.code == 2
+    assert target.read_bytes() == b"KEEP ME"
 
 
 @pytest.mark.parametrize("stream", STDIN_STREAMS)
