@@ -84,6 +84,9 @@ Never installed for end users.
 | `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so the module binds it to a typed alias and carries no `type: ignore`. |
 | `typing-extensions>=4.6` | `assert_type` for `test_typing.py`, because Python 3.10's `typing` lacks it. At the 3.10 target, type checkers also read `Self` from it in `records.py`; that import never runs, so `prov` keeps no runtime dependency. The floor is the one mypy itself requires. |
 
+pre-commit is not in the group. `CONTRIBUTING.md` installs it as a uv tool, because its
+hooks need nothing from the project virtualenv.
+
 Build backend requirements live under `[build-system]`, and the interpreter matrix is run
 with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
 

@@ -49,28 +49,35 @@ a volunteer-driven project.
    [docs/dependencies.md](https://github.com/trungdong/prov/blob/main/docs/dependencies.md)
    explains what each dependency is for.
 
-4. Install [pre-commit](https://pre-commit.com/) as a uv tool, and then its hooks:
+4. Install [pre-commit](https://pre-commit.com/) as a uv tool:
 
    ```bash
    uv tool install pre-commit
+   ```
+
+   The hooks need nothing from the project virtualenv, so pre-commit stays outside it.
+   A hook that ran pre-commit from the virtualenv would break whenever the virtualenv
+   changes interpreter.
+
+5. Install the hooks:
+
+   ```bash
    pre-commit install
    ```
 
    The hooks run ruff (lint and format) and hygiene checks (trailing whitespace,
-   end-of-file newlines, YAML and TOML validation) on every commit. pre-commit builds
-   each hook's own environment, so it stays outside the project virtualenv and keeps
-   working whichever interpreter that virtualenv was last synced with.
+   end-of-file newlines, YAML and TOML validation) on every commit.
 
-5. Create a branch:
+6. Create a branch:
 
    ```bash
    git checkout -b name-of-your-bugfix-or-feature
    ```
 
-6. Make your changes, then run the checks in "Checks every pull request must pass"
+7. Make your changes, then run the checks in "Checks every pull request must pass"
    below.
 
-7. Commit and push your branch:
+8. Commit and push your branch:
 
    ```bash
    git add .
@@ -78,7 +85,7 @@ a volunteer-driven project.
    git push origin name-of-your-bugfix-or-feature
    ```
 
-8. Open a pull request on GitHub.
+9. Open a pull request on GitHub.
 
 ## Checks every pull request must pass
 
