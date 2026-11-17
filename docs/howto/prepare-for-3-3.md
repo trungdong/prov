@@ -539,18 +539,18 @@ so the reader drops that value with a `ProvWarning`. An `xsd:QName` or
 `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared prefix is rejected
 by the model, and the reader's error names the record.
 
-`prov` 3.3.1 takes a statement type, and the single value of a formal attribute, only under
-the bare term the schema defines. `"@type": "prov:Entity"`, the spelling ProvToolbox wrote up to 2.0.5,
-raises `'prov:Entity' is not a PROV-JSONLD statement type`; write `"Entity"`. Any
-`prefix:local` key, `prov:` included, is a qualified name whose value is an array, so
-`"prov:activity": "ex:a"` raises `The attribute 'prov:activity' must be an array of
-values`; write `"activity": "ex:a"`. When such a key names a formal attribute of the
-statement, the model reads it as that attribute. It keeps one of two equal values, and two
-different ones raise `prov:Generation 'ex:g': Cannot have more than one value for attribute
-prov:activity`. A bare string under `prov:type` is a string, as under any key the context
-does not coerce to `@id`; write `"type": ["ex:T"]` for a qualified name. 3.3.0 read the
-`prov:` spellings as the bare terms and kept the last of two values without a message
-([#783](https://github.com/trungdong/prov/issues/783)).
+`prov` 3.3.1 takes a statement type, and the single value of a formal attribute, only
+under the bare term the schema defines. `"@type": "prov:Entity"`, the spelling ProvToolbox
+wrote up to 2.0.5, raises `'prov:Entity' is not a PROV-JSONLD statement type`; write
+`"Entity"`. Any `prefix:local` key, `prov:` included, is a qualified name whose value is
+an array, so `"prov:activity": "ex:a"` raises `The attribute 'prov:activity' must be an
+array of values`; write `"activity": "ex:a"`. When such a key names a formal attribute of
+the statement, the model reads it as that attribute. It keeps one of two equal values, and
+two different ones raise `prov:Generation 'ex:g': Cannot have more than one value for
+attribute prov:activity`. A bare string under `prov:type` is a string, as under any key
+the context does not coerce to `@id`; write `"type": ["ex:T"]` for a qualified name. 3.3.0
+read the `prov:` spellings as the bare terms and kept the last of two values without a
+message ([#783](https://github.com/trungdong/prov/issues/783)).
 
 (upgrade-provxml)=
 

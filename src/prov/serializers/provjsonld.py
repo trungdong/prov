@@ -731,8 +731,8 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             array (formal attributes take a single value, except a
             Membership's ``entity``, which may be a non-empty array and
             yields one record per member); or if the value under a key other
-            than a bare formal term is not a JSON array. The model resolves every name, so a
-            name no namespace resolves is the model's
+            than a bare formal term is not a JSON array. The model resolves
+            every name, so a name no namespace resolves is the model's
             ``ProvExceptionInvalidQualifiedName``. Every error raised while
             reading the statement, the reader's own and the model's, carries
             the statement's label, with the model's error as the
