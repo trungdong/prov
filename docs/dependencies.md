@@ -53,8 +53,9 @@ exercised in CI because the test environment has no display backend.
 
 On Python 3.10, `matplotlib` brings Pillow 12.3, the last release that supports 3.10, and
 known Pillow advisories are fixed only in 13.0. `uv.lock` therefore holds Pillow 12.3 for
-3.10, and Codacy's Trivy findings against it are ignored. No gate installs the `plot`
-extra, and a user on 3.10 who installs it gets the same Pillow from pip.
+3.10, and Codacy's Trivy findings and the Dependabot alerts against it are dismissed. No
+gate installs the `plot` extra, and a user on 3.10 who installs it gets the same Pillow
+from pip.
 
 ### `pygments`
 
@@ -75,7 +76,6 @@ Never installed for end users.
 | `jsonschema>=4` | Validates PROV-JSON and PROV-JSONLD output against the vendored schemas under `src/prov/tests/schemas/`. |
 | `lxml-stubs>=0.5.1` | Type stubs so `mypy --strict` can check `provxml.py`. |
 | `mypy>=1.19.1` | Strict type checking; the floor is the version strict mode was first enforced with. |
-| `pre-commit>=4.0.1` | Runs ruff and the hygiene hooks at commit time; see `CONTRIBUTING.md`. |
 | `pyld>=2.0.4` | Reference JSON-LD processor used only by `test_jsonld_semantics.py`; `prov` never imports it. The floor is a defensive baseline, not a verified minimum. |
 | `pytest>=8.4.2` | The test runner. |
 | `pytest-cov>=7.1.0` | Coverage attribution under pytest. |
@@ -83,6 +83,9 @@ Never installed for end users.
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
 | `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so the module binds it to a typed alias and carries no `type: ignore`. |
 | `typing-extensions>=4.6` | `assert_type` for `test_typing.py`, because Python 3.10's `typing` lacks it. At the 3.10 target, type checkers also read `Self` from it in `records.py`; that import never runs, so `prov` keeps no runtime dependency. The floor is the one mypy itself requires. |
+
+pre-commit is not in the group. `CONTRIBUTING.md` installs it as a uv tool, because its
+hooks need nothing from the project virtualenv.
 
 Build backend requirements live under `[build-system]`, and the interpreter matrix is run
 with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
