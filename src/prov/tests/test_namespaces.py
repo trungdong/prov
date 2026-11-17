@@ -636,6 +636,16 @@ def test_a_shallow_copy_of_a_manager_owns_its_declarations() -> None:
     assert _answer(clone, "http://example.org/a") == ("ex", "http://example.org/a")
 
 
+def test_a_shallow_copy_of_a_bundle_manager_shares_its_parent() -> None:
+    original = _bundle_under_a_document_prefix()
+    clone = copy.copy(original)
+    clone.add_namespace(Namespace("b", "http://b/"))
+
+    assert clone.parent is original.parent
+    assert _answer(clone, "http://a/x") == ("http", "urn:h://a/x")
+    assert [ns.prefix for ns in original.get_registered_namespaces()] == ["a"]
+
+
 def _namespace_added() -> tuple[ProvDocument, ProvBundle]:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://ex.org/")

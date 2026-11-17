@@ -170,7 +170,7 @@ class NamespaceManager(dict[str, Namespace]):
 
     def __setstate__(self, state: dict[str, Any]) -> None:
         # The dict's items are already set when pickle calls this, so a state
-        # from a release without the index gets one built from them. A copy
+        # from a release without the index gets one built from them. A deep copy
         # carries the index in its state and has no items yet.
         self.__dict__.update(state)
         if "_uris_by_length" not in state:
@@ -181,10 +181,10 @@ class NamespaceManager(dict[str, Namespace]):
         # and cache, so declaring on one manager leaves the other unchanged.
         clone = type(self).__new__(type(self))
         dict.update(clone, self)
-        clone.__dict__.update(
-            (name, value.copy() if isinstance(value, dict) else value)
-            for name, value in self.__dict__.items()
-        )
+        clone.__dict__.update(self.__dict__)
+        for name in ("_namespaces", "_uri_map", "_rename_map", "_prefix_renamed_map"):
+            setattr(clone, name, getattr(self, name).copy())
+        clone._resolve_cache = {}
         clone._reindex()
         return clone
 
