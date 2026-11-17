@@ -4,9 +4,10 @@
 
 ### Breaking changes
 
-- The PROV-JSON reader raises `ProvJSONException` when a record gives a formal attribute
-  under two keys, such as `prov:activity` and `p:activity` with `p` bound to the PROV
-  namespace, where 3.3.0 kept the last value without a message
+- The PROV-JSON reader raises `ProvJSONException` when the keys that name one formal
+  attribute, such as `prov:activity` and `p:activity` with `p` bound to the PROV
+  namespace, give it more than one value, where 3.3.0 kept the last value without a
+  message
   ([#774](https://github.com/trungdong/prov/issues/774))
 - The PROV-JSONLD reader takes `"@type"` and a formal attribute's single value only under
   the bare term, such as `"Entity"` or `"activity"`, and reads any other key as a qualified

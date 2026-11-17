@@ -413,7 +413,8 @@ def test_bundle_own_prefix_stays_on_the_bundle() -> None:
 # full IRI is the undeclared prefix 'http'. A qualified-name value object is
 # one row here and every reason in test_unresolved_names.py. The other rows are
 # the inputs 3.2.3 warned about (#528, #529, #531, #532, #552, #555, #597), one
-# per message the reader gives, and a formal attribute under two keys (#774).
+# per message the reader gives, and a formal attribute given different values
+# under two keys, which the model rejects (#774).
 _E = "record 'ex:e', attribute 'ex:k': "
 _R = "record 'ex:r', attribute "
 _M = "record 'ex:m', attribute 'prov:entity': "
@@ -447,12 +448,10 @@ def _time(time: object) -> str:
 
 
 def _respelt(section: str, attributes: dict[str, object]) -> str:
-    """A record ``ex:r`` whose keys may also name a PROV attribute under ``p``,
-    ``q`` or no prefix, because both prefixes and the default namespace are
-    bound to the PROV namespace (#774)."""
-    prefixes = {"ex": "http://example.org/"} | dict.fromkeys(
-        ("p", "q", "default"), PROV.uri
-    )
+    """A record ``ex:r`` whose keys may also name a PROV attribute under ``p``
+    or no prefix, because ``p`` and the default namespace are bound to the
+    PROV namespace (#774)."""
+    prefixes = {"ex": "http://example.org/"} | dict.fromkeys(("p", "default"), PROV.uri)
     return json.dumps({"prefix": prefixes, section: {"ex:r": attributes}})
 
 
@@ -715,37 +714,25 @@ REJECTED_DOCUMENTS = [
         _R + "'prov:entity': the value is an empty array",
         id="empty members",
     ),
-    # #774: a formal attribute given under two keys that name it
+    # #774: a formal attribute given different values under two keys that name it
     pytest.param(
         _respelt(
             "wasGeneratedBy",
             {"prov:entity": "ex:e", "prov:activity": "ex:a", "p:activity": "ex:b"},
         ),
-        _R + "'p:activity': the attribute is also given as 'prov:activity'",
+        "record 'ex:r': Cannot have more than one value for attribute p:activity",
         id="formal under two prefixes",
     ),
     pytest.param(
         _respelt(
-            "wasGeneratedBy",
-            {"prov:entity": "ex:e", "p:activity": "ex:a", "q:activity": "ex:a"},
-        ),
-        _R + "'q:activity': the attribute is also given as 'p:activity'",
-        id="formal under two other prefixes, same value",
-    ),
-    pytest.param(
-        _respelt(
-            "wasGeneratedBy",
-            {"prov:entity": "ex:e", "activity": "ex:a", "prov:activity": "ex:b"},
-        ),
-        _R + "'prov:activity': the attribute is also given as 'activity'",
-        id="formal under the default namespace and a prefix",
-    ),
-    pytest.param(
-        _respelt(
             "hadMember",
-            {"prov:collection": "ex:c", "prov:entity": "ex:e", "p:entity": ["ex:f"]},
+            {
+                "prov:collection": "ex:c",
+                "prov:entity": ["ex:e", "ex:f"],
+                "p:entity": ["ex:e", "ex:f"],
+            },
         ),
-        _R + "'p:entity': the attribute is also given as 'prov:entity'",
+        "record 'ex:r': Cannot have more than one value for attribute p:entity",
         id="members under two prefixes",
     ),
     # #529 and #552: a value object
@@ -931,6 +918,30 @@ def test_reader_rejects(text: str, message: str) -> None:
     with pytest.raises(ProvJSONException) as ctx:
         _ = ProvDocument.deserialize(content=text, format="json")
     assert str(ctx.value) == message
+
+
+@pytest.mark.parametrize(
+    ("section", "respelt", "plain"),
+    [
+        pytest.param(
+            "wasGeneratedBy",
+            {"prov:entity": "ex:e", "activity": "ex:a", "p:activity": "ex:a"},
+            {"prov:entity": "ex:e", "prov:activity": "ex:a"},
+            id="formal",
+        ),
+        pytest.param(
+            "hadMember",
+            {"prov:collection": "ex:c", "prov:entity": "ex:e", "p:entity": ["ex:e"]},
+            {"prov:collection": "ex:c", "prov:entity": "ex:e"},
+            id="member",
+        ),
+    ],
+)
+def test_formal_attribute_under_two_keys_with_one_value_reads(
+    section: str, respelt: dict[str, object], plain: dict[str, object]
+) -> None:
+    # #774: the model keeps one of two equal values.
+    assert _read(_respelt(section, respelt)) == _read(_respelt(section, plain))
 
 
 def test_empty_prefix_declares_the_default_namespace() -> None:
