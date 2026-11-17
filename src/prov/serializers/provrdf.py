@@ -1118,7 +1118,14 @@ class ProvRDFSerializer(Serializer):
         for record in bundle._records:
             rec_type = record.get_type()
             rec_id: URIRef | None
-            if hasattr(record, "identifier") and record.identifier:
+            # PROV-O has no qualified form for alternateOf, so an alternateOf
+            # is written as its binary triple and its identifier is dropped
+            # (#759).
+            if (
+                hasattr(record, "identifier")
+                and record.identifier
+                and rec_type != PROV_ALTERNATE
+            ):
                 rec_id = URIRef(str(real_or_anon_id(record)))
                 container.add((rec_id, RDF.type, URIRef(rec_type.uri)))
             else:
