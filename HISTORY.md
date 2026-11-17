@@ -4,8 +4,8 @@
 
 ### Fixes
 
-- `prov-convert` leaves an existing output file as it was when the write fails, where
-  3.3.0 left it empty, even when the output was the input file
+- `prov-convert` leaves an existing output file as it was when the write fails, including
+  when the output is the input file, where 3.3.0 could leave it empty or partial
   ([#745](https://github.com/trungdong/prov/issues/745))
 
 ## 3.3.0 (2026-11-08)

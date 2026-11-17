@@ -96,6 +96,9 @@ TURTLE = {"rdf_format": "turtle"}
 needs_dot = pytest.mark.skipif(
     not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
 )
+posix_permissions = pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
+)
 
 
 def _write(path, fmt: str, **options) -> None:
@@ -349,8 +352,22 @@ def test_convert_leaves_standard_streams_open(provn_infile, monkeypatch) -> None
     assert ProvDocument.deserialize(content=written, format="json") == primer_example()
 
 
-def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "no-such-dir" / "doc.xml"
+@pytest.mark.parametrize(
+    "read_only",
+    [
+        pytest.param(False, id="missing-directory"),
+        pytest.param(True, id="read-only-file", marks=posix_permissions),
+    ],
+)
+def test_convert_unwritable_output_path_exits_2(
+    infile, tmp_path, monkeypatch, read_only
+) -> None:
+    if read_only:
+        outfile = tmp_path / "doc.xml"
+        outfile.write_bytes(b"KEEP ME")
+        outfile.chmod(0o444)
+    else:
+        outfile = tmp_path / "no-such-dir" / "doc.xml"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
     )
@@ -358,6 +375,7 @@ def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch) -
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 2
+    assert not read_only or outfile.read_bytes() == b"KEEP ME"
 
 
 @pytest.mark.parametrize(
@@ -567,7 +585,7 @@ def _fail_after_writing(prov_doc, out_stream, *args, **kwargs) -> NoReturn:
         pytest.param("new.json", id="new-file"),
     ],
 )
-def test_a_failed_write_leaves_the_output_directory_as_it_was(
+def test_convert_leaves_the_output_directory_as_it_was_when_the_write_fails(
     infile, tmp_path, monkeypatch, capsys, target_name
 ) -> None:
     (tmp_path / "out.json").write_bytes(b"KEEP ME")
@@ -579,7 +597,7 @@ def test_a_failed_write_leaves_the_output_directory_as_it_was(
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX file modes")
-def test_the_output_file_keeps_its_mode_or_takes_the_umask_default(
+def test_convert_output_keeps_its_mode_or_takes_the_umask_default(
     infile, tmp_path
 ) -> None:
     existing = tmp_path / "existing.json"
@@ -597,7 +615,7 @@ def test_the_output_file_keeps_its_mode_or_takes_the_umask_default(
 
 
 @pytest.mark.skipif(os.name == "nt", reason="symbolic links need privileges")
-def test_writing_through_a_symbolic_link_replaces_its_target(infile, tmp_path) -> None:
+def test_convert_through_a_symbolic_link_replaces_its_target(infile, tmp_path) -> None:
     target = tmp_path / "target.json"
     target.write_bytes(b"old")
     link = tmp_path / "link.json"
@@ -607,9 +625,30 @@ def test_writing_through_a_symbolic_link_replaces_its_target(infile, tmp_path) -
     assert _read_back(target, "json") == primer_example()
 
 
-@pytest.mark.skipif(not os.path.exists(os.devnull), reason="no null device")
-def test_convert_writes_to_a_device_directly(infile) -> None:
-    assert convert_main(["-f", "json", str(infile), os.devnull]) == 0
+@pytest.mark.skipif(os.name == "nt", reason="symbolic links need privileges")
+def test_convert_through_a_looping_symbolic_link_exits_2_and_keeps_it(
+    infile, tmp_path
+) -> None:
+    link = tmp_path / "loop.json"
+    link.symlink_to(tmp_path / "other.json")
+    (tmp_path / "other.json").symlink_to(link)
+    with pytest.raises(SystemExit) as ctx:
+        convert_main([str(infile), str(link)])
+    assert ctx.value.code == 2
+    assert link.is_symlink()
+
+
+def test_convert_exits_2_when_the_new_file_cannot_be_created(
+    infile, tmp_path, monkeypatch
+) -> None:
+    target = tmp_path / "out.json"
+    target.write_bytes(b"KEEP ME")
+    (tmp_path / ".prov-convert-taken.tmp").write_bytes(b"")
+    monkeypatch.setattr("prov.scripts.convert.secrets.token_hex", lambda n: "taken")
+    with pytest.raises(SystemExit) as ctx:
+        convert_main([str(infile), str(target)])
+    assert ctx.value.code == 2
+    assert target.read_bytes() == b"KEEP ME"
 
 
 @pytest.mark.skipif(not os.path.exists("/dev/stdout"), reason="no /dev/stdout")
@@ -619,12 +658,8 @@ def test_convert_writes_to_a_descriptor_path_directly(infile, capfd) -> None:
     assert ProvDocument.deserialize(content=written, format="json") == primer_example()
 
 
-@pytest.mark.skipif(
-    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
-)
-def test_an_output_file_in_a_read_only_directory_is_written_in_place(
-    infile, tmp_path
-) -> None:
+@posix_permissions
+def test_convert_writes_in_place_in_a_read_only_directory(infile, tmp_path) -> None:
     directory = tmp_path / "read-only"
     directory.mkdir()
     target = directory / "out.json"
@@ -636,19 +671,6 @@ def test_an_output_file_in_a_read_only_directory_is_written_in_place(
         directory.chmod(0o755)
     assert _read_back(target, "json") == primer_example()
     assert [path.name for path in directory.iterdir()] == ["out.json"]
-
-
-@pytest.mark.skipif(
-    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
-)
-def test_a_read_only_output_file_exits_2_and_is_kept(infile, tmp_path) -> None:
-    target = tmp_path / "out.json"
-    target.write_bytes(b"KEEP ME")
-    target.chmod(0o444)
-    with pytest.raises(SystemExit) as ctx:
-        convert_main([str(infile), str(target)])
-    assert ctx.value.code == 2
-    assert target.read_bytes() == b"KEEP ME"
 
 
 @pytest.mark.parametrize("stream", STDIN_STREAMS)

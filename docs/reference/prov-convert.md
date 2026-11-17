@@ -13,11 +13,10 @@ prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-w NAME=VALUE] [-r NAME=VALUE]
 PROV-JSONLD, or renders it as any image format Graphviz supports. It reads `infile` and
 writes `outfile`, and standard input and standard output stand in for a missing or `-`
 argument. It reads and parses the input before it opens `outfile`, so an input that fails
-to read leaves an existing output file as it was. It writes to a new file in the same
-directory and replaces `outfile` only when the write succeeds, so a failed write also
-leaves `outfile` as it was. The replaced file keeps its permissions. A path such as
-`/dev/stdout`, a device, or a file in a directory where no new file can be created is
-written in place.
+to read leaves an existing output file as it was. It writes to a new file beside `outfile`
+and replaces `outfile` only when the write succeeds, so a failed write also leaves it as
+it was. The replaced file keeps its mode. Edge cases lists the paths that are written
+in place and what replacing a file does not keep.
 
 Both formats default to `auto`, which follows the extension table under Options.
 
@@ -150,6 +149,18 @@ Page coloured PROV-N:
 ```bash
 prov-convert --color always -f provn document.json | less -R
 ```
+
+## Edge cases
+
+- A path such as `/dev/stdout`, a device, a pipe or a symbolic link that leads nowhere is
+  written in place.
+- An output file in a directory that refuses a new file is written in place, so a failed
+  write can leave it empty or partial.
+- Through a symbolic link, the new file goes beside the link's target, and the link stays.
+- The replaced file takes the owner of the user who runs the command, loses its extended
+  attributes and ACLs, and no longer shares content with its hard links.
+- In a directory with the sticky bit, such as `/tmp`, another user's file cannot be
+  replaced, so the command exits with status 2 and leaves the file as it was.
 
 ## See also
 
