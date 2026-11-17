@@ -1,5 +1,13 @@
 # History
 
+## 3.3.1 (unreleased)
+
+### Fixes
+
+- `prov-convert` leaves an existing output file as it was when the write fails, including
+  when the output is the input file, where 3.3.0 could leave it empty or partial
+  ([#745](https://github.com/trungdong/prov/issues/745))
+
 ## 3.3.0 (2026-11-08)
 
 3.3.0 is a minor release that rejects the input 3.2.3 warned about with

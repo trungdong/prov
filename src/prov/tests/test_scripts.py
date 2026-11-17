@@ -15,8 +15,10 @@ no argument parses ``sys.argv[1:]``. Most tests patch ``sys.argv`` and call
 import contextlib
 import inspect
 import io
+import os
 import re
 import shutil
+import stat
 import subprocess  # nosec B404
 import sys
 import warnings
@@ -93,6 +95,9 @@ EXTRAS = {"xml": "lxml", "rdf": "rdflib"}
 TURTLE = {"rdf_format": "turtle"}
 needs_dot = pytest.mark.skipif(
     not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
+)
+posix_permissions = pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="POSIX permissions, not root"
 )
 
 
@@ -347,8 +352,22 @@ def test_convert_leaves_standard_streams_open(provn_infile, monkeypatch) -> None
     assert ProvDocument.deserialize(content=written, format="json") == primer_example()
 
 
-def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "no-such-dir" / "doc.xml"
+@pytest.mark.parametrize(
+    "read_only",
+    [
+        pytest.param(False, id="missing-directory"),
+        pytest.param(True, id="read-only-file", marks=posix_permissions),
+    ],
+)
+def test_convert_unwritable_output_path_exits_2(
+    infile, tmp_path, monkeypatch, read_only
+) -> None:
+    if read_only:
+        outfile = tmp_path / "doc.xml"
+        outfile.write_bytes(b"KEEP ME")
+        outfile.chmod(0o444)
+    else:
+        outfile = tmp_path / "no-such-dir" / "doc.xml"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
     )
@@ -356,6 +375,8 @@ def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch) -
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 2
+    if read_only:
+        assert outfile.read_bytes() == b"KEEP ME"
 
 
 @pytest.mark.parametrize(
@@ -550,6 +571,107 @@ def test_convert_writes_over_an_existing_output_file(
         target.write_bytes(b"KEEP ME")
     assert convert_main([*flags, str(infile), str(target)]) == 0
     assert _read_back(target, fmt) == primer_example()
+
+
+def _fail_after_writing(prov_doc, out_stream, *args, **kwargs) -> NoReturn:
+    out_stream.write(b"partial")
+    raise RuntimeError("boom")
+
+
+@pytest.mark.parametrize(
+    "target_name",
+    [
+        pytest.param("doc.json", id="same-path-as-the-input"),
+        pytest.param("out.json", id="existing-file"),
+        pytest.param("new.json", id="new-file"),
+    ],
+)
+def test_convert_leaves_the_output_directory_as_it_was_when_the_write_fails(
+    infile, tmp_path, monkeypatch, capsys, target_name
+) -> None:
+    (tmp_path / "out.json").write_bytes(b"KEEP ME")
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    monkeypatch.setattr("prov.scripts.convert._write_output", _fail_after_writing)
+    assert convert_main([str(infile), str(tmp_path / target_name)]) == 2
+    assert capsys.readouterr().err == "prov-convert: error: boom\n"
+    assert {path.name: path.read_bytes() for path in tmp_path.iterdir()} == before
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file modes")
+def test_convert_output_keeps_its_mode_or_takes_the_umask_default(
+    infile, tmp_path
+) -> None:
+    existing = tmp_path / "existing.json"
+    existing.write_bytes(b"old")
+    existing.chmod(0o640)
+    reference = tmp_path / "reference"
+    reference.write_bytes(b"")
+    created = tmp_path / "created.json"
+    assert convert_main([str(infile), str(existing)]) == 0
+    assert convert_main([str(infile), str(created)]) == 0
+    assert stat.S_IMODE(existing.stat().st_mode) == 0o640
+    assert stat.S_IMODE(created.stat().st_mode) == stat.S_IMODE(
+        reference.stat().st_mode
+    )
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symbolic links need privileges")
+def test_convert_through_a_symbolic_link_replaces_its_target(infile, tmp_path) -> None:
+    target = tmp_path / "target.json"
+    target.write_bytes(b"old")
+    link = tmp_path / "link.json"
+    link.symlink_to(target)
+    assert convert_main([str(infile), str(link)]) == 0
+    assert link.is_symlink()
+    assert _read_back(target, "json") == primer_example()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symbolic links need privileges")
+def test_convert_through_a_looping_symbolic_link_exits_2_and_keeps_it(
+    infile, tmp_path
+) -> None:
+    link = tmp_path / "loop.json"
+    link.symlink_to(tmp_path / "other.json")
+    (tmp_path / "other.json").symlink_to(link)
+    with pytest.raises(SystemExit) as ctx:
+        convert_main([str(infile), str(link)])
+    assert ctx.value.code == 2
+    assert link.is_symlink()
+
+
+def test_convert_exits_2_when_the_new_file_cannot_be_created(
+    infile, tmp_path, monkeypatch
+) -> None:
+    target = tmp_path / "out.json"
+    target.write_bytes(b"KEEP ME")
+    (tmp_path / ".prov-convert-taken.tmp").write_bytes(b"")
+    monkeypatch.setattr("prov.scripts.convert.secrets.token_hex", lambda n: "taken")
+    with pytest.raises(SystemExit) as ctx:
+        convert_main([str(infile), str(target)])
+    assert ctx.value.code == 2
+    assert target.read_bytes() == b"KEEP ME"
+
+
+@pytest.mark.skipif(not os.path.exists("/dev/stdout"), reason="no /dev/stdout")
+def test_convert_writes_to_a_descriptor_path_directly(infile, capfd) -> None:
+    assert convert_main(["-f", "json", str(infile), "/dev/stdout"]) == 0
+    written = capfd.readouterr().out
+    assert ProvDocument.deserialize(content=written, format="json") == primer_example()
+
+
+@posix_permissions
+def test_convert_writes_in_place_in_a_read_only_directory(infile, tmp_path) -> None:
+    directory = tmp_path / "read-only"
+    directory.mkdir()
+    target = directory / "out.json"
+    target.write_bytes(b"old")
+    directory.chmod(0o555)
+    try:
+        assert convert_main([str(infile), str(target)]) == 0
+    finally:
+        directory.chmod(0o755)
+    assert _read_back(target, "json") == primer_example()
+    assert [path.name for path in directory.iterdir()] == ["out.json"]
 
 
 @pytest.mark.parametrize("stream", STDIN_STREAMS)

@@ -5,9 +5,11 @@ import contextlib
 import importlib
 import io
 import os
+import secrets
+import shutil
 import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import IO, Any, cast
 
 import prov
@@ -409,15 +411,85 @@ def _convert(argv: list[str] | None) -> int:
         args.outfile, args.format, args.writer_option
     )
     color = _use_color(args.color, args.outfile)
-    with contextlib.ExitStack() as streams:
-        infile = streams.enter_context(_open_binary(parser, args.infile, "rb", "stdin"))
+    with _open_binary(parser, args.infile, "rb", "stdin") as infile:
         prov_doc = _read_input(infile, input_format, reader_options)
-        outfile = streams.enter_context(
-            _open_binary(parser, args.outfile, "wb", "stdout")
-        )
+    with _open_output(parser, args.outfile) as outfile:
         _write_output(prov_doc, outfile, output_format, writer_options, color)
         outfile.flush()
     return 0
+
+
+_DESCRIPTOR_PATHS = ("/dev/stdout", "/dev/stderr", "/dev/fd/", "/proc/self/fd/")
+"""Path prefixes that name an open file descriptor, which is written directly."""
+
+
+def _open_output(
+    parser: ArgumentParser, path: str
+) -> contextlib.AbstractContextManager[IO[Any]]:
+    """Open the output ``path`` for writing.
+
+    Standard output, a path that names a file descriptor, and a path that
+    exists but is not a regular file (a symbolic link that dangles or loops
+    included) are written directly. A regular file, or a path that does not
+    exist yet, is written through :func:`_replaced_on_success`, unless its
+    directory refuses a new file, in which case it is written in place. An
+    existing file that cannot be written, or a path that cannot be opened, is
+    reported through :meth:`argparse.ArgumentParser.error`, which exits with
+    status 2.
+    """
+    if (
+        path == "-"
+        or path.startswith(_DESCRIPTOR_PATHS)
+        or (os.path.lexists(path) and not os.path.isfile(path))
+    ):
+        return _open_binary(parser, path, "wb", "stdout")
+    if os.path.exists(path):
+        # Opening for append checks write access without changing the file.
+        with _open_binary(parser, path, "ab", "stdout"):
+            pass
+    target = os.path.realpath(path)
+    stream = _create_beside(parser, path, target)
+    if stream is None:
+        return _open_binary(parser, path, "wb", "stdout")
+    return _replaced_on_success(target, stream)
+
+
+def _create_beside(parser: ArgumentParser, path: str, target: str) -> IO[Any] | None:
+    """Create and open a new file in ``target``'s directory, or return ``None`` if refused.
+
+    ``"xb"`` gives the file the umask default mode, where :mod:`tempfile`
+    gives 0600. Any other failure is reported for ``path`` through
+    :meth:`argparse.ArgumentParser.error`, which exits with status 2.
+    """
+    name = f".prov-convert-{secrets.token_hex(8)}.tmp"
+    try:
+        return open(os.path.join(os.path.dirname(target), name), "xb")
+    except PermissionError:
+        return None
+    except OSError as exc:
+        parser.error(f"can't open '{path}': {exc.strerror or exc}")
+
+
+@contextlib.contextmanager
+def _replaced_on_success(target: str, stream: IO[Any]) -> Iterator[IO[Any]]:
+    """Yield ``stream``, and move its file onto ``target`` when the block succeeds.
+
+    The file takes the mode of an existing ``target`` and reaches the disk
+    before the move. When the block raises, the file is removed and ``target``
+    is left as it was.
+    """
+    try:
+        with stream:
+            with contextlib.suppress(FileNotFoundError):
+                shutil.copymode(target, stream.name)
+            yield stream
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(stream.name, target)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(stream.name)
+        raise
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -428,6 +500,9 @@ def main(argv: list[str] | None = None) -> int:
     optional input file (default stdin), and an optional output file (default
     stdout), then converts between them. The input is read before the output file
     opens, so an input that fails to parse leaves an existing output file as it was.
+    A regular output file is written to a new file beside the file it replaces,
+    which replaces it only when the write succeeds, so a failed write also leaves
+    it as it was.
     The standard streams are used for ``-`` and are not closed.
 
     Args:
