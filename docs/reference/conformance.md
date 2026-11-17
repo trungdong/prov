@@ -211,10 +211,11 @@ one of the statement's own arguments are errors.
   registers all three on the document or bundle whose context references it, so they are
   among its namespaces in every format it is written to. A document's own declaration of one
   wins.
-- A statement type and a formal attribute are read under their bare terms only, as the
-  schema defines them. Any `prefix:local` key, `prov:` included, is a qualified name whose
-  value is an array. When that name is a formal attribute of the statement, the model reads
-  it as that attribute, keeping one of two equal values and rejecting two different ones.
+- The reader takes a statement type, and the single value of a formal attribute, only under
+  the bare term the schema defines. Any `prefix:local` key, `prov:` included, is a qualified
+  name whose value is an array. When that name is a formal attribute of the statement, the
+  model reads it as that attribute, keeping one of two equal values and rejecting two
+  different ones.
 - An array-valued `entity` on a `Membership` statement, which the submission (section 4.18)
   allows and ProvToolbox always writes, decodes to one `hadMember` per member, each with
   the statement's `@id` and attributes; an empty array raises `ProvJSONLDException`.
@@ -222,8 +223,9 @@ one of the statement's own arguments are errors.
   ([openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7)). A node
   reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare
   string is an IRI under `type`, `location` and `role`, which the context coerces to `@id`,
-  and a string under any other attribute. A node reference, or a bare string under those
-  three terms, whose IRI no declared namespace compacts, raises `ProvJSONLDException`. One
+  and a string under any other key, `prov:type` included. A node reference, or a bare
+  string under those three terms, whose IRI no declared namespace compacts, raises
+  `ProvJSONLDException`. One
   that names a blank node (`_:`) refers to no record, so the reader drops it with a
   `ProvWarning` and keeps the attribute's other values. A node reference with a key other
   than `@id`, or with an empty `@id`, raises `ProvJSONLDException`. `prov` writes a

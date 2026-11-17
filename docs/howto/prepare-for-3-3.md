@@ -539,8 +539,8 @@ so the reader drops that value with a `ProvWarning`. An `xsd:QName` or
 `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared prefix is rejected
 by the model, and the reader's error names the record.
 
-`prov` 3.3.1 reads a statement type and a formal attribute only under its bare term, as the
-schema defines it. `"@type": "prov:Entity"`, the spelling ProvToolbox wrote up to 2.0.5,
+`prov` 3.3.1 takes a statement type, and the single value of a formal attribute, only under
+the bare term the schema defines. `"@type": "prov:Entity"`, the spelling ProvToolbox wrote up to 2.0.5,
 raises `'prov:Entity' is not a PROV-JSONLD statement type`; write `"Entity"`. Any
 `prefix:local` key, `prov:` included, is a qualified name whose value is an array, so
 `"prov:activity": "ex:a"` raises `The attribute 'prov:activity' must be an array of
