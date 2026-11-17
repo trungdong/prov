@@ -17,7 +17,7 @@ from typing import Any
 import pytest
 
 import prov
-from prov.constants import PROV_LABEL
+from prov.constants import PROV, PROV_LABEL
 from prov.model import (
     Literal,
     ProvBundle,
@@ -413,7 +413,7 @@ def test_bundle_own_prefix_stays_on_the_bundle() -> None:
 # full IRI is the undeclared prefix 'http'. A qualified-name value object is
 # one row here and every reason in test_unresolved_names.py. The other rows are
 # the inputs 3.2.3 warned about (#528, #529, #531, #532, #552, #555, #597), one
-# per message the reader gives.
+# per message the reader gives, and a formal attribute under two keys (#774).
 _E = "record 'ex:e', attribute 'ex:k': "
 _R = "record 'ex:r', attribute "
 _M = "record 'ex:m', attribute 'prov:entity': "
@@ -447,10 +447,12 @@ def _time(time: object) -> str:
 
 
 def _respelt(section: str, attributes: dict[str, object]) -> str:
-    """A record ``ex:r`` whose keys may also use ``p`` and ``q``, two more
-    prefixes of the PROV namespace (#774)."""
-    prov = "http://www.w3.org/ns/prov#"
-    prefixes = {"ex": "http://example.org/", "p": prov, "q": prov}
+    """A record ``ex:r`` whose keys may also name a PROV attribute under ``p``,
+    ``q`` or no prefix, because both prefixes and the default namespace are
+    bound to the PROV namespace (#774)."""
+    prefixes = {"ex": "http://example.org/"} | dict.fromkeys(
+        ("p", "q", "default"), PROV.uri
+    )
     return json.dumps({"prefix": prefixes, section: {"ex:r": attributes}})
 
 
@@ -713,7 +715,7 @@ REJECTED_DOCUMENTS = [
         _R + "'prov:entity': the value is an empty array",
         id="empty members",
     ),
-    # #774: a formal attribute given under two prefixes of the PROV namespace
+    # #774: a formal attribute given under two keys that name it
     pytest.param(
         _respelt(
             "wasGeneratedBy",
@@ -721,14 +723,6 @@ REJECTED_DOCUMENTS = [
         ),
         _R + "'p:activity': the attribute is also given as 'prov:activity'",
         id="formal under two prefixes",
-    ),
-    pytest.param(
-        _respelt(
-            "wasGeneratedBy",
-            {"prov:entity": "ex:e", "p:activity": "ex:b", "prov:activity": "ex:a"},
-        ),
-        _R + "'prov:activity': the attribute is also given as 'p:activity'",
-        id="formal under two prefixes, prov second",
     ),
     pytest.param(
         _respelt(
@@ -741,14 +735,10 @@ REJECTED_DOCUMENTS = [
     pytest.param(
         _respelt(
             "wasGeneratedBy",
-            {
-                "prov:entity": "ex:e",
-                "prov:time": _TIME,
-                "p:time": "2021-01-01T00:00:00",
-            },
+            {"prov:entity": "ex:e", "activity": "ex:a", "prov:activity": "ex:b"},
         ),
-        _R + "'p:time': the attribute is also given as 'prov:time'",
-        id="time under two prefixes",
+        _R + "'prov:activity': the attribute is also given as 'activity'",
+        id="formal under the default namespace and a prefix",
     ),
     pytest.param(
         _respelt(
