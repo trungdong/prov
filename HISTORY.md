@@ -10,6 +10,9 @@
 - `prov.graph.prov_to_graph()` raises `TypeError` when given anything other than a
   `ProvDocument`, such as a bundle, where 3.3.0 raised `AttributeError`
   ([#746](https://github.com/trungdong/prov/issues/746))
+- `copy.copy()` of a `NamespaceManager` gives a manager whose namespace declarations are its
+  own, where in 3.3.0 a namespace added to the copy also changed how the original resolved
+  names ([#747](https://github.com/trungdong/prov/issues/747))
 
 ## 3.3.0 (2026-11-08)
 
