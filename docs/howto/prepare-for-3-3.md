@@ -497,6 +497,12 @@ A name whose prefix is not declared, as a record key, an attribute name, a value
 an attribute name, 3.2.3 raised the model's error, a `ProvException`. `ProvJSONException`
 is not a `ProvException`, so `except ProvException` around the read no longer catches it.
 
+`prov` 3.3.1 also rejects a formal attribute given under two keys, such as `prov:activity`
+and `p:activity` with `p` bound to the PROV namespace, even when both hold the same value.
+The message is `the attribute is also given as 'prov:activity'`; write the attribute
+under one key. 3.3.0 kept the last value without a message
+([#774](https://github.com/trungdong/prov/issues/774)).
+
 A number in `$` typed the way `prov` 2.x and earlier wrote it still reads. That is an
 integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as
 `xsd:double`, in a value object with no `lang`, so `{"$": 1, "type": "xsd:int"}` and

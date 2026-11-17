@@ -2,6 +2,13 @@
 
 ## 3.3.1 (unreleased)
 
+### Breaking changes
+
+- The PROV-JSON reader raises `ProvJSONException` when a record gives a formal attribute
+  under two keys, such as `prov:activity` and `p:activity` with `p` bound to the PROV
+  namespace, where 3.3.0 kept the last value without a message
+  ([#774](https://github.com/trungdong/prov/issues/774))
+
 ### Fixes
 
 - `prov-convert` leaves an existing output file as it was when the write fails, including

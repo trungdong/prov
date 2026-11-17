@@ -483,6 +483,8 @@ def _decode_record_group(
             attribute's typed-literal representation is missing its required
             ``"$"`` key; if a formal attribute has more than one value,
             other than the members of ``hadMember``; if a formal attribute is
+            given under two keys, such as ``prov:activity`` and a second
+            prefix of the PROV namespace; if a formal attribute is
             written as an empty JSON array; or if a time attribute's value is
             neither a string nor an ``xsd:dateTime`` value object with a
             well-formed ``"$"``
@@ -558,12 +560,22 @@ def _decode_record_instance(
     other_attributes: list[AttributePair] = []
     members: list[QualifiedName] | None = None
     is_membership = rec_type == PROV_MEMBERSHIP
+
+    # The key each formal attribute was read from, because two prefixes of the
+    # PROV namespace spell one attribute under two keys (#774).
+    formal_keys: dict[QualifiedName, str] = {}
     for attr_name, values in element.items():
         if attr_name in PROV_ATTRIBUTES_ID_MAP:
             attr: QualifiedName = PROV_ATTRIBUTES_ID_MAP[attr_name]
         else:
             attr = _resolve_name(bundle, attr_name, rec_id, attr_name)
         if attr in PROV_ATTRIBUTES:
+            if attr in formal_keys:
+                raise ProvJSONException(
+                    f"{_position(rec_id, attr_name)}the attribute is also given "
+                    f"as {formal_keys[attr]!r}"
+                )
+            formal_keys[attr] = attr_name
             if is_membership and attr == PROV_ATTR_ENTITY:
                 members = _decode_members(rec_id, attr_name, values, bundle)
             else:

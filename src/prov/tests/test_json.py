@@ -446,6 +446,14 @@ def _time(time: object) -> str:
     return _json({"activity": {"ex:a": {"prov:startTime": time}}})
 
 
+def _respelt(section: str, attributes: dict[str, object]) -> str:
+    """A record ``ex:r`` whose keys may also use ``p`` and ``q``, two more
+    prefixes of the PROV namespace (#774)."""
+    prov = "http://www.w3.org/ns/prov#"
+    prefixes = {"ex": "http://example.org/", "p": prov, "q": prov}
+    return json.dumps({"prefix": prefixes, section: {"ex:r": attributes}})
+
+
 REJECTED_DOCUMENTS = [
     pytest.param(
         _json({"entity": {"http://example.org/e1": {}}}),
@@ -704,6 +712,51 @@ REJECTED_DOCUMENTS = [
         _json({"hadMember": {"ex:r": {**_MEMBERSHIP, "prov:entity": []}}}),
         _R + "'prov:entity': the value is an empty array",
         id="empty members",
+    ),
+    # #774: a formal attribute given under two prefixes of the PROV namespace
+    pytest.param(
+        _respelt(
+            "wasGeneratedBy",
+            {"prov:entity": "ex:e", "prov:activity": "ex:a", "p:activity": "ex:b"},
+        ),
+        _R + "'p:activity': the attribute is also given as 'prov:activity'",
+        id="formal under two prefixes",
+    ),
+    pytest.param(
+        _respelt(
+            "wasGeneratedBy",
+            {"prov:entity": "ex:e", "p:activity": "ex:b", "prov:activity": "ex:a"},
+        ),
+        _R + "'prov:activity': the attribute is also given as 'p:activity'",
+        id="formal under two prefixes, prov second",
+    ),
+    pytest.param(
+        _respelt(
+            "wasGeneratedBy",
+            {"prov:entity": "ex:e", "p:activity": "ex:a", "q:activity": "ex:a"},
+        ),
+        _R + "'q:activity': the attribute is also given as 'p:activity'",
+        id="formal under two other prefixes, same value",
+    ),
+    pytest.param(
+        _respelt(
+            "wasGeneratedBy",
+            {
+                "prov:entity": "ex:e",
+                "prov:time": _TIME,
+                "p:time": "2021-01-01T00:00:00",
+            },
+        ),
+        _R + "'p:time': the attribute is also given as 'prov:time'",
+        id="time under two prefixes",
+    ),
+    pytest.param(
+        _respelt(
+            "hadMember",
+            {"prov:collection": "ex:c", "prov:entity": "ex:e", "p:entity": ["ex:f"]},
+        ),
+        _R + "'p:entity': the attribute is also given as 'prov:entity'",
+        id="members under two prefixes",
     ),
     # #529 and #552: a value object
     pytest.param(
