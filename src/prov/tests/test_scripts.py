@@ -375,7 +375,8 @@ def test_convert_unwritable_output_path_exits_2(
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 2
-    assert not read_only or outfile.read_bytes() == b"KEEP ME"
+    if read_only:
+        assert outfile.read_bytes() == b"KEEP ME"
 
 
 @pytest.mark.parametrize(
