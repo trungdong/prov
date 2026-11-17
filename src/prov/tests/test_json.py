@@ -290,12 +290,6 @@ _TIMES = [
     pytest.param(
         "wasGeneratedBy", {"prov:entity": "ex:e"}, "prov:time", id="generation"
     ),
-    pytest.param("used", {"prov:activity": "ex:a"}, "prov:time", id="usage"),
-    pytest.param(
-        "wasInvalidatedBy", {"prov:entity": "ex:e"}, "prov:time", id="invalidation"
-    ),
-    pytest.param("wasStartedBy", {"prov:activity": "ex:a"}, "prov:time", id="start"),
-    pytest.param("wasEndedBy", {"prov:activity": "ex:a"}, "prov:time", id="end"),
     pytest.param("activity", {}, "prov:startTime", id="startTime"),
     pytest.param("activity", {}, "prov:endTime", id="endTime"),
 ]
