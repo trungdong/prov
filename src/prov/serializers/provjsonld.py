@@ -131,6 +131,19 @@ def load_vendored_context() -> dict[str, Any]:
     return result
 
 
+#: The prefixes the submission context binds that are not built into the model
+#: as ``prov`` and ``xsd`` are (#724).
+_SUBMISSION_PREFIXES = ("rdf", "rdfs", "provext")
+
+
+@lru_cache(maxsize=1)
+def _submission_bindings() -> dict[str, str]:
+    """Return the IRI the submission context binds each prefix of
+    :data:`_SUBMISSION_PREFIXES` to, read once per process."""
+    context = load_vendored_context()
+    return {prefix: context[prefix] for prefix in _SUBMISSION_PREFIXES}
+
+
 #: The context keys that hold the default namespace. JSON-LD needs both because
 #: ``@vocab`` governs bare property terms and bare ``@type`` values, but not
 #: ``@id`` values or the values of terms coerced ``"@type": "@id"`` (every
@@ -382,11 +395,14 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
             :func:`encode_jsonld_container`.
         bundle: Bundle (or document) to register the decoded namespaces on.
 
-    String items (the context URL) and the embedded copy of the submission
-    context (see :func:`_is_embedded_submission_context`; its terms are
-    already known to this library via the built-in ``prov``/``xsd``
-    namespaces) are skipped entirely. Every other object is a namespace map
-    (see :func:`_register_context_namespaces`).
+    String items (context URLs) and the embedded copy of the submission
+    context (see :func:`_is_embedded_submission_context`) register nothing
+    themselves. Every other object is a namespace map (see
+    :func:`_register_context_namespaces`). When the context references the
+    submission context, by :data:`JSONLD_CONTEXT_URL` or embedded, the
+    prefixes it binds beyond the built-in ``prov`` and ``xsd`` (``rdf``,
+    ``rdfs`` and ``provext``) are registered too, each unless the bundle's
+    scope already binds it, so a document's own declaration wins.
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
@@ -395,12 +411,20 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     """
     if not isinstance(context, list):
         context = [context]
+    references_submission = False
     for item in context:
         if isinstance(item, str):
+            references_submission |= item == JSONLD_CONTEXT_URL
             continue
         item = _expect_object(item, "A @context entry")
-        if not _is_embedded_submission_context(item):
+        if _is_embedded_submission_context(item):
+            references_submission = True
+        else:
             _register_context_namespaces(item, bundle)
+    if references_submission:
+        for prefix, uri in _submission_bindings().items():
+            if bundle._namespaces._binding_in_scope(prefix) is None:
+                bundle.add_namespace(prefix, uri)
 
 
 def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> None:

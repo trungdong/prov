@@ -17,6 +17,9 @@
   the identifier with a `ProvWarning`, because PROV-O cannot hold it, where 3.3.0 wrote
   neither party
   ([#759](https://github.com/trungdong/prov/issues/759))
+- The PROV-JSONLD reader registers the `rdf`, `rdfs` and `provext` prefixes that the
+  submission context binds when a document references it, so names under them resolve,
+  where 3.3.0 rejected them as undeclared ([#724](https://github.com/trungdong/prov/issues/724))
 
 ## 3.3.0 (2026-11-08)
 
