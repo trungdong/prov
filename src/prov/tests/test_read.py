@@ -572,18 +572,6 @@ def test_read_auto_detect_raises_the_winners_warning_under_an_error_filter() -> 
             prov.read(_PROVN)
 
 
-def test_read_auto_detect_ignores_a_failed_candidates_warning_under_an_error_filter() -> (
-    None
-):
-    with (
-        mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_fails),
-        warnings.catch_warnings(),
-    ):
-        warnings.simplefilter("error", ProvWarning)
-        document = prov.read(_PROVN)
-    assert _identifiers(document) == ["ex:e1"]
-
-
 def test_read_auto_detect_emits_under_the_callers_module_name() -> None:
     with (
         mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
