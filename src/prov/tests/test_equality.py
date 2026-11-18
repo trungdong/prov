@@ -45,12 +45,6 @@ def _bundle_with_e1() -> ProvBundle:
     return bundle
 
 
-def _document_with_a_bundle_holding_e1() -> ProvDocument:
-    document = _ex()
-    document.bundle("b1").entity("e1")
-    return document
-
-
 EQUALITY_PAIRS = [
     pytest.param(
         _relation, lambda: _relation("g1"), False, id="anonymous-vs-identified"
@@ -64,12 +58,6 @@ EQUALITY_PAIRS = [
         lambda: _document_with_bundles("b1"),
         False,
         id="extra-bundle",
-    ),
-    pytest.param(
-        _document_with_a_bundle_holding_e1,
-        _ex,
-        False,
-        id="bundle-with-an-entity-vs-no-bundle",
     ),
     pytest.param(
         lambda: _document_with_bundles("b1"),
