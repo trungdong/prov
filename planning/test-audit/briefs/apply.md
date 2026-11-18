@@ -18,17 +18,14 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
 
 - For a removal, delete exactly the items on the accepted list and nothing else.
 - For merges, apply only the accepted merges from the patch, with the changes the judge required. Leave out every hunk of a merge ruled `keep`, and every import only such a hunk needed.
-- Run `ruff check` and `ruff format --check` on the module, then the whole suite with coverage: `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-report=term`. Compare the `TOTAL` line (statements missed, branches partly covered) with the same run on `main`, and the passed, skipped and xfailed counts with the expected change. Stop and report any difference you cannot account for item by item.
+- Run `ruff check` and `ruff format --check` on the module, then the whole suite with coverage: `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-report=term`. The `TOTAL` line must show the same statements missed and the same branches partly covered as the same run on `main`. Stop and report any difference. Compare the passed, skipped and xfailed counts with the expected change, and stop and report any difference you cannot account for item by item.
 
 ## Step 2: write the register file
 
-Write `planning/test-audit/register/<module>.tsv` with one row for each test function now in the module, and one `removed` row for each function that left it. Leave `audit_commit` and `fingerprint` empty.
+Write `planning/test-audit/register/<module>.tsv` with one row for each test function now in the module, and one `removed` row for each function that left it. Follow "Rules for a register row" in `rubric.md`. Leave `audit_commit` and `fingerprint` empty on every row you add or change.
 
-- `ruling` and `ruled_by` follow the highest layer that examined the test. A classifier `keep` nobody else examined is `keep`, `classifier`, with the classifier's confidence. A test the judge ruled on is `judge`. A test the maintainer ruled on differently from the judge is `maintainer`. The confidence is `-` for every row a later layer examined.
-- Write each `reason` for a reader who has not seen the ledger: what the test pins, and what would go unnoticed without it. One or two sentences, no tab and no newline.
-- Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists.
-- When the reason depends on how the code is written, name the function or the class in backticks, as `_decode_time`.
-- A test that was proposed for removal and kept records the fault that kept it. A `narrowed` or `merged` row says what went or what was folded in, and why nothing was lost. Take these reasons from the judge's table, not from the classifier.
+- Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says.
+- Take the reason of a row that a later layer judged from the judge's table, not from the classifier.
 
 Then stamp and check:
 
@@ -37,7 +34,7 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python pl
 uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check <module>
 ```
 
-Every function must come out `unchanged`. A row reported as `source moved` straight after stamping means the reason names a definition ambiguously; reword it.
+Stamp once, after the test change is in place, and do not commit. The rows then name the commit the branch started from, which stays in its history. Every function must come out `unchanged`. Stop and report any that does not.
 
 ## Report
 

@@ -4,7 +4,7 @@ The mutation check shows whether removing or merging tests leaves a detected mut
 
 ## Configuration
 
-Append this to the scratch worktree's `pyproject.toml`. Set `only_mutate` to the source module the tests cover. Keep the three `--deselect` pairs in every run, baseline included.
+Append this to the scratch worktree's `pyproject.toml`. Set `only_mutate` to the source files the check covers. It can name several. Keep the three `--deselect` pairs in every run, baseline included.
 
 ```toml
 [tool.mutmut]
@@ -53,6 +53,7 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 - A rerun resets earlier results. Save `baseline.txt` before the first rerun.
 - Count `no tests` as undetected. It means every test mapped to the mutant is deselected.
 - Check the collected count with `pytest --collect-only -q` before a run. A `--deselect` id that does not match exactly does nothing and raises no error.
+- `--deselect` matches a prefix of the item id, and `-k` matches substrings. `--deselect src/prov/tests/test_read.py::test_read_auto_detects_xml` also removes `test_read_auto_detects_xml_from_seekable_stringio`. For a parametrised function, pass each item id with its `[...]` part. For a plain function whose name starts another's, use `-k "not <short> or <long>"`, for example `-k "not test_read_auto_detects_xml or test_read_auto_detects_xml_from_seekable_stringio"`. Check that the collected count fell by exactly the number of candidates.
 - mutmut does not say which test killed a mutant. Only the run with and without the tests shows it.
 - mutmut's trampoline adds a stack frame. The three tests in the configuration check the caller of a warning, so they fail under it and stay deselected in every run.
 - Do not run the check beside the gate loop or the benchmark A/B. It starts 8 worker processes.

@@ -21,7 +21,7 @@ Does the suite lose anything without them?
 1. Get the exact ids from `pytest --collect-only -q`. If the mapping from the names above to ids is not obvious, stop and report.
 2. Coverage. From `<work>/evidence/coverage-contexts.sqlite`, list the source files under `src/prov/` (outside `src/prov/tests/`) that the candidates reach, and every arc that only the candidates cover. `<repo>/planning/test-audit/scripts/coverage_nominations.py` shows how to read the file.
 3. Baseline. Run the mutation baseline on every source file from step 2 where the candidates cover a line that fewer than five other test functions cover, and on the source files the module mainly exercises. Use the whole suite as the killing suite. Save the per-mutant results.
-4. Prove that the deselection takes effect: the collected count must fall by the number of candidates.
+4. Prove that the deselection takes effect: the collected count must fall by the number of candidates. For an id that is a prefix of another, follow `mutation.md` (Pitfalls).
 5. Rerun the detected mutants with the candidates deselected. Save the results.
 6. List every mutant that was detected in the baseline and is not detected in the rerun, with `mutmut show <id>`.
 
