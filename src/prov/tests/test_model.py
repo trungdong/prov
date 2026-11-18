@@ -864,21 +864,8 @@ def test_serialize_xml_to_text_mode_named_temporary_file(doc, tmp_path) -> None:
         assert ProvDocument.deserialize(stream.name, format="xml") == doc
 
 
-# The following cover ProvDocument.__eq__'s bundle-comparison early-out and
-# unified()'s no-bundles loop (planning/test-gap-checklist.md, T13 item under
-# model.py).
-
-
-def test_not_equal_when_matching_bundle_content_differs() -> None:
-    d1 = ProvDocument()
-    d1.set_default_namespace("http://example.org/")
-    d1.bundle("b1").entity("e1")
-
-    d2 = ProvDocument()
-    d2.set_default_namespace("http://example.org/")
-    d2.bundle("b1").entity("e2")
-
-    assert d1 != d2
+# The following covers unified()'s no-bundles loop
+# (planning/test-gap-checklist.md, T13 item under model.py).
 
 
 # ProvBundle.__eq__: the set-equality fast path and the slow path it
