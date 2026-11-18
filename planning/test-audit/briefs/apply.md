@@ -4,7 +4,7 @@ Send this brief after the maintainer has ruled. Fill `<repo>`, `<work>`, `<modul
 
 ---
 
-You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file in `<repo>` except `src/prov/tests/<module>.py`, `planning/test-audit/register/<module>.tsv` and a test helper module the accepted merge patch adds. Name files literally in every command.
+You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file in `<repo>` except `src/prov/tests/<module>.py`, `planning/test-audit/register/<module>.tsv` and a test helper module the accepted merge patch adds. When an accepted merge folds a test in from another module, the list widens to that module and to its register. Name files literally in every command.
 
 ## Read first
 
@@ -20,9 +20,9 @@ Skip this step when the ruling removes and merges nothing.
 
 - Before you delete anything, read the body of each takeover the ruling names for a removal: its call, its arguments and its assertions. When a takeover does not cover what the removed test asserted, stop and report, because the removal may be unsound.
 - For a removal, delete exactly the items on the accepted list and nothing else.
-- For merges, apply only the accepted merges from the patch, with the changes the judge required. Leave out every hunk of a merge ruled `keep`, and every import only such a hunk needed.
+- For merges, apply only the accepted merges from the patch, with the changes the judge required. Leave out every hunk of a merge ruled `keep`, and every import only such a hunk needed. When a merge folds a test in from another module, read the comments around the deleted test in that module, and rewrite or remove each one that still describes it.
 - `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module. When an accepted change needs such a map and the patch does not supply that module, stop and report.
-- Run `ruff check` and `ruff format --check` on the module, then the whole suite with coverage: `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-report=term`. The `TOTAL` line must show the same statements missed and the same branches partly covered as the same run on `main`. Stop and report any difference. Compare the passed, skipped and xfailed counts with `<base counts>` and the expected change, and stop and report any difference you cannot account for item by item.
+- Run `ruff check` and `ruff format --check` on each test module you changed, then the whole suite with coverage: `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-report=term`. The `TOTAL` line must show the same statements missed and the same branches partly covered as the same run on `main`. Stop and report any difference. Compare the passed, skipped and xfailed counts with `<base counts>` and the expected change, and stop and report any difference you cannot account for item by item.
 
 ## Step 2: write the register rows
 
@@ -32,7 +32,7 @@ Skip this step when the ruling removes and merges nothing.
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py draft <module> <work>/ledger/<module>.md
    ```
 
-2. Write a row for each test a later layer ruled: each test the maintainer's ruling names, each test the judge examined (its rulings, its flags and its notes), each merged function, and one `removed` row for each function that left the module. Such a row replaces the row `draft` wrote for the same test. Change no other row `draft` wrote.
+2. Write a row for each test a later layer ruled: each test the maintainer's ruling names, each test the judge examined (its rulings, its flags and its notes), each merged function, and one `removed` row for each function that left the module. Such a row replaces the row `draft` wrote for the same test. Change no other row `draft` wrote. For a test folded in from another module, write its `removed` row in that module's register, and correct each row there whose reason names it. Empty `audit_commit` and `fingerprint` on every row you change there.
    - `draft` names the rows it kept as ruled. Each is a row a later layer ruled in an earlier audit, for a test this audit's classifier judged again. Re-read its reason against the test as it is now and against the classifier's new row. Correct the reason, or write the row again from the classifier's verdict, and empty its `audit_commit` and `fingerprint` either way. Follow the rules for every register row and for a row a later layer ruled, in `rubric.md` (The register), and leave `audit_commit` and `fingerprint` empty.
    - Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says. A test the judge examined is `judge` with confidence `-`. A test the maintainer ruled on differently, or added, is `maintainer` with confidence `-`, and so is a `rewrite` or `query` verdict the maintainer accepted.
    - Take the reason from the judge's table when the judge examined the test, otherwise from the maintainer's answer, not from the classifier alone.
@@ -41,7 +41,7 @@ Skip this step when the ruling removes and merges nothing.
    - Check every issue number you cite with `gh issue view <n> --json title,body`.
    - Write British English, with no em dashes and no sentence hinged on a colon.
 
-3. Do not stamp. The coordinator commits the test change and then stamps. Check your work with these two commands.
+3. Do not stamp. The coordinator commits the test change and then stamps. Check your work with these two commands, once for each module whose register you changed.
 
    ```bash
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check <module>

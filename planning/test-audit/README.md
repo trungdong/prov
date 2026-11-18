@@ -74,12 +74,14 @@ An Opus session coordinates an audit. It reads this file and `rubric.md`, dispat
 Rules that keep the cost down and the result sound:
 
 - Set the model on every agent. No agent inherits the coordinator's model.
+- Every brief you send, from a template or not, carries two rules, and you add whichever one it lacks. The agent never runs `git stash`, and `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module.
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5. `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
 - Run one mutation check at a time, and never beside the gate runner.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
+- A takeover claim in a question to the maintainer quotes the verifier's or the judge's file, never the ledger's description.
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.

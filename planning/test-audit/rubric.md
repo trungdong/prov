@@ -21,7 +21,7 @@ A test stays as it is when it passes both checks.
 | Verdict | When to give it |
 |---|---|
 | `keep` | The test passes both checks. |
-| `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`). Every input and every assertion stays. |
+| `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) or into another module's parametrised test with the same body. Every input and every assertion stays. |
 | `narrow` | The test is sound, but one parameter axis or several rows do not change the behaviour under test. Name the axis or the rows. |
 | `delete` | Another named test fails whenever this test fails. Name that test. |
 | `rewrite` | The test pins an incidental detail (exact message wording that no document promises, a private attribute, an internal call order) and not the contract, or it passes with and without the code it guards. Say what the assertion misses. The audit records it and does not act on it. |
@@ -32,7 +32,7 @@ Give `delete` only when you can name the test that takes over the job. When in d
 
 ## Protected classes
 
-Do not propose a change to these. Mark them `protected`.
+A test is protected when it asserts a permanent limitation on the conformance page, pins a frozen compatibility promise, or belongs to the generated round-trip property. Do not propose a change to it. Mark it `protected`. A parametrised test is protected when any of its rows is. The list below names the current members. A test does not become protected because its rows come from a protected corpus. Only the corpus itself is frozen.
 
 - A test that asserts a known-lossy raise or skip: the PROV-O gap and the PROV-JSONLD Mention gap (C1 and C2 on the conformance page), `SCRUFFY_TARGETS`, `MENTION_TARGETS`.
 - Every test in `test_public_api.py`.
@@ -50,16 +50,17 @@ Do not propose a change to these. Mark them `protected`.
 - A test that guards a tracked issue keeps its place unless a sibling guards the same issue with an assertion at least as strict.
 - Two tests that reach the same code through different public entry points (for example a reader and the CLI) are not duplicates.
 - An error-path test is a duplicate only when the sibling raises from the same statement for the same cause.
+- An `assert_type` line, or another check that only mypy evaluates, is an assertion when the module is not on the mypy override list in `pyproject.toml`, because the mypy gate checks it on every pull request. Coverage and mutation testing cannot see it, so name the annotation it pins in Reason. A takeover must carry the same check.
 
 ## Rules for each verdict
 
 1. **A contract reached through a private name.** When the behaviour is a real contract and the test reaches it through a private function or class, give `keep` and name the private name in Note. Give `rewrite` only when the thing pinned is itself incidental.
-2. **How close a takeover test must be.** A takeover test must give the code the same input shape as the candidate. These differences can hide a fault, so they block `delete` and block dropping a row: which attribute holds the value, a list against a single value, the list length, the order of items, the depth of a repeated key, a second key beside the first.
-3. **When a row may go.** A row may go only when it differs from a kept row in the record type or the section name alone, and the source has no branch on that name between the entry point and the statement under test. A row with its own message format, its own branch or its own input shape stays.
+2. **How close a takeover test must be.** An input difference between the candidate and the takeover blocks `delete` and blocks dropping a row when the source branches on it between the entry point and the statement under test, or when a plausible fault (rule 8) could treat the two inputs differently. These differences usually block: which attribute holds the value, a list against a single value, the list length, the order of items, the depth of a repeated key, a second key beside the first. A difference that meets neither condition blocks nothing. That often holds for another value of the same type, the record type, the section name, or a record inside a bundle against one at the top level, but the source decides each case. When reading cannot settle it, give `merge` or `keep`.
+3. **When a row may go.** A row is held to rule 2 against the rows that stay. A row whose expected message has its own format stays.
 4. **When separate functions merge.** Functions merge into one parametrised test when their bodies are the same apart from the input values and the expected values. The merged body has no branch on a parameter. Every input and every assertion of the originals stays, in its original form. When a merge needs a branch, the verdict is `keep`. When an existing parametrised test has the same body, prefer adding rows to it over a new function, as long as the result still passes rule 5.
 5. **A merge must be better, not only shorter.** A reader finds the behaviour as quickly as before, a failure still names the case that broke, and the merged function does not mix behaviours that deserve their own names. A merge that saves lines and hides intent is a `keep`.
-6. **Tests that assert only "does not raise".** Give `keep` when the test sits beside a rejecting rule and guards against over-rejection. Name the rule in Reason.
-7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit does not move tests.
+6. **Tests that assert only "does not raise".** Such a test is held to the two checks like any other, and the only fault it can catch is a raise. A rejecting rule beside it counts as its contract, because the test guards against over-rejection. Name the rule in Reason.
+7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit moves a test only as part of a merge.
 8. **No removal without an attempted refutation.** A `delete`, a `merge` or a dropped row goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
 
 ## Ledger row
