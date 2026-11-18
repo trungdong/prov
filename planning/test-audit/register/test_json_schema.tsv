@@ -1,0 +1,2 @@
+function	ruling	ruled_by	confidence	audit_commit	fingerprint	reason
+test_example_documents_validate_against_prov_json_schema	keep	classifier	high	a50d61a31e06	a6932b445263d842	The PROV-JSON text that `serialize(format="json")` writes for each canonical example document validates against the vendored PROV-JSON member submission schema. The PROV-JSON member submission schema, vendored in `src/prov/tests/schemas/` with its provenance in that folder's `README.md` (roadmap step 30).
