@@ -26,7 +26,7 @@ import hashlib
 import re
 import subprocess  # nosec B404
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple, NoReturn
@@ -330,13 +330,16 @@ class Audit:
         return ", ".join(sorted(names))
 
     def followed(self, module: str, row: Row) -> str | None:
-        """Name what a later layer's row follows that moved, or None for a lost commit."""
-        if row.ruled_by == "classifier":
-            return ""
+        """Name what a later layer's row follows that moved, or None for a lost commit.
+
+        A classifier row follows nothing, so it gives "" once its commit resolves.
+        """
         if row.audit_commit not in self.before:
             self.before[row.audit_commit] = commit_definitions(row.audit_commit)
         old = self.before[row.audit_commit]
-        return None if old is None else self.moved(module, row, old)
+        if old is None:
+            return None
+        return "" if row.ruled_by == "classifier" else self.moved(module, row, old)
 
     def classify_removed(self, module: str, row: Row) -> Found:
         """Classify a removed row whose function is absent."""
@@ -501,6 +504,15 @@ def ledger_rows(path: Path) -> list[list[str]]:
         rows.append(
             [c.strip("`") if i in (0, 5, 6) else c for i, c in enumerate(cells)]
         )
+    return unique(path, rows)
+
+
+def unique(path: Path, rows: list[list[str]]) -> list[list[str]]:
+    """Return the ledger rows, or fail naming each test that has more than one."""
+    counts = Counter(row[0] for row in rows)
+    twice = sorted(name for name, count in counts.items() if count > 1)
+    if twice:
+        fail(f"{path}: more than one row for {', '.join(twice)}")
     return rows
 
 

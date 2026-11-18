@@ -21,7 +21,7 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 
 ## Rules that earlier audits showed are easy to break
 
-- Write `Pins` and `Reason` from what the test itself shows: the call, the input, the expected result and the contract's source. For a `keep` or a `protected`, the two cells become the register reason word for word. So do not say in them which internal function the input reaches, and do not say that the test alone catches a fault. Put an argument about the code in `## Proposals`, where the verifier tests it.
+- Write `Pins` and `Reason` from what the test itself shows: the call, the input, the expected result and the contract's source. For a `keep` or a `protected`, the two cells become the register reason word for word. So do not say in them which internal function the input reaches, unless the test calls it directly, and do not say that the test alone catches a fault. Put an argument about the code in `## Proposals`, where the verifier tests it. Write each cell as a sentence ending in a full stop, because `draft` joins them, Pins first. When you find no source, write `No source found.`
 - A `delete` is a hypothesis. Before you give `delete` or drop a row, write down every way the candidate's input differs from the takeover's, and check each against rules 2 and 3 of "Rules for each verdict". If any difference is on those lists, the verdict is `keep` or `merge`.
 - A `merge` keeps every input and every assertion in its original form. Propose one only when it also passes rule 5: the merged test is as easy to read as the originals.
 - Read the issue a test names before you give it a verdict.
@@ -33,6 +33,7 @@ Write `<work>/ledger/<module>.md`:
 
 - A first line `# Ledger: <module>.py`, then the module's collected item count, taken from `<work>/evidence/collected-items.txt`, and a count of verdicts by kind.
 - One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order. A script reads this table, so write a `|` inside a cell as `\|`.
+- `## Removed rows`: for each `removed` row in `<listed tests>`, read its reason and the diff that the check names, and answer one question in one line: does the change undo the reason? A removed test has no table row. A yes is a proposal to restore the test, and the coordinator takes it to the maintainer. Leave the section out when no `removed` row is listed.
 - `## Identical-arc groups`: each group, with a one-line finding.
 - `## Proposals`: one short paragraph for each `merge`, `narrow` and `delete`. Say what exactly changes, which test keeps the fault covered, every input difference between candidate and takeover, and what a verifier should plant to refute you.
 - `## Rubric problems`: any case the rubric did not decide clearly, one line each. An empty section is fine.

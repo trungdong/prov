@@ -39,20 +39,22 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
 
 3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed, and takes each `Later audit:` follow-up as a proposal to examine. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
 4. Apply the maintainer's rulings for the whole batch on one branch. A batch is the modules one coordinator session audits, about five.
-   - Dispatch the apply agent for each module the maintainer ruled on, one module at a time. It changes the tests and writes the register rows a later layer ruled. Commit each module's test change before the next dispatch, and give the next agent the suite counts of the branch at that commit. Otherwise its counts include a change it did not make. For a module with nothing to apply, run `draft` yourself. It writes the classifier's `keep` and `protected` rows and names the tests it left out.
+   - Dispatch the apply agent for each module the maintainer ruled on, one module at a time. The maintainer rules on each proposal the judge listed and on each `rewrite` or `query` verdict. The agent changes the tests and writes the register rows a later layer ruled. Commit each module's test change before the next dispatch, and give the next agent the suite counts of the branch at that commit. Otherwise its counts include a change it did not make. A module with no proposal and no `rewrite` or `query` verdict has nothing to apply. Run `draft` for it yourself. It writes the classifier's `keep` and `protected` rows and names the tests it left out.
 
      ```bash
      uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py draft <module> <work>/ledger/<module>.md
      ```
 
-   - Run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal.
-   - When every test change of the batch is committed, one commit for each module, stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
+   - When every test change of the batch is committed, one commit for each module whose tests changed, run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Each apply agent ran the same comparison for its own module, and this run covers the batch as a whole.
+   - Then stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
 
      ```bash
      uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
      ```
 
-   - Run the check after the stamp. `stamp` keeps the anchor of a row whose own text is unchanged. So a row of an existing register that names a test this batch removed, merged or edited still comes out `source moved`. Re-read each such reason against the change and correct it if it no longer holds. Then empty its `audit_commit` and `fingerprint` and stamp again.
+   - Run the check after the stamp. `stamp` keeps the anchor of a row whose own text is unchanged. So a row of an existing register that names a test this batch removed, merged or edited still comes out `source moved`. Re-read each such reason against the change and correct it if it no longer holds.
+   - Run `check --names` over the batch's modules. A row written in this batch was anchored after every change of the batch, so the check cannot see a sibling test that a later apply step changed. Re-read each row written in this batch that names a test in another test file the batch changed, whether or not that file has a register. Re-read each line marked `(no such test)` too.
+   - Empty the `audit_commit` and `fingerprint` of each row you corrected or re-read, stamp again and commit the register files as a new commit.
 5. Open one pull request for the batch. It holds the test changes and the register files of every module in it. The pull request needs no `HISTORY.md` entry.
 6. Bring the rows the check lists under `rewrite and query` and `later audit` to the maintainer. Each one gets a fix in a later change, an issue, or a recorded reason to leave it.
 
@@ -81,7 +83,7 @@ Rules that keep the cost down and the result sound:
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.
-- Settle each row the check reports as gone. Mark it `removed` with the reason, or delete it when the test was renamed.
+- Settle each row the check reports as gone. Mark it `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed.
 
 ## What the first audit found about the method
 

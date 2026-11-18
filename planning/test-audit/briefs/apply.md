@@ -1,6 +1,6 @@
 # Brief: apply the rulings and write the register (layer 7, Sonnet, medium effort)
 
-Send this brief after the maintainer has ruled. Fill `<repo>`, `<work>`, `<module>`, `<branch>`, `<base counts>` (the passed, skipped and xfailed counts of the branch before this change) and the maintainer's ruling (the judge's final list as accepted or amended).
+Send this brief after the maintainer has ruled. Fill `<repo>`, `<work>`, `<module>`, `<branch>`, `<base counts>` (the passed, skipped and xfailed counts of the branch before this change) and the maintainer's ruling (the judge's final list as accepted or amended, and the answer on each `rewrite` or `query` verdict).
 
 ---
 
@@ -9,12 +9,14 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
 ## Read first
 
 - `<repo>/planning/test-audit/rubric.md`, above all the section "The register".
-- `<work>/ledger/<module>.md` (the classifier's verdict and reason for every function), `<module>.verify-removal.md` and `<module>.mutation-removal.md` for removals, `<module>.verify-merge.md`, `<module>.mutation-merge.md` and `<module>.merge.patch` for merges, and `<module>.judge.md`.
+- `<work>/ledger/<module>.md` (the classifier's verdict and reason for every function), `<module>.verify-removal.md` and `<module>.mutation-removal.md` for removals, `<module>.verify-merge.md`, `<module>.mutation-merge.md` and `<module>.merge.patch` for merges, and `<module>.judge.md`. A module with no proposal has no judge file, and the maintainer's answer on its `rewrite` and `query` verdicts is the whole ruling.
 - The maintainer's ruling:
 
 <the ruling>
 
 ## Step 1: apply the test change
+
+Skip this step when the ruling removes and merges nothing.
 
 - For a removal, delete exactly the items on the accepted list and nothing else.
 - For merges, apply only the accepted merges from the patch, with the changes the judge required. Leave out every hunk of a merge ruled `keep`, and every import only such a hunk needed.
@@ -28,9 +30,10 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py draft <module> <work>/ledger/<module>.md
    ```
 
-2. Write a row for each test a later layer ruled: each test the maintainer's ruling names, each test the judge examined (its rulings, its flags and its notes), each merged function, and one `removed` row for each function that left the module. Such a row replaces the row `draft` wrote for the same test. Change no other row `draft` wrote. Follow the rules for every register row and for a row a later layer ruled, in `rubric.md` (The register), and leave `audit_commit` and `fingerprint` empty.
-   - Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says. A test the judge examined is `judge` with confidence `-`. A test the maintainer ruled on differently, or added, is `maintainer` with confidence `-`.
-   - Take the reason from the judge's table, not from the classifier.
+2. Write a row for each test a later layer ruled: each test the maintainer's ruling names, each test the judge examined (its rulings, its flags and its notes), each merged function, and one `removed` row for each function that left the module. Such a row replaces the row `draft` wrote for the same test. Change no other row `draft` wrote.
+   - `draft` names the rows it kept as ruled. Each is a row a later layer ruled in an earlier audit, for a test this audit's classifier judged again. Re-read its reason against the test as it is now and against the classifier's new row. Correct the reason, or write the row again from the classifier's verdict, and empty its `audit_commit` and `fingerprint` either way. Follow the rules for every register row and for a row a later layer ruled, in `rubric.md` (The register), and leave `audit_commit` and `fingerprint` empty.
+   - Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says. A test the judge examined is `judge` with confidence `-`. A test the maintainer ruled on differently, or added, is `maintainer` with confidence `-`, and so is a `rewrite` or `query` verdict the maintainer accepted.
+   - Take the reason from the judge's table when the judge examined the test, otherwise from the maintainer's answer, not from the classifier alone.
    - Take every claim about which code a test reaches, or which fault it catches, from a fault that the verifier's, the mutation check's or the judge's file records. When the reason needs a claim that none of them records, plant the fault yourself or leave the claim out. Plant faults only in a `/tmp` worktree (`git worktree add --detach /tmp/<name> HEAD`), restore each one, and remove the worktree at the end. Run the whole suite for any claim about other tests. Never state a probe result you did not run.
    - Check every issue number you cite with `gh issue view <n> --json title,body`.
    - Write British English, with no em dashes and no sentence hinged on a colon.
@@ -42,7 +45,7 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check --names <module>
    ```
 
-   The first must show no function as `new` or `gone`, and no `changed` line with a note. An unstamped row shows as `changed`, and an unstamped `removed` row as `source moved` with the note `unknown audit commit`. The second prints what each row you wrote follows. Each must follow at least one definition, unless its test runs no `src/prov` code. No token may match an unrelated definition. Only a test this change removed or folded in may show `(no such test)`.
+   The first must show no function as `new` or `gone`, and no `changed` line with a note. An unstamped row shows as `changed`, and an unstamped `removed` row as `source moved` with the note `unknown audit commit`. The second prints what each row a later layer ruled follows, from earlier audits too. Check the rows you wrote. Each must follow at least one definition, unless its test runs no `src/prov` code. No token may match an unrelated definition. Only a test this change removed or folded in may show `(no such test)`.
 
 ## Report
 

@@ -70,14 +70,14 @@ The classifier writes one row for each test function, in file order.
 |---|---|
 | Test | The function name |
 | Items | The number of collected items |
-| Pins | The behaviour the test pins, in one sentence, in terms the test itself shows (the call, the input and the expected result) |
-| Reason | The contract and its source (issue number, conformance row, spec section, docs page), or `none found` |
+| Pins | The behaviour the test pins, in one sentence ending in a full stop, in terms the test itself shows (the call, the input and the expected result). A private function the test calls directly is the call |
+| Reason | The contract and its source (issue number, conformance row, spec section, docs page), as a sentence, or `No source found.` |
 | Sibling | The nearest test that covers similar ground, as `module::function`, or `-` |
 | Verdict | One verdict from the table above |
 | Confidence | `high`, `medium` or `low` |
 | Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. Otherwise empty |
 
-For a `keep` or a `protected` that no later layer examines, the Pins and Reason cells become the register reason word for word. So neither cell says which internal code the input reaches, and neither says that the test alone catches a fault. Nobody has planted a fault to show either. An argument about the code belongs in the proposal, where the verifier tests it.
+For a `keep` or a `protected` that no later layer examines, the Pins and Reason cells become the register reason word for word, Pins first. So neither cell says which internal code the input reaches, and neither says that the test alone catches a fault. Nobody has planted a fault to show either. An argument about the code belongs in the proposal, where the verifier tests it.
 
 ## The layers of judgement
 
@@ -112,9 +112,9 @@ Rules for the judge:
 |---|---|
 | `function` | The test function |
 | `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed` |
-| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, or added the test. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
+| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, added the test, or accepted a classifier's `rewrite` or `query`. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
-| `audit_commit` | The commit at which the row's test, and the tests its reason names, were last confirmed. It is stamped after the change that applies the ruling is committed |
+| `audit_commit` | The commit at which the row's test was last confirmed, and for a row a later layer ruled, the tests its reason names. It is stamped after the change that applies the ruling is committed |
 | `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
 | `reason` | What the test pins and the contract behind it. A row a later layer ruled also gives the evidence for the ruling |
 
@@ -123,7 +123,7 @@ The fingerprint covers the function's own text and its collected item ids. A cha
 A register holds two kinds of row.
 
 - **A row the classifier ruled** (`ruled_by` is `classifier`). No proposal touched the test and no later layer examined it. `scripts/register.py draft` copies its reason from the ledger's Pins and Reason cells. The row records what the test pins and the contract behind it. It records that the classifier, by reading, found no sibling that does the same job, and that is not proof. The register check does not follow the names in such a row, so a later change to the code that makes the test redundant goes unreported.
-- **A row a later layer ruled** (`ruled_by` is `judge` or `maintainer`). A proposal touched the test, or the judge or the maintainer examined it. An agent writes its reason from the judge's table. The ruling depends on how the code is written, so the register check follows the code and the tests the reason names.
+- **A row a later layer ruled** (`ruled_by` is `judge` or `maintainer`). A proposal touched the test, or the judge or the maintainer examined it. An agent writes its reason from the judge's table, or from the maintainer's answer when no judge ran. The ruling depends on how the code is written, so the register check follows the code and the tests the reason names.
 
 The registers of `test_json`, `test_read`, `test_provn_lexer`, `test_jsonld` and `test_statements` give their classifier rows the longer form, with code names. Those reasons were reviewed in their pull requests and stay as they are. The check no longer follows them.
 
@@ -151,8 +151,10 @@ Rules for a row a later layer ruled:
 | Unchanged | The fingerprint matches. For a row a later layer ruled, no definition or test the reason names changed | Nothing. The ruling stands |
 | Changed | The fingerprint differs | The test goes through the layers again |
 | New | The function has no row | The test goes through the layers |
-| Source moved | A row a later layer ruled, `removed` rows included, names a definition or a test that changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? For a `removed` row, a yes brings the test back |
-| Gone | A row has no function and its ruling is not `removed` | Mark the row `removed` with the reason, or delete it when the test was renamed |
+| Source moved | A row a later layer ruled, `removed` rows included, names a definition or a test that changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? For a `removed` row, a yes is a proposal to restore the test, which goes to the maintainer |
+| Gone | A row has no function and its ruling is not `removed` | Mark the row `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed |
+
+A row with the note `unknown audit commit` names a commit that git cannot resolve. The row was never stamped, or a rebase lost its commit. The note appears under Changed for a row whose function exists and under Source moved for a `removed` row. Stamp the row. It needs no new judgement.
 
 After the groups, the check lists the rows that still wait for someone to act: each row ruled `rewrite` or `query`, and each row with a `Later audit:` follow-up.
 
