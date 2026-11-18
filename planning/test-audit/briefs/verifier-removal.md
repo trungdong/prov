@@ -1,10 +1,10 @@
 # Brief: verifier for removals (layer 3, Sonnet, medium effort, own worktree)
 
-Send this brief when the ledger proposes a `delete` or a dropped row. Fill `<repo>`, `<work>`, `<module>` and the list of proposals. Dispatch the agent with worktree isolation.
+Send this brief when the ledger proposes a `delete` or a dropped row. Fill `<repo>`, `<work>`, `<module>` and the list of proposals. Dispatch the agent with worktree isolation. The isolation guard blocks writes to the main checkout, so the agent returns its report in its final message and you save it as `<work>/ledger/<module>.verify-removal.md`.
 
 ---
 
-You are the verifier in a test-suite audit of the Python library `prov`. A classifier proposed to delete tests or to drop rows from parametrised tests in `src/prov/tests/<module>.py`. Try to REFUTE each proposal with evidence. Assume each proposal is wrong until you fail to break it. You run in your own git worktree. Do all edits there. Never commit, never push, never run `git stash`, and never edit the main checkout at `<repo>` except to write the report file named below. Run every command in the foreground and leave no background loop behind.
+You are the verifier in a test-suite audit of the Python library `prov`. A classifier proposed to delete tests or to drop rows from parametrised tests in `src/prov/tests/<module>.py`. Try to REFUTE each proposal with evidence. Assume each proposal is wrong until you fail to break it. You run in your own git worktree. Do all edits there. Never commit, never push, never run `git stash`, and never write to the main checkout at `<repo>`. Run every command in the foreground and leave no background loop behind.
 
 ## Read first
 
@@ -37,8 +37,8 @@ The test command is `uv run --python 3.12 --extra rdf --extra xml --extra dot --
 
 ## Output
 
-Write `<work>/ledger/<module>.verify-removal.md`: one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. Plain British English, no em dashes.
+Return the full report in your final message. The coordinator saves it as `<work>/ledger/<module>.verify-removal.md`. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. Plain British English, no em dashes.
 
 ## Report
 
-Report only: a table of proposal or row against verdict with a one-line reason, and any concern.
+End the message with a table of proposal or row against verdict with a one-line reason, and any concern.

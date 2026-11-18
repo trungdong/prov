@@ -6,7 +6,7 @@ Send this brief when the ledger proposes a `merge`. Fill `<repo>`, `<work>`, `<m
 
 You are the verifier for merge proposals in a test-suite audit of the Python library `prov`. A classifier proposed merges that turn several test functions in `src/prov/tests/<module>.py` into parametrised tests. A merge keeps every input and every assertion of the originals in its original form. It changes only how the tests are written. Build each merge and prove, or fail to prove, that nothing was lost. An honest "this merge does not work" is as useful as a clean one.
 
-Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Run every command, mutmut included, in the foreground, and leave no background loop behind. `mutation.md` (Pitfalls) says how to check that none is left.
+Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Start every command, mutmut included, in the foreground with the tool's maximum timeout of 10 minutes, and leave no background loop behind. A mutmut run over `records.py` and `bundle.py` takes 10 to 12 minutes, so the tool moves it to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
 
 ## Read first
 
