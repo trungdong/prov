@@ -30,7 +30,7 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 
 Write `<work>/ledger/<module>.md`:
 
-- A first line `# Ledger: <module>.py`, then a count of verdicts by kind.
+- A first line `# Ledger: <module>.py`, then the module's collected item count, taken from `<work>/evidence/collected-items.txt`, and a count of verdicts by kind.
 - One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order.
 - `## Identical-arc groups`: each group, with a one-line finding.
 - `## Proposals`: one short paragraph for each `merge`, `narrow` and `delete`. Say what exactly changes, which test keeps the fault covered, every input difference between candidate and takeover, and what a verifier should plant to refute you.

@@ -4,12 +4,12 @@ Send this brief after the maintainer has ruled. Fill `<repo>`, `<work>`, `<modul
 
 ---
 
-You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Do not commit; the coordinator reviews and commits. Change no file except `src/prov/tests/<module>.py` and `planning/test-audit/register/<module>.tsv`. Name files literally in every command.
+You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file except `src/prov/tests/<module>.py` and `planning/test-audit/register/<module>.tsv`. Name files literally in every command.
 
 ## Read first
 
 - `<repo>/planning/test-audit/rubric.md`, above all the section "The register".
-- `<work>/ledger/<module>.md` (the classifier's verdict and reason for every function), `<module>.verify.md`, `<module>.mutation.md`, `<module>.judge.md`, and for merges `<module>.merge.patch`.
+- `<work>/ledger/<module>.md` (the classifier's verdict and reason for every function), `<module>.verify-removal.md` and `<module>.mutation-removals.md` for removals, `<module>.verify-merge.md`, `<module>.mutation.md` and `<module>.merge.patch` for merges, and `<module>.judge.md`.
 - The maintainer's ruling:
 
 <the ruling>
@@ -24,8 +24,14 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
 
 Write `planning/test-audit/register/<module>.tsv` with one row for each test function now in the module, and one `removed` row for each function that left it. Follow "Rules for a register row" in `rubric.md`. Leave `audit_commit` and `fingerprint` empty on every row you add or change.
 
-- Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says.
+- Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says. A test the judge examined, including one it discussed beyond the proposals (its flags or notes), is `judge` with confidence `-`. A test only the classifier judged is `classifier` with the classifier's confidence.
 - Take the reason of a row that a later layer judged from the judge's table, not from the classifier.
+- Treat every reason as a claim about the code, and check it before you write it. The classifier's reason was written from reading and is often wrong about which code an input reaches.
+  - Trace each input through the code it reaches, and name in backticks every `src/prov` function, method or class the argument passes through (methods as `Class.method`). A module-level constant may stay in backticks, but name the function that applies it too. Never backtick a bare word that matches unrelated definitions, such as `identifier`; write module names as plain text.
+  - Back every claim about which code a test reaches, and every claim that a test catches a fault, with a fault you planted and ran. Plant faults only in a `/tmp` worktree (`git worktree add --detach /tmp/<name> HEAD`), restore each one, and remove the worktree at the end. Run the whole suite for any claim about other tests. Say that a test alone catches a fault only when your run or the verify, mutation or judge files show it. Never state a probe result you did not run.
+  - Name every sibling, takeover or folded test as `module.py::function`, each one, not only the first in a list. `register.py check` follows these names.
+  - Cite an issue only when its title or body describes the test's input. Check every number with `gh issue view <n> --json title,body`. A reference that comes only from a commit message often belongs to another change in that commit.
+  - Write British English, with no em dashes and no sentence hinged on a colon.
 
 Then stamp and check:
 
@@ -36,6 +42,8 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python pl
 
 Stamp once, after the test change is in place, and do not commit. The rows then name the commit the branch started from, which stays in its history. Every function must come out `unchanged`. Stop and report any that does not.
 
+Then list, for each row, the backticked tokens that `register.named()` matches against `register.tree_definitions()` (with `planning/test-audit/scripts` on `sys.path`). Every row must track at least one definition unless its test runs no `src/prov` code, and no token may match an unrelated definition.
+
 ## Report
 
-Report only: the diff stat, the suite counts and the coverage `TOTAL` line against `main`, the number of register rows by ruling and by `ruled_by`, the output of `check`, and any concern.
+Report only: the diff stat, the suite counts and the coverage `TOTAL` line against `main`, the number of register rows by ruling and by `ruled_by`, the output of `check`, the tracked-name result, each planted fault with its result, and any concern.
