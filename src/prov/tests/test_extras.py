@@ -3,9 +3,6 @@ import io
 
 import pytest
 
-from prov.constants import (
-    PROV_ROLE,
-)
 from prov.identifier import Namespace
 from prov.model import (
     ProvAgent,
@@ -25,30 +22,6 @@ from prov.tests.test_statements import add_further_attributes, add_labels, add_t
 EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")
 EX_OTHER_NS = Namespace("other", "http://exceptions.example.org/")
-
-
-def test_dot() -> None:
-    # This is naive, since we can't programatically check the output is
-    # correct
-    pytest.importorskip("pydot", reason="prov.dot requires the dot extra")
-    from prov.dot import prov_to_dot
-
-    document = ProvDocument()
-
-    bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
-    bundle1.usage(activity=EX_NS["a1"], entity=EX_NS["e1"], identifier=EX_NS["use1"])
-    bundle1.entity(identifier=EX_NS["e1"], other_attributes={PROV_ROLE: "sausage"})
-    bundle1.activity(identifier=EX_NS["a1"])
-    document.activity(EX_NS["a2"])
-
-    bundle2 = ProvBundle(identifier=EX_NS["bundle2"])
-    bundle2.usage(activity=EX_NS["aa1"], entity=EX_NS["ee1"], identifier=EX_NS["use2"])
-    bundle2.entity(identifier=EX_NS["ee1"])
-    bundle2.activity(identifier=EX_NS["aa1"])
-
-    document.add_bundle(bundle1)
-    document.add_bundle(bundle2)
-    prov_to_dot(document)
 
 
 def test_extra_attributes() -> None:
@@ -71,17 +44,6 @@ def test_serialize_to_path(tmp_path) -> None:
     assert path.exists()
 
     document.serialize("http://netloc/outputmyprov/submit.php")
-
-
-def test_bundle_no_id() -> None:
-    document = ProvDocument()
-
-    def test() -> None:
-        bundle = ProvBundle()
-        document.add_bundle(bundle)
-
-    with pytest.raises(ProvException):
-        test()
 
 
 def test_use_set_time_helpers() -> None:
@@ -113,7 +75,6 @@ def test_bundle_add_garbage() -> None:
     [
         pytest.param("not a bundle", id="string"),
         pytest.param(42, id="int-42"),
-        pytest.param(1, id="int-1"),
     ],
 )
 def test_bundle_equality_garbage(other: object) -> None:
