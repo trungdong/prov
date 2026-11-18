@@ -38,7 +38,7 @@ ALLOWED = {
         "protected",
         "removed",
     ),
-    "ruled_by": ("classifier", "verifier", "judge", "maintainer"),
+    "ruled_by": ("classifier", "judge", "maintainer"),
     "confidence": ("high", "medium", "low", "-"),
 }
 GROUPS = ("unchanged", "changed", "new", "source moved", "gone")
@@ -165,23 +165,37 @@ def write_register(path: Path, rows: dict[str, Row]) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
+def stamp_problems(
+    rows: dict[str, Row], sources: dict[str, str]
+) -> dict[str, list[str]]:
+    """Return the functions with no row, the rows with no function and the removed
+    rows whose function still exists."""
+    return {
+        "functions with no row": sorted(set(sources) - set(rows)),
+        "rows with no function": sorted(
+            n for n, r in rows.items() if r.ruling != "removed" and n not in sources
+        ),
+        "removed rows whose function exists": sorted(
+            n for n, r in rows.items() if r.ruling == "removed" and n in sources
+        ),
+    }
+
+
 def cmd_stamp(module: str) -> None:
     path, register = module_path(module), REGISTER / f"{module}.tsv"
+    if not register.is_file():
+        fail(f"{register}: no register file; write one before you stamp")
     rows, sources = read_register(register), test_sources(path)
-    no_row = sorted(set(sources) - set(rows))
-    gone = sorted(
-        n for n, r in rows.items() if r.ruling != "removed" and n not in sources
-    )
-    if no_row or gone:
-        fail(
-            f"{register}\nfunctions with no row: {no_row}\nrows with no function: {gone}"
-        )
+    problems = stamp_problems(rows, sources)
+    if any(problems.values()):
+        fail("\n".join([str(register), *(f"{k}: {v}" for k, v in problems.items())]))
     ids, head = collect_ids(path), git("rev-parse", "--short=12", "HEAD").stdout.strip()
     stamped = current = 0
     for name, row in rows.items():
         if row.ruling == "removed":
-            stamped += not row.audit_commit
-            row.audit_commit = row.audit_commit or head
+            if row.fingerprint or not row.audit_commit:
+                row.fingerprint, row.audit_commit = "", head
+                stamped += 1
             continue
         new = fingerprint(sources[name], ids.get(name, []))
 
@@ -200,23 +214,31 @@ def cmd_stamp(module: str) -> None:
 Digests = dict[tuple[str, str], str]
 
 
+def is_source(path: str) -> bool:
+    """Say whether a repository path is a Python file of the package, not its tests."""
+    return path.endswith(".py") and not path.startswith(f"{SOURCE}/tests/")
+
+
 def definitions(files: dict[str, str]) -> Digests:
     """Map (path, qualified name) to a source hash for every def and class."""
-    found: Digests = {}
+    texts: defaultdict[tuple[str, str], list[bytes]] = defaultdict(list)
 
     def walk(node: ast.AST, prefix: str, path: str, lines: list[str]) -> None:
         for child in ast.iter_child_nodes(node):
-            qual = prefix
             if isinstance(child, Def):
                 qual = f"{prefix}{child.name}"
-                text = span_text(lines, child).encode()
-                found[path, qual] = hashlib.sha256(text).hexdigest()
-            walk(child, f"{qual}." if qual else "", path, lines)
+                texts[path, qual].append(span_text(lines, child).encode())
+                walk(child, f"{qual}.", path, lines)
+            else:
+                walk(child, prefix, path, lines)
 
     for path, text in files.items():
-        if path.endswith(".py") and not path.startswith(f"{SOURCE}/tests/"):
+        if is_source(path):
             walk(ast.parse(text), "", path, text.splitlines())
-    return found
+
+    # Definitions that share a name (an overload group) hash together in file order.
+
+    return {k: hashlib.sha256(b"\0".join(v)).hexdigest() for k, v in texts.items()}
 
 
 def tree_definitions() -> Digests:
@@ -229,7 +251,7 @@ def commit_definitions(commit: str) -> Digests | None:
     listing = git("ls-tree", "-r", "--name-only", commit, SOURCE)
     if listing.returncode != 0:
         return None
-    names = listing.stdout.splitlines()
+    names = [n for n in listing.stdout.splitlines() if is_source(n)]
     return definitions({n: git("show", f"{commit}:{n}").stdout for n in names})
 
 
@@ -284,7 +306,13 @@ class Audit:
 
 def check_module(audit: Audit, module: str) -> list[Found]:
     """Return one finding for each test function and each row without a function."""
-    sources, register = test_sources(module_path(module)), REGISTER / f"{module}.tsv"
+    register = REGISTER / f"{module}.tsv"
+    if register.is_file() and not (TESTS / f"{module}.py").is_file():
+        return [
+            Found(n, "removed" if r.ruling == "removed" else "gone")
+            for n, r in read_register(register).items()
+        ]
+    sources = test_sources(module_path(module))
     if not register.is_file():
         return [Found(name, "not audited") for name in sources]
     ids, rows = collect_ids(module_path(module)), read_register(register)
@@ -324,7 +352,10 @@ def print_group(group: str, audited: dict[str, list[Found]]) -> None:
 
 
 def cmd_check(modules: list[str], list_only: bool) -> None:
-    names = modules or [p.stem for p in sorted(TESTS.glob("test_*.py"))]
+    names = modules or sorted(
+        {p.stem for p in TESTS.glob("test_*.py")}
+        | {p.stem for p in REGISTER.glob("test_*.tsv")}
+    )
     audit = Audit()
     results = {m: check_module(audit, m) for m in names}
     if not list_only:
