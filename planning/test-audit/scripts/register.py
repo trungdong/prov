@@ -288,41 +288,41 @@ class Audit:
             sorted({k[1] for k in was.keys() | now.keys() if was.get(k) != now.get(k)})
         )
 
-    def classify(self, row: Row | None, source: str, ids: Sequence[str]) -> Found:
+    def classify(
+        self, name: str, row: Row | None, source: str, ids: Sequence[str]
+    ) -> Found:
         if row is None:
-            return Found("", "new")
+            return Found(name, "new")
         if row.ruling == "removed":
-            return Found("", "changed", "ruled removed but the function exists")
+            return Found(name, "changed", "ruled removed but the function exists")
         if row.fingerprint != fingerprint(source, ids):
-            return Found("", "changed")
+            return Found(name, "changed")
         if row.audit_commit not in self.before:
             self.before[row.audit_commit] = commit_definitions(row.audit_commit)
         old = self.before[row.audit_commit]
         if old is None:
-            return Found("", "changed", "unknown audit commit")
+            return Found(name, "changed", "unknown audit commit")
         names = self.moved(row, old)
-        return Found("", "source moved", names) if names else Found("", "unchanged")
+        return Found(name, "source moved", names) if names else Found(name, "unchanged")
 
 
 def check_module(audit: Audit, module: str) -> list[Found]:
     """Return one finding for each test function and each row without a function."""
-    register = REGISTER / f"{module}.tsv"
-    if register.is_file() and not (TESTS / f"{module}.py").is_file():
-        return [
-            Found(n, "removed" if r.ruling == "removed" else "gone")
-            for n, r in read_register(register).items()
-        ]
-    sources = test_sources(module_path(module))
+    path, register = TESTS / f"{module}.py", REGISTER / f"{module}.tsv"
     if not register.is_file():
-        return [Found(name, "not audited") for name in sources]
-    ids, rows = collect_ids(module_path(module)), read_register(register)
-    found = []
-    for name, source in sources.items():
-        found.append(
-            audit.classify(rows.get(name), source, ids.get(name, []))._replace(
-                function=name
-            )
-        )
+        return [
+            Found(name, "not audited") for name in test_sources(module_path(module))
+        ]
+
+    # A test module that no longer exists leaves only rows without a function.
+
+    sources = test_sources(path) if path.is_file() else {}
+    ids = collect_ids(path) if sources else {}
+    rows = read_register(register)
+    found = [
+        audit.classify(name, rows.get(name), source, ids.get(name, []))
+        for name, source in sources.items()
+    ]
     for name, row in rows.items():
         if name not in sources:
             found.append(Found(name, "removed" if row.ruling == "removed" else "gone"))
