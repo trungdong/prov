@@ -367,7 +367,6 @@ def test_read_passes_profile_through(tmp_path) -> None:
         "document\n  prefix ex <http://example.org/>\n"
         "  mentionOf(ex:e1, ex:e0, ex:b)\nendDocument"
     )
-    from prov.serializers.provn import ProvNSyntaxError
 
     with pytest.raises(ProvNSyntaxError):
         prov.read(str(path), format="provn", profile="strict")
