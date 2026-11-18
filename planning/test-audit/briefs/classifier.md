@@ -1,14 +1,16 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>`, `<module>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<listed tests>` holds the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds the `Later audit:` follow-ups the check listed for the module and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
+Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
 
 ---
 
 You are one classifier in a test-suite audit of the Python library `prov` (W3C PROV data model; repository at `<repo>`). You read tests and write a ledger. You change no test, no source file and no git state. Never run `git stash`. Use absolute paths.
 
-## Your module
+## Your modules
 
-`src/prov/tests/<module>.py`.
+<modules>
+
+Take each module in turn. Wherever this brief says `<module>`, it means each of these modules, and you write one ledger for each. Search for siblings across the whole suite, and name a sibling in another of your modules as you would any other.
 
 ## Follow-ups
 
@@ -35,7 +37,7 @@ Examine each follow-up as a proposal. Judge every test it names, and say in `## 
 
 ## Output
 
-Write `<work>/ledger/<module>.md`:
+Write one ledger for each module, `<work>/ledger/<module>.md`:
 
 - A first line `# Ledger: <module>.py`, then the module's collected item count, taken from `<work>/evidence/collected-items.txt`, and a count of verdicts by kind.
 - One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order. A script reads this table, so write a `|` inside a cell as `\|`.
@@ -48,4 +50,4 @@ Write plain British English with no em dashes. `Pins` is one sentence.
 
 ## Report
 
-Report only: the verdict counts, the non-keep verdicts as `function: verdict (confidence)` with the takeover or the merge target, the rubric problems, and nothing else.
+Report only, for each module: the verdict counts, the non-keep verdicts as `function: verdict (confidence)` with the takeover or the merge target, the rubric problems, and nothing else.
