@@ -4,7 +4,7 @@ Send this brief for the removals the verifier did not refute. Fill `<repo>`, `<w
 
 ---
 
-Run one comparison for a test-suite audit of the Python library `prov` and report a short fact. Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the result file named below. Run every command, mutmut included, in the foreground, and leave no background loop behind. `mutation.md` (Pitfalls) says how to check that none is left.
+Run one comparison for a test-suite audit of the Python library `prov` and report a short fact. Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the result file named below. Start every command, mutmut included, in the foreground with the Bash tool's maximum timeout of 10 minutes, and leave no polling loop behind. A run that takes longer moves to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
 
 Read `<repo>/planning/test-audit/mutation.md` first and follow it.
 

@@ -4,7 +4,7 @@ Send this brief after the maintainer has ruled. Fill `<repo>`, `<work>`, `<modul
 
 ---
 
-You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file in `<repo>` except `src/prov/tests/<module>.py` and `planning/test-audit/register/<module>.tsv`. Name files literally in every command.
+You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file in `<repo>` except `src/prov/tests/<module>.py`, `planning/test-audit/register/<module>.tsv` and a test helper module the accepted merge patch adds. Name files literally in every command.
 
 ## Read first
 
@@ -18,8 +18,10 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
 
 Skip this step when the ruling removes and merges nothing.
 
+- Before you delete anything, read the body of each takeover the ruling names for a removal: its call, its arguments and its assertions. When a takeover does not cover what the removed test asserted, stop and report, because the removal may be unsound.
 - For a removal, delete exactly the items on the accepted list and nothing else.
 - For merges, apply only the accepted merges from the patch, with the changes the judge required. Leave out every hunk of a merge ruled `keep`, and every import only such a hunk needed.
+- `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module. When an accepted change needs such a map and the patch does not supply that module, stop and report.
 - Run `ruff check` and `ruff format --check` on the module, then the whole suite with coverage: `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-report=term`. The `TOTAL` line must show the same statements missed and the same branches partly covered as the same run on `main`. Stop and report any difference. Compare the passed, skipped and xfailed counts with `<base counts>` and the expected change, and stop and report any difference you cannot account for item by item.
 
 ## Step 2: write the register rows
@@ -34,6 +36,7 @@ Skip this step when the ruling removes and merges nothing.
    - `draft` names the rows it kept as ruled. Each is a row a later layer ruled in an earlier audit, for a test this audit's classifier judged again. Re-read its reason against the test as it is now and against the classifier's new row. Correct the reason, or write the row again from the classifier's verdict, and empty its `audit_commit` and `fingerprint` either way. Follow the rules for every register row and for a row a later layer ruled, in `rubric.md` (The register), and leave `audit_commit` and `fingerprint` empty.
    - Set `ruling`, `ruled_by` and `confidence` as the rubric's register table says. A test the judge examined is `judge` with confidence `-`. A test the maintainer ruled on differently, or added, is `maintainer` with confidence `-`, and so is a `rewrite` or `query` verdict the maintainer accepted.
    - Take the reason from the judge's table when the judge examined the test, otherwise from the maintainer's answer, not from the classifier alone.
+   - Check every takeover claim you copy from the judge, the verifier or the ledger against the takeover's body. When a claim overstates what the body does, correct the wording and report the correction.
    - Take every claim about which code a test reaches, or which fault it catches, from a fault that the verifier's, the mutation check's or the judge's file records. When the reason needs a claim that none of them records, plant the fault yourself or leave the claim out. Plant faults only in a `/tmp` worktree (`git worktree add --detach /tmp/<name> HEAD`), restore each one, and remove the worktree at the end. Run the whole suite for any claim about other tests. Never state a probe result you did not run.
    - Check every issue number you cite with `gh issue view <n> --json title,body`.
    - Write British English, with no em dashes and no sentence hinged on a colon.
@@ -49,4 +52,4 @@ Skip this step when the ruling removes and merges nothing.
 
 ## Report
 
-Report only: the diff stat, the suite counts and the coverage `TOTAL` line against `main`, the summary line of `draft`, the number of register rows by ruling and by `ruled_by`, the output of the two checks, each fault you planted with its result, and any concern.
+Report only: the diff stat, the suite counts and the coverage `TOTAL` line against `main`, the summary line of `draft`, the number of register rows by ruling and by `ruled_by`, the output of the two checks, each fault you planted with its result, each takeover claim you corrected, each follow-up for a test outside `<module>` for the coordinator to place, and any concern.

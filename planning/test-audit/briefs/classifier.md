@@ -1,6 +1,6 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>`, `<module>` and `<listed tests>` before you send this brief. `<listed tests>` holds the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
+Fill `<repo>`, `<work>`, `<module>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<listed tests>` holds the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds the `Later audit:` follow-ups the check listed for the module and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
 
 ---
 
@@ -9,6 +9,12 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 ## Your module
 
 `src/prov/tests/<module>.py`.
+
+## Follow-ups
+
+<follow-ups>
+
+Examine each follow-up as a proposal. Judge every test it names, and say in `## Proposals` whether the follow-up holds.
 
 ## Read first, in this order
 
