@@ -165,30 +165,30 @@ def test_serialize_no_default_namespace_omits_base() -> None:
     assert "@vocab" not in container["@context"][0]
 
 
-def test_serialize_default_namespace_attribute_uses_absolute_iri_key() -> None:
-    # A non-formal attribute in the default namespace has no prefix, so its
-    # bare local part ("mine") would be indistinguishable from a JSON-LD
-    # term the context itself defines and is schema-invalid regardless
-    # (patternProperties requires a "prefix:local" shape); the encoder must
-    # emit the absolute IRI as the key instead.
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        # A non-formal attribute in the default namespace has no prefix, so its
+        # bare local part ("mine") would be indistinguishable from a JSON-LD
+        # term the context itself defines and is schema-invalid regardless
+        # (patternProperties requires a "prefix:local" shape); the encoder must
+        # emit the absolute IRI as the key instead.
+        pytest.param("mine", "x", id="plain-local-part"),
+        # "type" is one of the 5 special (bare) terms the context defines; a
+        # default-namespace attribute that happens to be called "type" must not
+        # collide with it.
+        pytest.param("type", "y", id="reserved-term"),
+    ],
+)
+def test_serialize_default_namespace_attribute_uses_absolute_iri_key(
+    key, value
+) -> None:
     doc = ProvDocument()
     doc.set_default_namespace(EX_URI)
-    doc.entity("e1", {"mine": "x"})
+    doc.entity("e1", {key: value})
     (stmt,) = _dump(doc)["@graph"]
-    assert stmt[EX_URI + "mine"] == [{"@value": "x"}]
-    assert "mine" not in stmt
-
-
-def test_serialize_default_namespace_attribute_colliding_with_reserved_term() -> None:
-    # "type" is one of the 5 special (bare) terms the context defines; a
-    # default-namespace attribute that happens to be called "type" must not
-    # collide with it.
-    doc = ProvDocument()
-    doc.set_default_namespace(EX_URI)
-    doc.entity("e1", {"type": "y"})
-    (stmt,) = _dump(doc)["@graph"]
-    assert stmt[EX_URI + "type"] == [{"@value": "y"}]
-    assert "type" not in stmt
+    assert stmt[EX_URI + key] == [{"@value": value}]
+    assert key not in stmt
 
 
 def test_serialize_default_namespace_attribute_colliding_with_formal_attribute() -> (
@@ -836,33 +836,19 @@ def test_deserialize_node_reference_under_any_key(key) -> None:
     assert value == doc.valid_qualified_name("ex:thing")
 
 
-def test_deserialize_node_reference_with_absolute_iri() -> None:
-    doc = ProvDocument.deserialize(
-        content=statement_of(
-            "Entity", "ex:e1", **{"ex:ref": [{"@id": EX_URI + "thing"}]}
-        ),
-        format="jsonld",
-    )
-    (entity,) = doc.get_records()
-    (value,) = [v for _, v in entity.extra_attributes]
-    assert value == doc.valid_qualified_name("ex:thing")
-
-
 @pytest.mark.parametrize(
-    "extra",
-    [{"@value": "x"}, {"@type": "xsd:string"}, {"@language": "en"}, {"ex:p": "x"}],
+    "node",
+    [
+        pytest.param({"@id": "ex:thing", "@value": "x"}, id="extra-value"),
+        pytest.param({"@id": "ex:thing", "@type": "xsd:string"}, id="extra-type"),
+        pytest.param({"@id": "ex:thing", "@language": "en"}, id="extra-language"),
+        pytest.param({"@id": "ex:thing", "ex:p": "x"}, id="extra-property"),
+        pytest.param({"@id": 42}, id="id-not-a-string"),
+        pytest.param({"@id": ""}, id="id-empty"),
+    ],
 )
-def test_deserialize_node_reference_with_other_keys_raises(extra) -> None:
-    payload = statement_of(
-        "Entity", "ex:e1", **{"ex:ref": [{"@id": "ex:thing", **extra}]}
-    )
-    with pytest.raises(ProvJSONLDException, match="@id"):
-        ProvDocument.deserialize(content=payload, format="jsonld")
-
-
-@pytest.mark.parametrize("node_id", [42, ""])
-def test_deserialize_node_reference_with_bad_id_raises(node_id) -> None:
-    payload = statement_of("Entity", "ex:e1", **{"ex:ref": [{"@id": node_id}]})
+def test_deserialize_node_reference_with_bad_shape_raises(node) -> None:
+    payload = statement_of("Entity", "ex:e1", **{"ex:ref": [node]})
     with pytest.raises(ProvJSONLDException, match="@id"):
         ProvDocument.deserialize(content=payload, format="jsonld")
 
