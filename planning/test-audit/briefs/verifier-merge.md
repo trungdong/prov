@@ -14,6 +14,7 @@ Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touc
 - `<work>/ledger/<module>.md`: the table and the `## Proposals` section.
 - `<repo>/planning/test-audit/mutation.md`.
 - In the worktree: the test module, and `CLAUDE.md` (Tests section) for the suite's conventions. Match the file's style. Keep each original's comments and issue references beside its row. Use `pytest.param(..., id="...")` with readable ids.
+- When a merge folds a test in from another module, the patch changes both modules. Run steps 1.1 and 3.2 on both modules together, record step 1.3 for both, and lint both. Read the other module's register row for the folded test if it has one, and do not edit it.
 
 ## Step 1: baselines on the untouched worktree
 
