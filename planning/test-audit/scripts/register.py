@@ -3,13 +3,17 @@
 `register/<module>.tsv` holds one ruling for each test function of a module. `stamp`
 records the fingerprint of each function once its ruling is final. `check` sorts every
 function into unchanged, changed, new, source moved and gone, so that a later audit
-judges only what is not unchanged. A row is source moved when a backticked `src/prov`
+judges only what is not unchanged. A row that a later layer ruled (`ruled_by` is not
+`classifier`), `removed` rows included, is source moved when a backticked `src/prov`
 definition or a sibling test (`test_x.py::test_y`) named in its reason changed since its
-audit commit. A reason that opens, or opens a sentence, with `Later audit:` is listed
-after the groups. The format is in `rubric.md` (The register).
+audit commit. `check --names` prints what each such row follows. A reason that opens, or
+opens a sentence, with `Later audit:` is listed after the groups, and so are the
+`rewrite` and `query` rows. `draft` turns the classifier's `keep` and `protected` ledger
+rows into register rows. The format is in `rubric.md` (The register).
 
     python planning/test-audit/scripts/register.py stamp test_json
-    python planning/test-audit/scripts/register.py check [--list] [test_json ...]
+    python planning/test-audit/scripts/register.py check [--list | --names] [test_json ...]
+    python planning/test-audit/scripts/register.py draft test_json ledger.md
 """
 
 from __future__ import annotations
@@ -48,6 +52,8 @@ GROUPS = ("unchanged", "changed", "new", "source moved", "gone")
 Def = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
 SIBLING = re.compile(r"\b(test_\w+)\.py::(\w+)")
+LEDGER = ["Test", "Items", "Pins", "Reason", "Sibling", "Verdict", "Confidence", "Note"]
+DRAFTED = ("keep", "protected")
 LATER = re.compile(r"(?:^|[.!?][)\"']?\s+)Later audit:")
 
 
@@ -67,6 +73,7 @@ class Found(NamedTuple):
     group: str
     note: str = ""
     later: bool = False
+    ruling: str = ""
 
 
 COLUMNS = tuple(f.name for f in dataclasses.fields(Row))
@@ -203,7 +210,7 @@ def cmd_stamp(module: str) -> None:
     stamped = current = 0
     for name, row in rows.items():
         if row.ruling == "removed":
-            if row.fingerprint or not row.audit_commit:
+            if row.fingerprint or not in_history(row.audit_commit):
                 row.fingerprint, row.audit_commit = "", head
                 stamped += 1
             continue
@@ -322,6 +329,34 @@ class Audit:
         names = self.moved_defs(row, old) | self.moved_siblings(module, row)
         return ", ".join(sorted(names))
 
+    def followed(self, module: str, row: Row) -> str | None:
+        """Name what a later layer's row follows that moved, or None for a lost commit."""
+        if row.ruled_by == "classifier":
+            return ""
+        if row.audit_commit not in self.before:
+            self.before[row.audit_commit] = commit_definitions(row.audit_commit)
+        old = self.before[row.audit_commit]
+        return None if old is None else self.moved(module, row, old)
+
+    def classify_removed(self, module: str, row: Row) -> Found:
+        """Classify a removed row whose function is absent."""
+        names = self.followed(module, row)
+        if names is None:
+            return Found(row.function, "source moved", "unknown audit commit")
+        return Found(row.function, "source moved" if names else "removed", names)
+
+    def row_names(self, module: str, row: Row) -> list[str]:
+        """List the definitions and sibling tests that a row's reason follows."""
+        lines = sorted(
+            f"  {path}::{qual}"
+            for path, qual in named(self.now, named_tokens(row.reason))
+        )
+        for other, name in sorted(set(SIBLING.findall(row.reason))):
+            if (other, name) != (module, row.function):
+                gap = "" if name in read_tests("", other) else " (no such test)"
+                lines.append(f"  {other}.py::{name}{gap}")
+        return [f"{module}::{row.function}", *(lines or ["  nothing"])]
+
     def classify(
         self, module: str, name: str, row: Row | None, source: str, ids: Sequence[str]
     ) -> Found:
@@ -331,12 +366,9 @@ class Audit:
             return Found(name, "changed", "ruled removed but the function exists")
         if row.fingerprint != fingerprint(source, ids):
             return Found(name, "changed")
-        if row.audit_commit not in self.before:
-            self.before[row.audit_commit] = commit_definitions(row.audit_commit)
-        old = self.before[row.audit_commit]
-        if old is None:
+        names = self.followed(module, row)
+        if names is None:
             return Found(name, "changed", "unknown audit commit")
-        names = self.moved(module, row, old)
         return Found(name, "source moved", names) if names else Found(name, "unchanged")
 
 
@@ -359,13 +391,20 @@ def check_module(audit: Audit, module: str) -> list[Found]:
     ]
     for name, row in rows.items():
         if name not in sources:
-            found.append(Found(name, "removed" if row.ruling == "removed" else "gone"))
-    return [
-        f._replace(
-            later=bool(f.function in rows and LATER.search(rows[f.function].reason))
-        )
-        for f in found
-    ]
+            found.append(
+                audit.classify_removed(module, row)
+                if row.ruling == "removed"
+                else Found(name, "gone")
+            )
+    return [annotate(f, rows) for f in found]
+
+
+def annotate(f: Found, rows: dict[str, Row]) -> Found:
+    """Record a finding's ruling and whether its reason holds a later audit's note."""
+    row = rows.get(f.function)
+    if row is None:
+        return f
+    return f._replace(later=bool(LATER.search(row.reason)), ruling=row.ruling)
 
 
 def print_report(results: dict[str, list[Found]]) -> None:
@@ -381,6 +420,7 @@ def print_report(results: dict[str, list[Found]]) -> None:
     for group in GROUPS[1:]:
         print_group(group, audited)
     print_later(audited)
+    print_rewrites(audited)
 
 
 def print_group(group: str, audited: dict[str, list[Found]]) -> None:
@@ -400,18 +440,107 @@ def print_later(audited: dict[str, list[Found]]) -> None:
         print(f"  {hit}")
 
 
-def cmd_check(modules: list[str], list_only: bool) -> None:
+def print_rewrites(audited: dict[str, list[Found]]) -> None:
+    """List the rows whose ruling is rewrite or query."""
+    hits = [
+        f"  {m}::{f.function}  {f.ruling}"
+        for m, fs in audited.items()
+        for f in fs
+        if f.ruling in ("rewrite", "query")
+    ]
+    if hits:
+        print(f"\nrewrite and query ({len(hits)})")
+    for hit in hits:
+        print(hit)
+
+
+def print_names(audit: Audit, modules: list[str]) -> None:
+    """Print what each row of a later layer follows, one block for each row."""
+    for module in modules:
+        register = REGISTER / f"{module}.tsv"
+        rows = read_register(register).values() if register.is_file() else []
+        for row in rows:
+            if row.ruled_by != "classifier":
+                print("\n".join(audit.row_names(module, row)))
+
+
+def cmd_check(modules: list[str], list_only: bool, names_only: bool) -> None:
     names = modules or sorted(
         {p.stem for p in TESTS.glob("test_*.py")}
         | {p.stem for p in REGISTER.glob("test_*.tsv")}
     )
     audit = Audit()
+    if names_only:
+        return print_names(audit, names)
     results = {m: check_module(audit, m) for m in names}
     if not list_only:
         return print_report(results)
     for module, found in results.items():
         for f in found:
             print(f"{module}::{f.function}\t{f.group}")
+
+
+def ledger_rows(path: Path) -> list[list[str]]:
+    """Return the cells of each data row of the ledger table that has the LEDGER header.
+
+    The Test, Verdict and Confidence cells lose any backticks around them.
+    """
+    lines = path.read_text().splitlines()
+    heads = [i for i, line in enumerate(lines) if ledger_cells(line) == LEDGER]
+    if not heads:
+        fail(f"{path}: no table with the header {' | '.join(LEDGER)}")
+    rows: list[list[str]] = []
+    for number in range(heads[0] + 2, len(lines)):
+        if not lines[number].strip().startswith("|"):
+            break
+        cells = ledger_cells(lines[number])
+        if len(cells) != len(LEDGER):
+            fail(
+                f"{path}: line {number + 1}: found {len(cells)} cells, not {len(LEDGER)}"
+            )
+        rows.append(
+            [c.strip("`") if i in (0, 5, 6) else c for i, c in enumerate(cells)]
+        )
+    return rows
+
+
+def ledger_cells(line: str) -> list[str]:
+    """Split a table line on its unescaped pipes and strip each cell."""
+    pieces = re.split(r"(?<!\\)\|", line.strip())[1:-1]
+    return [cell.strip().replace("\\|", "|") for cell in pieces]
+
+
+def draft_row(cells: list[str]) -> Row:
+    """Turn a keep or protected ledger row into a register row."""
+    _, _, pins, reason, _, verdict, confidence, _ = cells
+    text = pins if reason in ("", "-") else f"{pins} {reason}"
+    return Row(cells[0], verdict, "classifier", confidence, "", "", text)
+
+
+def listed(count: int, label: str, names: list[str]) -> str:
+    return f"{count} {label}" + (f" ({', '.join(names)})" if names else "")
+
+
+def cmd_draft(module: str, ledger: Path) -> None:
+    sources, cells = test_sources(module_path(module)), ledger_rows(ledger)
+
+    # A test that a later layer removed or folded in has left the module, so its
+    # ledger row is left for that layer, like a row with any other verdict.
+
+    drafts = [draft_row(c) for c in cells if c[5] in DRAFTED and c[0] in sources]
+    left = [c[0] for c in cells if c[5] not in DRAFTED or c[0] not in sources]
+    register = REGISTER / f"{module}.tsv"
+    rows = read_register(register) if register.is_file() else {}
+    kept = [
+        d.function for d in drafts if rows.get(d.function, d).ruled_by != "classifier"
+    ]
+    rows.update({d.function: d for d in drafts if d.function not in kept})
+    write_register(register, rows)
+    print(
+        f"{module}: {len(drafts) - len(kept)} rows drafted, "
+        f"{listed(len(left), 'left for a later layer', left)}, "
+        f"{listed(len(kept), 'kept as ruled', kept)}"
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -421,14 +550,25 @@ def main(argv: Sequence[str] | None = None) -> None:
     stamp.add_argument("module")
     check = commands.add_parser("check", help="sort the tests by audit state")
     check.add_argument("modules", nargs="*")
-    check.add_argument(
+    mode = check.add_mutually_exclusive_group()
+    mode.add_argument(
         "--list", action="store_true", help="print only function and group"
     )
+    mode.add_argument(
+        "--names",
+        action="store_true",
+        help="print what each later-layer row follows",
+    )
+    draft = commands.add_parser("draft", help="draft register rows from a ledger")
+    draft.add_argument("module")
+    draft.add_argument("ledger", type=Path)
     args = parser.parse_args(argv)
     if args.command == "stamp":
         cmd_stamp(args.module.removesuffix(".py"))
+    elif args.command == "draft":
+        cmd_draft(args.module.removesuffix(".py"), args.ledger)
     else:
-        cmd_check([m.removesuffix(".py") for m in args.modules], args.list)
+        cmd_check([m.removesuffix(".py") for m in args.modules], args.list, args.names)
 
 
 if __name__ == "__main__":
