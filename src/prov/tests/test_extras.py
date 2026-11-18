@@ -108,9 +108,17 @@ def test_bundle_add_garbage() -> None:
         test1()
 
 
-def test_bundle_equality_garbage() -> None:
+@pytest.mark.parametrize(
+    "other",
+    [
+        pytest.param("not a bundle", id="string"),
+        pytest.param(42, id="int-42"),
+        pytest.param(1, id="int-1"),
+    ],
+)
+def test_bundle_equality_garbage(other: object) -> None:
     document = ProvBundle()
-    assert document != 1
+    assert document != other
 
 
 def test_bundle_is_bundle() -> None:
