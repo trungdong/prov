@@ -6,12 +6,19 @@ one tab-separated row with these columns:
     module        test file name
     function      test function name
     lineno        line of the `def`
-    first_sha     abbreviated hash of the first commit that added `def <function>(`
+    first_sha     abbreviated hash of the oldest commit that added `def <function>(`
+                  to a test module. For a name that several modules define, the
+                  commit in the function's line history that added its `def` line
     first_date    date of that commit
     first_subject subject line of that commit
-    refs          issue references (`#123`) in the test's text, its comment block and
-                  the messages of the commits that touched it
-    n_commits     number of commits that touched the function
+    text_refs     issue references (`#123`) in the test's own text and the comment
+                  block above it
+    history_refs  issue references in the messages of the commits in the function's
+                  line history (`git log -L`, which follows the lines across renames
+                  but not into another module), less those already in text_refs. A
+                  commit message often names an issue that belongs to another change
+                  in the same commit
+    n_commits     number of commits in that line history
 
 Run it from any directory. The output folder must exist.
 
@@ -23,7 +30,8 @@ from __future__ import annotations
 import argparse
 import ast
 import re
-import subprocess
+import subprocess  # nosec B404
+from collections import Counter
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -31,12 +39,16 @@ from pathlib import Path
 
 TESTS = "src/prov/tests"
 REF = re.compile(r"(?<![\w&])#(\d+)\b")
-COLUMNS = "module function lineno first_sha first_date first_subject refs n_commits"
-Item = tuple[str, str, int, str]
+COLUMNS = (
+    "module function lineno first_sha first_date first_subject "
+    "text_refs history_refs n_commits"
+)
+MARK = "@@\t"
+Item = tuple[str, str, int, int, int, str]
 
 
 def git(repo: Path, *args: str) -> tuple[int, str]:
-    r = subprocess.run(
+    r = subprocess.run(  # nosec B603 B607 - nosemgrep
         ["git", "-C", str(repo), *args],
         capture_output=True,
         text=True,
@@ -67,7 +79,10 @@ def collect(repo: Path) -> list[Item]:
                 continue
             start = min([node.lineno] + [d.lineno for d in node.decorator_list])
             body = comment_block(lines, start) + lines[start - 1 : node.end_lineno]
-            items.append((path.name, node.name, node.lineno, "\n".join(body)))
+            end = node.end_lineno or node.lineno
+            items.append(
+                (path.name, node.name, node.lineno, start, end, "\n".join(body))
+            )
     return items
 
 
@@ -75,29 +90,58 @@ def refs_in(text: str) -> set[int]:
     return {int(m) for m in REF.findall(text)}
 
 
-def work(repo: Path, item: Item) -> list[str]:
-    module, func, lineno, text = item
-    rel = f"{TESTS}/{module}"
+def history(repo: Path, item: Item) -> list[str]:
+    """Return the commits that touched the function, newest first, each as its
+    marker line, message and patch, back to the commit that added its `def` line."""
+    module, func, _, start, end, _ = item
+    rc, out = git(
+        repo,
+        *("log", f"-L{start},{end}:{TESTS}/{module}", "--date=short"),
+        "--format=" + MARK + "%h%x09%ad%x09%s%n%b",
+    )
+    commits = out.split(MARK)[1:] if rc == 0 else []
+
+    # The line range also follows lines that an older test held before this one
+    # took its place. The function's history starts where its `def` line was added.
+
+    added = re.compile(rf"^\+\s*(?:async\s+)?def {func}\(", re.M)
+    origin = max((i for i, c in enumerate(commits) if added.search(c)), default=-1)
+    return commits[: origin + 1] if origin >= 0 else commits
+
+
+def first_added(repo: Path, func: str) -> list[str]:
+    """Return the hash, date and subject of the oldest commit that added
+    `def <func>(` under either test folder, the current one or the one before 2017."""
     _, out = git(
         repo,
         *("log", "--reverse", "--format=%h%x09%ad%x09%s", "--date=short"),
-        *(f"-Sdef {func}(", "--", f"{TESTS}/"),
+        *(f"-Sdef {func}(", "--", f"{TESTS}/", "prov/tests/"),
     )
-    first = out.splitlines()[0].split("\t", 2) if out.strip() else ["", "", ""]
-    sha_s = [line.split("\t")[0] for line in out.splitlines()]
-    rc, out = git(
-        repo, "log", f"-L:{func}:{rel}", "--format=COMMIT %h%n%B%nENDCOMMIT", "-s"
-    )
-    refs = refs_in(text)
-    if rc == 0 and out.strip():
-        refs |= refs_in(out)
-        n = len(re.findall(r"^COMMIT (\w+)$", out, re.M))
-    else:
-        n = len(sha_s)
-        for sha in sha_s:
-            refs |= refs_in(git(repo, "show", "-s", "--format=%B", sha)[1])
-    refs_s = ",".join(f"#{r}" for r in sorted(refs))
-    return [module, func, str(lineno), first[0], first[1], first[2], refs_s, str(n)]
+    return out.splitlines()[0].split("\t", 2) if out.strip() else ["", "", ""]
+
+
+def work(repo: Path, shared: set[str], item: Item) -> list[str]:
+    module, func, lineno, _, _, text = item
+    commits = history(repo, item)
+
+    # A test body can move between modules, which a line history does not follow, so
+    # the first commit comes from the name. A name that several modules define is
+    # ambiguous, and its first commit comes from the line history instead.
+
+    first = ["", "", ""] if func in shared else first_added(repo, func)
+    if not first[0] and commits:
+        first = commits[-1].split("\n", 1)[0].split("\t", 2)
+    messages = "\n".join(c.split("\ndiff --git ", 1)[0] for c in commits)
+    text_refs = refs_in(text)
+    history_refs = refs_in(messages) - text_refs
+    return [
+        *(module, func, str(lineno), *first),
+        *(fmt_refs(text_refs), fmt_refs(history_refs), str(len(commits))),
+    ]
+
+
+def fmt_refs(refs: set[int]) -> str:
+    return ",".join(f"#{r}" for r in sorted(refs))
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -109,8 +153,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("--repo", type=Path, default=default_repo)
     args = parser.parse_args(argv)
     items = collect(args.repo)
+    names = Counter(item[1] for item in items)
+    shared = {name for name, count in names.items() if count > 1}
     with ThreadPoolExecutor(max_workers=8) as ex:
-        rows = list(ex.map(partial(work, args.repo), items))
+        rows = list(ex.map(partial(work, args.repo, shared), items))
     with (args.out_dir / "provenance.tsv").open("w") as f:
         f.write("\t".join(COLUMNS.split()) + "\n")
         for r in rows:

@@ -45,7 +45,8 @@ Do not propose a change to these. Mark them `protected`.
 
 - Coverage shows that a line ran. It does not show that a test checked the result. A test whose arcs sit inside another test's arcs is a candidate, and you must still read both tests. Most of the suite's test functions cover no arc of their own.
 - The round-trip tests and the Hypothesis property test run most of the package. They are never, on coverage alone, the test that takes over the job of a specific test. A specific test names its behaviour and gives a clear failure, and that has value.
-- An issue reference in `provenance.tsv` is a lead. It counts as a Reason only when the test's own text, its first commit or the issue itself describes the test's input.
+- `provenance.tsv` has two reference columns. A reference in `text_refs` is a lead. It counts as a Reason only when the test's text, its first commit or the issue itself describes the test's input. A reference in `history_refs` comes from a commit message alone and often belongs to another change in that commit, so check it against the issue's title first.
+- When an issue lists several input shapes as separate defects, each shape keeps its own test or row.
 - A test that guards a tracked issue keeps its place unless a sibling guards the same issue with an assertion at least as strict.
 - Two tests that reach the same code through different public entry points (for example a reader and the CLI) are not duplicates.
 - An error-path test is a duplicate only when the sibling raises from the same statement for the same cause.
@@ -109,20 +110,23 @@ Rules for the judge:
 |---|---|
 | `function` | The test function |
 | `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed` |
-| `ruled_by` | The highest layer that examined the test: `classifier`, `verifier`, `judge` or `maintainer` |
+| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the judge |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
 | `audit_commit` | The commit the ruling was made against |
 | `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
 | `reason` | The contract the test pins and the fault only it catches |
 
+The fingerprint covers the function's own text and its collected item ids. A change to a module-level case list, a helper or a fixture that the test uses goes unnoticed unless the item ids change.
+
 Rules for a register row:
 
 - Write the reason for a reader who has not seen the ledger. Say what the test pins, and what would go unnoticed without it.
 - Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists. A reader can then follow the reason to its source.
-- When the reason depends on how the code is written, name the function or the class in backticks, for example `_decode_time`. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed.
+- When the reason depends on how the code is written, name the function or the class in backticks, for example `_decode_time`. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed. It tracks only a function or a class under `src/prov`, outside the tests. A constant, a test helper, a standard-library name or a misspelt name matches nothing, and the check stays silent about it.
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
 - A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it.
+- A later audit that judges a row again empties its `audit_commit` and `fingerprint`, so that `stamp` anchors the row at the new commit. A row whose ruling stands keeps both. Without this, the check reports a re-affirmed "source moved" row again on every run.
 
 `scripts/register.py check` sorts every test function into one of these groups.
 

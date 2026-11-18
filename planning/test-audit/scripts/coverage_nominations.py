@@ -79,11 +79,14 @@ def load_arcs(
         "select file_id, context_id, fromno, tono from arc"
     ):
         if fid in files and cid in ctxs:
-            mod, fn, body = ctxs[cid]
+            body = ctxs[cid][2]
             item_arcs[body].add((fid << 42) | ((a + 1048576) << 21) | (b + 1048576))
-            item_func[body] = (mod, fn)
-    for mod, fn, body in ctxs.values():
-        item_func.setdefault(body, (mod, fn))
+
+    # Items that ran an arc come first, in arc order, then the rest in context order.
+
+    func_of = {body: (mod, fn) for mod, fn, body in ctxs.values()}
+    for body in [*item_arcs, *func_of]:
+        item_func.setdefault(body, func_of[body])
         item_arcs.setdefault(body, set())
     for line in collected.read_text().splitlines():
         if parsed := parse_context(line + "|run"):
@@ -135,7 +138,7 @@ def nomination_rows(
     rows = []
     for k in funcs:
         s, items = func_arcs[k], func_items.get(k, [])
-        distinct = len({frozenset(item_arcs[b]) for b in items}) if items else 0
+        distinct = len({frozenset(item_arcs[b]) for b in items})
         ident = [label(o) for o in by_set[s] if o != k][:5]
         sup = supersets(k, func_arcs, by_size) if s else []
         top = top_files(s, files)

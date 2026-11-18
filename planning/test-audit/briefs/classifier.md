@@ -1,6 +1,6 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>` and `<module>` before you send this brief. `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
+Fill `<repo>`, `<work>`, `<module>` and `<listed tests>` before you send this brief. `<listed tests>` holds the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
 
 ---
 
@@ -13,7 +13,7 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 ## Read first, in this order
 
 1. `<repo>/planning/test-audit/rubric.md`, all of it. It is the whole rule set. You are layer 2. Follow it exactly.
-2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests the coordinator lists below as new, changed or source moved, and read the recorded reason before you judge one.
+2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests in `<listed tests>`, and read the recorded reason before you judge one.
 3. `src/prov/tests/<module>.py`, all of it.
 4. The evidence rows for your module in `<work>/evidence/`: `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv`. Filter them on the module name. Look at every group in `identical_to`: read both bodies and decide whether they pin the same behaviour with different input (`merge`), different behaviour that runs the same lines (`keep`), or the same behaviour outright (`delete`).
 5. The places a sibling may live. Search the whole of `src/prov/tests/` by the behaviour (the exception message, the input shape, the function under test), not by test name. Read a candidate sibling's body before you name it.
@@ -23,7 +23,7 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 
 - A `delete` is a hypothesis. Before you give `delete` or drop a row, write down every way the candidate's input differs from the takeover's, and check each against rules 2 and 3 of "Rules for each verdict". If any difference is on those lists, the verdict is `keep` or `merge`.
 - A `merge` keeps every input and every assertion in its original form. Propose one only when it also passes rule 5: the merged test is as easy to read as the originals.
-- When an issue lists several shapes as separate defects, each shape keeps its own row.
+- Read the issue a test names before you give it a verdict.
 - If you cannot decide a case, give `keep` with confidence `low` and say why in Note.
 
 ## Output
