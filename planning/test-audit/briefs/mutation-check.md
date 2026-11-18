@@ -4,7 +4,7 @@ Send this brief for the removals the verifier did not refute. Fill `<repo>`, `<w
 
 ---
 
-Run one comparison for a test-suite audit of the Python library `prov` and report a short fact. Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the result file named below. Run every command, mutmut included, in the foreground, and leave no background loop behind. Never wait on mutmut with `pgrep -f`, because the pattern also matches the waiting shell's own command line and the loop never ends.
+Run one comparison for a test-suite audit of the Python library `prov` and report a short fact. Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the result file named below. Run every command, mutmut included, in the foreground, and leave no background loop behind. `mutation.md` (Pitfalls) says how to check that none is left.
 
 Read `<repo>/planning/test-audit/mutation.md` first and follow it.
 

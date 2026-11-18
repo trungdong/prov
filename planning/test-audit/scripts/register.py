@@ -281,6 +281,7 @@ def named(defs: Digests, tokens: list[list[str]]) -> Digests:
     }
 
 
+@functools.cache
 def read_tests(commit: str, module: str) -> dict[str, str]:
     """Map a test module's functions to source at a commit ("" for the work tree)."""
     if commit:
@@ -296,12 +297,6 @@ class Audit:
     def __init__(self) -> None:
         self.now = tree_definitions()
         self.before: dict[str, Digests | None] = {}
-        self.tests: dict[tuple[str, str], dict[str, str]] = {}
-
-    def tests_at(self, commit: str, module: str) -> dict[str, str]:
-        if (commit, module) not in self.tests:
-            self.tests[commit, module] = read_tests(commit, module)
-        return self.tests[commit, module]
 
     def moved_defs(self, row: Row, old: Digests) -> set[str]:
         """Name the definitions in the reason that differ from the audit commit."""
@@ -315,11 +310,10 @@ class Audit:
         """Name the sibling tests in the reason that differ from the audit commit."""
         moved = set()
         for other, name in set(SIBLING.findall(row.reason)):
-            was = self.tests_at(row.audit_commit, other).get(name)
-            now = self.tests_at("", other).get(name)
-            if was is None or (other, name) == (module, row.function):
+            if (other, name) == (module, row.function):
                 continue
-            if was != now:
+            was = read_tests(row.audit_commit, other).get(name)
+            if was is not None and was != read_tests("", other).get(name):
                 moved.add(f"{other}.py::{name}")
         return moved
 
@@ -356,7 +350,7 @@ def check_module(audit: Audit, module: str) -> list[Found]:
 
     # A test module that no longer exists leaves only rows without a function.
 
-    sources = audit.tests_at("", module)
+    sources = read_tests("", module)
     ids = collect_ids(path) if sources else {}
     rows = read_register(register)
     found = [
