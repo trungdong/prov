@@ -3,13 +3,17 @@
 `register/<module>.tsv` holds one ruling for each test function of a module. `stamp`
 records the fingerprint of each function once its ruling is final. `check` sorts every
 function into unchanged, changed, new, source moved and gone, so that a later audit
-judges only what is not unchanged. A row is source moved when a backticked `src/prov`
+judges only what is not unchanged. A row that a later layer ruled (`ruled_by` is not
+`classifier`), `removed` rows included, is source moved when a backticked `src/prov`
 definition or a sibling test (`test_x.py::test_y`) named in its reason changed since its
-audit commit. A reason that opens, or opens a sentence, with `Later audit:` is listed
-after the groups. The format is in `rubric.md` (The register).
+audit commit. `check --names` prints what each such row follows. A reason that opens, or
+opens a sentence, with `Later audit:` is listed after the groups, and so are the
+`rewrite` and `query` rows. `draft` turns the classifier's `keep` and `protected` ledger
+rows into register rows. The format is in `rubric.md` (The register).
 
     python planning/test-audit/scripts/register.py stamp test_json
-    python planning/test-audit/scripts/register.py check [--list] [test_json ...]
+    python planning/test-audit/scripts/register.py check [--list | --names] [test_json ...]
+    python planning/test-audit/scripts/register.py draft test_json ledger.md
 """
 
 from __future__ import annotations
@@ -22,7 +26,7 @@ import hashlib
 import re
 import subprocess  # nosec B404
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple, NoReturn
@@ -48,6 +52,9 @@ GROUPS = ("unchanged", "changed", "new", "source moved", "gone")
 Def = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
 SIBLING = re.compile(r"\b(test_\w+)\.py::(\w+)")
+LEDGER = ["Test", "Items", "Pins", "Reason", "Sibling", "Verdict", "Confidence", "Note"]
+STRIPPED = ("Test", "Verdict", "Confidence")
+DRAFTED = ("keep", "protected")
 LATER = re.compile(r"(?:^|[.!?][)\"']?\s+)Later audit:")
 
 
@@ -61,12 +68,17 @@ class Row:
     fingerprint: str
     reason: str
 
+    @property
+    def follows(self) -> bool:
+        """Say whether the check follows the code and the tests the reason names."""
+        return self.ruled_by != "classifier"
+
 
 class Found(NamedTuple):
     function: str
     group: str
     note: str = ""
-    later: bool = False
+    row: Row | None = None
 
 
 COLUMNS = tuple(f.name for f in dataclasses.fields(Row))
@@ -167,6 +179,12 @@ def read_register(path: Path) -> dict[str, Row]:
     return rows
 
 
+def register_rows(module: str) -> dict[str, Row]:
+    """Read a module's register, or return no rows when it has none."""
+    path = REGISTER / f"{module}.tsv"
+    return read_register(path) if path.is_file() else {}
+
+
 def write_register(path: Path, rows: dict[str, Row]) -> None:
     lines = ["\t".join(COLUMNS)]
     for name in sorted(rows):
@@ -203,7 +221,7 @@ def cmd_stamp(module: str) -> None:
     stamped = current = 0
     for name, row in rows.items():
         if row.ruling == "removed":
-            if row.fingerprint or not row.audit_commit:
+            if row.fingerprint or not in_history(row.audit_commit):
                 row.fingerprint, row.audit_commit = "", head
                 stamped += 1
             continue
@@ -256,6 +274,7 @@ def tree_definitions() -> Digests:
     return definitions({p.relative_to(ROOT).as_posix(): p.read_text() for p in paths})
 
 
+@functools.cache
 def commit_definitions(commit: str) -> Digests | None:
     """Return the definitions at a commit, or None when git cannot resolve it."""
     listing = git("ls-tree", "-r", "--name-only", commit, SOURCE)
@@ -281,6 +300,11 @@ def named(defs: Digests, tokens: list[list[str]]) -> Digests:
     }
 
 
+def siblings(module: str, row: Row) -> list[tuple[str, str]]:
+    """Return the sibling tests a row's reason names, apart from the row's own test."""
+    return sorted(set(SIBLING.findall(row.reason)) - {(module, row.function)})
+
+
 @functools.cache
 def read_tests(commit: str, module: str) -> dict[str, str]:
     """Map a test module's functions to source at a commit ("" for the work tree)."""
@@ -296,7 +320,6 @@ class Audit:
 
     def __init__(self) -> None:
         self.now = tree_definitions()
-        self.before: dict[str, Digests | None] = {}
 
     def moved_defs(self, row: Row, old: Digests) -> set[str]:
         """Name the definitions in the reason that differ from the audit commit."""
@@ -309,9 +332,7 @@ class Audit:
     def moved_siblings(self, module: str, row: Row) -> set[str]:
         """Name the sibling tests in the reason that differ from the audit commit."""
         moved = set()
-        for other, name in set(SIBLING.findall(row.reason)):
-            if (other, name) == (module, row.function):
-                continue
+        for other, name in siblings(module, row):
             was = read_tests(row.audit_commit, other).get(name)
             if was is not None and was != read_tests("", other).get(name):
                 moved.add(f"{other}.py::{name}")
@@ -322,6 +343,35 @@ class Audit:
         names = self.moved_defs(row, old) | self.moved_siblings(module, row)
         return ", ".join(sorted(names))
 
+    def followed(self, module: str, row: Row) -> str | None:
+        """Name what a later layer's row follows that moved, or None for a lost commit.
+
+        A classifier row follows nothing, so it gives "" once its commit resolves.
+        """
+        old = commit_definitions(row.audit_commit)
+        if old is None:
+            return None
+        return self.moved(module, row, old) if row.follows else ""
+
+    def classify_removed(self, module: str, row: Row) -> Found:
+        """Classify a removed row whose function is absent."""
+        names = self.followed(module, row)
+        if names is None:
+            return Found(row.function, "source moved", "unknown audit commit")
+        return Found(row.function, "source moved" if names else "removed", names)
+
+    def row_names(self, module: str, row: Row) -> list[str]:
+        """List the definitions and sibling tests that a row's reason follows, and
+        each backticked name that matches no definition."""
+        tokens = named_tokens(row.reason)
+        lines = sorted(f"  {path}::{qual}" for path, qual in named(self.now, tokens))
+        missing = {".".join(parts) for parts in tokens if not named(self.now, [parts])}
+        lines += [f"  {name} (matches nothing)" for name in sorted(missing)]
+        for other, name in siblings(module, row):
+            gap = "" if name in read_tests("", other) else " (no such test)"
+            lines.append(f"  {other}.py::{name}{gap}")
+        return [f"{module}::{row.function}", *(lines or ["  nothing"])]
+
     def classify(
         self, module: str, name: str, row: Row | None, source: str, ids: Sequence[str]
     ) -> Found:
@@ -331,12 +381,9 @@ class Audit:
             return Found(name, "changed", "ruled removed but the function exists")
         if row.fingerprint != fingerprint(source, ids):
             return Found(name, "changed")
-        if row.audit_commit not in self.before:
-            self.before[row.audit_commit] = commit_definitions(row.audit_commit)
-        old = self.before[row.audit_commit]
-        if old is None:
+        names = self.followed(module, row)
+        if names is None:
             return Found(name, "changed", "unknown audit commit")
-        names = self.moved(module, row, old)
         return Found(name, "source moved", names) if names else Found(name, "unchanged")
 
 
@@ -359,13 +406,12 @@ def check_module(audit: Audit, module: str) -> list[Found]:
     ]
     for name, row in rows.items():
         if name not in sources:
-            found.append(Found(name, "removed" if row.ruling == "removed" else "gone"))
-    return [
-        f._replace(
-            later=bool(f.function in rows and LATER.search(rows[f.function].reason))
-        )
-        for f in found
-    ]
+            found.append(
+                audit.classify_removed(module, row)
+                if row.ruling == "removed"
+                else Found(name, "gone")
+            )
+    return [f._replace(row=rows.get(f.function)) for f in found]
 
 
 def print_report(results: dict[str, list[Found]]) -> None:
@@ -379,56 +425,187 @@ def print_report(results: dict[str, list[Found]]) -> None:
         counts = [sum(f.group == g for f in found) for g in GROUPS]
         print(f"{module:<32}" + "".join(f"{c:>14}" for c in counts))
     for group in GROUPS[1:]:
-        print_group(group, audited)
-    print_later(audited)
+        print_section(group, group_lines(group, audited))
+    print_section("later audit", later_lines(audited))
+    print_section("rewrite and query", rewrite_lines(audited))
 
 
-def print_group(group: str, audited: dict[str, list[Found]]) -> None:
-    hits = [(m, f) for m, found in audited.items() for f in found if f.group == group]
-    if hits:
-        print(f"\n{group} ({len(hits)})")
-    for module, f in hits:
-        print(f"  {module}::{f.function}" + (f"  {f.note}" if f.note else ""))
+def print_section(title: str, lines: list[str]) -> None:
+    """Print a titled list with its length, or nothing when it is empty."""
+    if lines:
+        print(f"\n{title} ({len(lines)})", *lines, sep="\n")
 
 
-def print_later(audited: dict[str, list[Found]]) -> None:
+def group_lines(group: str, audited: dict[str, list[Found]]) -> list[str]:
+    """List the findings of one group, each with its note."""
+    return [
+        f"  {m}::{f.function}" + (f"  {f.note}" if f.note else "")
+        for m, fs in audited.items()
+        for f in fs
+        if f.group == group
+    ]
+
+
+def later_lines(audited: dict[str, list[Found]]) -> list[str]:
     """List the rows whose reason holds a later audit's note."""
-    hits = [f"{m}::{f.function}" for m, fs in audited.items() for f in fs if f.later]
-    if hits:
-        print(f"\nlater audit ({len(hits)})")
-    for hit in hits:
-        print(f"  {hit}")
+    return [
+        f"  {m}::{f.function}"
+        for m, fs in audited.items()
+        for f in fs
+        if f.row and LATER.search(f.row.reason)
+    ]
 
 
-def cmd_check(modules: list[str], list_only: bool) -> None:
+def rewrite_lines(audited: dict[str, list[Found]]) -> list[str]:
+    """List the rows whose ruling is rewrite or query."""
+    return [
+        f"  {m}::{f.function}  {f.row.ruling}"
+        for m, fs in audited.items()
+        for f in fs
+        if f.row and f.row.ruling in ("rewrite", "query")
+    ]
+
+
+def print_names(audit: Audit, modules: list[str]) -> None:
+    """Print what each row of a later layer follows, one block for each row."""
+    for module in modules:
+        for row in register_rows(module).values():
+            if row.follows:
+                print("\n".join(audit.row_names(module, row)))
+
+
+def cmd_check(modules: list[str], mode: str) -> None:
     names = modules or sorted(
         {p.stem for p in TESTS.glob("test_*.py")}
         | {p.stem for p in REGISTER.glob("test_*.tsv")}
     )
     audit = Audit()
+    if mode == "names":
+        return print_names(audit, names)
     results = {m: check_module(audit, m) for m in names}
-    if not list_only:
+    if mode == "report":
         return print_report(results)
     for module, found in results.items():
         for f in found:
             print(f"{module}::{f.function}\t{f.group}")
 
 
+def ledger_rows(path: Path) -> list[dict[str, str]]:
+    """Return each data row of the ledger table that has the LEDGER header, by column.
+
+    The Test, Verdict and Confidence cells lose any backticks around them.
+    """
+    lines = path.read_text().splitlines()
+    heads = [i for i, line in enumerate(lines) if ledger_cells(line) == LEDGER]
+    if not heads:
+        fail(f"{path}: no table with the header {' | '.join(LEDGER)}")
+    rows: list[dict[str, str]] = []
+    for number in range(heads[0] + 2, len(lines)):
+        if not lines[number].strip().startswith("|"):
+            break
+        cells = ledger_cells(lines[number])
+        if len(cells) != len(LEDGER):
+            fail(
+                f"{path}: line {number + 1}: found {len(cells)} cells, not {len(LEDGER)}"
+            )
+        rows.append(
+            {
+                k: c.strip("`") if k in STRIPPED else c
+                for k, c in zip(LEDGER, cells, strict=True)
+            }
+        )
+    reject_duplicates(path, rows)
+    return rows
+
+
+def reject_duplicates(path: Path, rows: list[dict[str, str]]) -> None:
+    """Fail naming each test that has more than one ledger row."""
+    counts = Counter(row["Test"] for row in rows)
+    twice = sorted(name for name, count in counts.items() if count > 1)
+    if twice:
+        fail(f"{path}: more than one row for {', '.join(twice)}")
+
+
+def ledger_cells(line: str) -> list[str]:
+    """Split a table line on its unescaped pipes and strip each cell."""
+    pieces = re.split(r"(?<!\\)\|", line.strip())[1:-1]
+    return [cell.strip().replace("\\|", "|") for cell in pieces]
+
+
+def draft_row(cells: dict[str, str]) -> Row:
+    """Turn a keep or protected ledger row into a register row."""
+    pins, reason = cells["Pins"], cells["Reason"]
+    text = pins if reason in ("", "-") else f"{pins} {reason}"
+    verdict, confidence = cells["Verdict"], cells["Confidence"]
+    return Row(cells["Test"], verdict, "classifier", confidence, "", "", text)
+
+
+def listed(label: str, names: list[str]) -> str:
+    return f"{len(names)} {label}" + (f" ({', '.join(names)})" if names else "")
+
+
+def cmd_draft(module: str, ledger: Path) -> None:
+    sources = test_sources(module_path(module))
+
+    # A test that a later layer removed or folded in has left the module, so its
+    # ledger row is left for that layer, like a row with any other verdict.
+
+    drafts: list[Row] = []
+    left: list[str] = []
+    for cells in ledger_rows(ledger):
+        if cells["Verdict"] in DRAFTED and cells["Test"] in sources:
+            drafts.append(draft_row(cells))
+        else:
+            left.append(cells["Test"])
+    rows = register_rows(module)
+    ruled = {name for name, row in rows.items() if row.follows}
+    kept = [d.function for d in drafts if d.function in ruled]
+    rows.update({d.function: d for d in drafts if d.function not in ruled})
+    write_register(REGISTER / f"{module}.tsv", rows)
+    print(
+        f"{module}: {len(drafts) - len(kept)} rows drafted, "
+        f"{listed('left for a later layer', left)}, {listed('kept as ruled', kept)}"
+    )
+
+
+def module_name(text: str) -> str:
+    """Accept a test module's name with or without its .py suffix."""
+    return text.removesuffix(".py")
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
     stamp = commands.add_parser("stamp", help="fingerprint a module's register rows")
-    stamp.add_argument("module")
+    stamp.add_argument("module", type=module_name)
     check = commands.add_parser("check", help="sort the tests by audit state")
-    check.add_argument("modules", nargs="*")
-    check.add_argument(
-        "--list", action="store_true", help="print only function and group"
+    check.add_argument("modules", nargs="*", type=module_name)
+    mode = check.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--list",
+        dest="mode",
+        action="store_const",
+        const="list",
+        help="print only function and group",
     )
+    mode.add_argument(
+        "--names",
+        dest="mode",
+        action="store_const",
+        const="names",
+        help="print what each later-layer row follows",
+    )
+    check.set_defaults(mode="report")
+    draft = commands.add_parser("draft", help="draft register rows from a ledger")
+    draft.add_argument("module", type=module_name)
+    draft.add_argument("ledger", type=Path)
     args = parser.parse_args(argv)
     if args.command == "stamp":
-        cmd_stamp(args.module.removesuffix(".py"))
+        cmd_stamp(args.module)
+    elif args.command == "draft":
+        cmd_draft(args.module, args.ledger)
     else:
-        cmd_check([m.removesuffix(".py") for m in args.modules], args.list)
+        cmd_check(args.modules, args.mode)
 
 
 if __name__ == "__main__":

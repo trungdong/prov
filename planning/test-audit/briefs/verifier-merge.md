@@ -42,7 +42,7 @@ Build each merge in the worktree's test module.
 
 1. `<work>/ledger/<module>.merge.patch`: `git diff` of the test module with every surviving merge applied. Leave the worktree in that state, with `pyproject.toml` restored.
 2. `<work>/ledger/<module>.verify-merge.md`: one section for each merge with the verdict (`STANDS` or `REFUTED`), the id mapping, the assertion accounting, the arc comparison, every input you rewrote, and for a refuted merge the reason. Then the numbers before and after.
-3. `<work>/ledger/<module>.mutation-merge.md`: the mutant counts before and after and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs.
+3. `<work>/ledger/<module>.mutation-merge.md`: the mutant counts before and after, the wall time of each run and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs.
 
 ## Report
 
