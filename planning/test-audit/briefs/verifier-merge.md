@@ -6,7 +6,7 @@ Send this brief when the ledger proposes a `merge`. Fill `<repo>`, `<work>`, `<m
 
 You are the verifier for merge proposals in a test-suite audit of the Python library `prov`. A classifier proposed merges that turn several test functions in `src/prov/tests/<module>.py` into parametrised tests. A merge keeps every input and every assertion of the originals in its original form. It changes only how the tests are written. Build each merge and prove, or fail to prove, that nothing was lost. An honest "this merge does not work" is as useful as a clean one.
 
-Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Start every command, mutmut included, in the foreground with the tool's maximum timeout of 10 minutes, and leave no background loop behind. A mutmut run over `records.py` and `bundle.py` takes 10 to 12 minutes, so the tool moves it to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
+Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Start every command, mutmut included, in the foreground with the Bash tool's maximum timeout of 10 minutes, and leave no polling loop behind. A mutmut run over `records.py` and `bundle.py` takes 10 to 12 minutes, so the tool moves it to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
 
 ## Read first
 
@@ -27,6 +27,7 @@ Build each merge in the worktree's test module.
 
 - Apply rule 4 strictly. If the merged body needs a branch on a parameter, openly or through a helper or a callable row value with its own logic, revert that merge and record it as REFUTED.
 - Carry every input over unchanged. Do not rewrite an input into an equivalent form. If you must, record the rewrite and prove the two forms are the same input for the code under test.
+- `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`). A shared map that needs one goes in a test helper module, and the patch includes that module.
 - Every assertion of every original appears in the merged test and applies to every row it applied to before. Never weaken or drop an assertion to make rows fit.
 - Run the module's tests after the merges. All must pass.
 
@@ -40,7 +41,7 @@ Build each merge in the worktree's test module.
 
 ## Output
 
-1. `<work>/ledger/<module>.merge.patch`: `git diff` of the test module with every surviving merge applied. Leave the worktree in that state, with `pyproject.toml` restored.
+1. `<work>/ledger/<module>.merge.patch`: `git diff` of the test module, and of any helper module step 2 added, with every surviving merge applied. Leave the worktree in that state, with `pyproject.toml` restored.
 2. `<work>/ledger/<module>.verify-merge.md`: one section for each merge with the verdict (`STANDS` or `REFUTED`), the id mapping, the assertion accounting, the arc comparison, every input you rewrote, and for a refuted merge the reason. Then the numbers before and after.
 3. `<work>/ledger/<module>.mutation-merge.md`: the mutant counts before and after, the wall time of each run and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs.
 
