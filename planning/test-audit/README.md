@@ -81,7 +81,7 @@ Rules that keep the cost down and the result sound:
 - Run one mutation check at a time, and never beside the gate runner.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
-- A takeover claim in a question to the maintainer quotes the verifier's or the judge's file, never the ledger's description. In batch 2, a question said a takeover drew "the same shapes", a review probe showed it did not, and the maintainer ruled again.
+- A takeover claim in a question to the maintainer quotes the verifier's or the judge's file, never the ledger's description.
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.

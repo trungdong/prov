@@ -12,6 +12,10 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 
 Take each module in turn. Wherever this brief says `<module>`, it means each of these modules, and you write one ledger for each. Search for siblings across the whole suite, and name a sibling in another of your modules as you would any other.
 
+## Listed tests
+
+<listed tests>
+
 ## Follow-ups
 
 <follow-ups>
@@ -21,7 +25,7 @@ Examine each follow-up as a proposal. Judge every test it names, and say in `## 
 ## Read first, in this order
 
 1. `<repo>/planning/test-audit/rubric.md`, all of it. It is the whole rule set. You are layer 2. Follow it exactly.
-2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests in `<listed tests>`, and read the recorded reason before you judge one.
+2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests listed for the module under `## Listed tests`, and read the recorded reason before you judge one.
 3. `src/prov/tests/<module>.py`, all of it.
 4. The evidence rows for your module in `<work>/evidence/`: `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv`. Filter them on the module name. Look at every group in `identical_to`: read both bodies and decide whether they pin the same behaviour with different input (`merge`), different behaviour that runs the same lines (`keep`), or the same behaviour outright (`delete`).
 5. The places a sibling may live. Search the whole of `src/prov/tests/` by the behaviour (the exception message, the input shape, the function under test), not by test name. Read a candidate sibling's body before you name it.
@@ -41,7 +45,7 @@ Write one ledger for each module, `<work>/ledger/<module>.md`:
 
 - A first line `# Ledger: <module>.py`, then the module's collected item count, taken from `<work>/evidence/collected-items.txt`, and a count of verdicts by kind.
 - One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order. A script reads this table, so write a `|` inside a cell as `\|`.
-- `## Removed rows`: for each `removed` row in `<listed tests>`, read its reason and the diff that the check names, and answer one question in one line: does the change undo the reason? A removed test has no table row. A yes is a proposal to restore the test, and the coordinator takes it to the maintainer. Leave the section out when no `removed` row is listed.
+- `## Removed rows`: for each `removed` row listed for the module under `## Listed tests`, read its reason and the diff that the check names, and answer one question in one line: does the change undo the reason? A removed test has no table row. A yes is a proposal to restore the test, and the coordinator takes it to the maintainer. Leave the section out when no `removed` row is listed.
 - `## Identical-arc groups`: each group, with a one-line finding.
 - `## Proposals`: one short paragraph for each `merge`, `narrow` and `delete`. Say what exactly changes, which test keeps the fault covered, every input difference between candidate and takeover, and what a verifier should plant to refute you.
 - `## Rubric problems`: any case the rubric did not decide clearly, one line each. An empty section is fine.
