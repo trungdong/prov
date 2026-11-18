@@ -40,7 +40,8 @@ def _document_with_bundles(*names: str) -> ProvDocument:
 
 
 def _document_with_bundle_entity(entity: str) -> ProvDocument:
-    # Both top levels stay empty: only the bundle holds a record.
+    # The top level stays empty and only bundle b1 holds a record, so two
+    # such documents differ only in the bundle's content.
     document = _ex()
     document.bundle("b1").entity(entity)
     return document

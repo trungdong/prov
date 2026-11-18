@@ -16,14 +16,14 @@ source_paths = ["src/prov/"]
 only_mutate = ["src/prov/serializers/provjson.py"]
 pytest_add_cli_args = [
     "-p", "no:cacheprovider",
-    # Fail whatever is mutated.
+    # These tests fail whatever is mutated.
     "--deselect", "src/prov/tests/test_provn_profiles.py::test_lenient_warning_reports_the_read_call_site",
     "--deselect", "src/prov/tests/test_read.py::test_read_auto_detect_emits_the_winners_warnings_once_at_the_caller",
     "--deselect", "src/prov/tests/test_read.py::test_read_auto_detect_emits_under_the_callers_module_name",
-    # Fail when dot.py is mutated.
+    # These tests fail when dot.py is mutated.
     "--deselect", "src/prov/tests/test_dot.py::test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site",
     "--deselect", "src/prov/tests/test_dot.py::test_prov_to_dot_warns_once_for_a_bundle_that_is_not_a_document",
-    # Fail when bundle.py or records.py is mutated.
+    # These tests fail when bundle.py or records.py is mutated.
     "--deselect", "src/prov/tests/test_dot.py::test_plot_warns_once_and_saves_a_nested_bundle",
     "--deselect", "src/prov/tests/test_model.py::test_bundle_unified_is_deprecated",
     "--deselect", "src/prov/tests/test_model.py::test_the_document_argument_is_deprecated",
@@ -49,7 +49,7 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 
 ## Compare a removal
 
-1. Add a `--deselect`, `<item id>` pair to `pytest_add_cli_args` for each item of each test to remove.
+1. Add a `--deselect`, `<item id>` pair to `pytest_add_cli_args` for each item of each test to remove. Put them at the end of the array under their own comment, `# Removal candidates for this run.`, so they stay apart from the permanent groups.
 2. Run `mm.sh run --max-children 8 $(grep ': killed' baseline.txt | sed 's/: killed//')`.
 3. Save the result as `removal.txt` in the same way.
 4. List every id that `removal.txt` shows as `survived` or `no tests`. These are the newly undetected mutants.
