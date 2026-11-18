@@ -14,6 +14,9 @@ Current truth lives elsewhere:
 Implementation plans and their task files are local working files under `planning/plans/`,
 which is gitignored and never committed.
 
+`test-audit/` is not a historical record. It holds the rules, the tools and the standing
+rulings of the test-suite audit, and a later audit updates it. Start at its `README.md`.
+
 ## Index
 
 | File | Date | Release | Status |
