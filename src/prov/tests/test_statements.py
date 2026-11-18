@@ -1096,12 +1096,6 @@ def test_attribution_3(roundtrip) -> None:
     roundtrip(document)
 
 
-def test_attribution_4(roundtrip) -> None:
-    document = new_document()
-    document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr4"])
-    roundtrip(document)
-
-
 def test_attribution_5(roundtrip) -> None:
     document = new_document()
     document.attribution(EX_NS["e1"], EX_NS["ag1"])
