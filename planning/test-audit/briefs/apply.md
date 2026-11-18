@@ -4,7 +4,7 @@ Send this brief after the maintainer has ruled. Fill `<repo>`, `<work>`, `<modul
 
 ---
 
-You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file in `<repo>` except `src/prov/tests/<module>.py` and `planning/test-audit/register/<module>.tsv`. Name files literally in every command.
+You are applying the accepted rulings of a test-suite audit of the Python library `prov` to one test module and recording the standing ruling for each of its test functions. Work in the checkout at `<repo>` on the branch `<branch>` (confirm the branch before you edit). Do not push and never run `git stash`. Run `uv` only in that checkout or in a `/tmp` worktree you create for planted faults, and never run mutmut. Do not commit; the coordinator reviews and commits. Change no file in `<repo>` except `src/prov/tests/<module>.py`, `planning/test-audit/register/<module>.tsv` and a test helper module the accepted merge patch adds. Name files literally in every command.
 
 ## Read first
 
