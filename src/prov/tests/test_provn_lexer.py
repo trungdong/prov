@@ -90,22 +90,31 @@ def test_escaped_metachar_in_local_part(ch: str) -> None:
         assert (ctx.value.line, ctx.value.column) == (1, 6)
 
 
-def test_percent_encoding_is_kept_verbatim() -> None:
-    assert values("ex:a%20b") == [("ex", "a%20b")]
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        pytest.param(
+            "ex:a%20b", [("ex", "a%20b")], id="percent-encoding-kept-verbatim"
+        ),
+        pytest.param(r"ex:abc\.", [("ex", "abc.")], id="escaped-dot-kept"),
+        pytest.param("ex:a.b", [("ex", "a.b")], id="inner-dot-in-local-part"),
+        pytest.param(
+            r"ex:a\:", [("ex", "a:")], id="escaped-colon-at-end-of-local-part"
+        ),
+        # The Recommendation's own example (section 3.8) is entity(ex:\-).
+        pytest.param(r"ex:\-", [("ex", "-")], id="escaped-hyphen-in-local-part"),
+        pytest.param("a.b:c", [("a.b", "c")], id="prefix-with-inner-dot"),
+        pytest.param("e1", [("", "e1")], id="bare-local-name-has-empty-prefix"),
+    ],
+)
+def test_local_part_and_prefix_spellings(text, expected) -> None:
+    assert values(text) == expected
 
 
 def test_stray_dot_raises_with_position() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("ex:abc."))
     assert (ctx.value.line, ctx.value.column) == (1, 7)
-
-
-def test_escaped_dot_is_kept() -> None:
-    assert values(r"ex:abc\.") == [("ex", "abc.")]
-
-
-def test_inner_dot_is_part_of_the_name() -> None:
-    assert values("ex:a.b") == [("ex", "a.b")]
 
 
 def test_langtag_only_after_a_string() -> None:
@@ -144,10 +153,6 @@ def test_string_escapes_are_decoded() -> None:
 
 def test_qname_literal_with_escape() -> None:
     assert values(r"'ex:we\'ird'")[0] == ("ex", "we'ird")
-
-
-def test_bare_local_name_has_empty_prefix() -> None:
-    assert values("e1") == [("", "e1")]
 
 
 @pytest.mark.parametrize(
@@ -220,20 +225,37 @@ def test_unicode_names_and_strings() -> None:
     assert values('"日本語"') == ["日本語"]
 
 
-def test_escaped_colon_at_end_of_local_part() -> None:
-    assert values(r"ex:a\:") == [("ex", "a:")]
+@pytest.mark.parametrize(
+    ("text", "message", "line", "column"),
+    [
+        pytest.param(r'"\q"', "unknown string escape", 1, 2, id="unknown-escape"),
+        pytest.param('"abc \\q def"', None, 1, 6, id="position-inside-the-literal"),
+        pytest.param(
+            '"""ab\ncd \\q"""', None, 2, 4, id="position-spans-lines-in-a-long-string"
+        ),
+    ],
+)
+def test_string_escape_error_position(text, message, line, column) -> None:
+    with pytest.raises(ProvNSyntaxError, match=message) as ctx:
+        list(tokenize(text))
+    assert (ctx.value.line, ctx.value.column) == (line, column)
 
 
-def test_unknown_string_escape_raises() -> None:
-    with pytest.raises(ProvNSyntaxError, match="unknown string escape") as ctx:
-        list(tokenize(r'"\q"'))
-    assert (ctx.value.line, ctx.value.column) == (1, 2)
-
-
-def test_invalid_qname_literal_raises() -> None:
-    with pytest.raises(ProvNSyntaxError, match="invalid qualified name") as ctx:
-        list(tokenize("'not a qname'"))
-    assert (ctx.value.line, ctx.value.column) == (1, 5)
+@pytest.mark.parametrize(
+    ("text", "message", "column"),
+    [
+        pytest.param(
+            "'not a qname'", "invalid qualified name", 5, id="space-after-bare-name"
+        ),
+        pytest.param("'ex:bad name'", None, 8, id="first-invalid-character"),
+        # _QNAME_FULL rejects a bare trailing '.'; the reported position is the dot.
+        pytest.param("'ex:abc.'", None, 8, id="trailing-dot"),
+    ],
+)
+def test_qname_literal_error_position(text, message, column) -> None:
+    with pytest.raises(ProvNSyntaxError, match=message) as ctx:
+        list(tokenize(text))
+    assert (ctx.value.line, ctx.value.column) == (1, column)
 
 
 def test_invalid_language_tag_raises() -> None:
@@ -253,34 +275,11 @@ def test_prefix_only_name_has_empty_local() -> None:
     ]
 
 
-def test_escaped_hyphen_in_local_part() -> None:
-    # The Recommendation's own example (section 3.8) is entity(ex:\-).
-    assert values(r"ex:\-") == [("ex", "-")]
-
-
 def test_unterminated_block_comment_raises_with_position() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("entity(ex:e1) /* open"))
     assert (ctx.value.line, ctx.value.column) == (1, 15)
     assert "unterminated comment" in str(ctx.value)
-
-
-def test_string_escape_error_position_is_inside_the_literal() -> None:
-    with pytest.raises(ProvNSyntaxError) as ctx:
-        list(tokenize('"abc \\q def"'))
-    assert (ctx.value.line, ctx.value.column) == (1, 6)
-
-
-def test_string_escape_error_position_spans_lines_in_a_long_string() -> None:
-    with pytest.raises(ProvNSyntaxError) as ctx:
-        list(tokenize('"""ab\ncd \\q"""'))
-    assert (ctx.value.line, ctx.value.column) == (2, 4)
-
-
-def test_qname_literal_error_position_is_the_first_invalid_character() -> None:
-    with pytest.raises(ProvNSyntaxError) as ctx:
-        list(tokenize("'ex:bad name'"))
-    assert (ctx.value.line, ctx.value.column) == (1, 8)
 
 
 def test_huge_integer_raises_instead_of_crashing() -> None:
@@ -345,17 +344,6 @@ def test_prefix_cannot_end_in_a_dot(text) -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize(text))
     assert ctx.value.column >= dot_column
-
-
-def test_prefix_with_inner_dot_is_still_accepted() -> None:
-    assert values("a.b:c") == [("a.b", "c")]
-
-
-def test_qname_literal_trailing_dot_raises() -> None:
-    # _QNAME_FULL rejects a bare trailing '.'; the reported position is the dot.
-    with pytest.raises(ProvNSyntaxError) as ctx:
-        list(tokenize("'ex:abc.'"))
-    assert (ctx.value.line, ctx.value.column) == (1, 8)
 
 
 @pytest.mark.parametrize(
