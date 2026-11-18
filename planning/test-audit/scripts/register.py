@@ -5,7 +5,8 @@ records the fingerprint of each function once its ruling is final. `check` sorts
 function into unchanged, changed, new, source moved and gone, so that a later audit
 judges only what is not unchanged. A row is source moved when a backticked `src/prov`
 definition or a sibling test (`test_x.py::test_y`) named in its reason changed since its
-audit commit. A reason with the sentence opener `Later audit:` is listed last. The format is in `rubric.md` (The register).
+audit commit. A reason that opens, or opens a sentence, with `Later audit:` is listed
+after the groups. The format is in `rubric.md` (The register).
 
     python planning/test-audit/scripts/register.py stamp test_json
     python planning/test-audit/scripts/register.py check [--list] [test_json ...]
@@ -46,8 +47,8 @@ ALLOWED = {
 GROUPS = ("unchanged", "changed", "new", "source moved", "gone")
 Def = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
-SIBLING = re.compile(r"(test_\w+)\.py::(\w+)")
-LATER = "Later audit:"
+SIBLING = re.compile(r"\b(test_\w+)\.py::(\w+)")
+LATER = re.compile(r"(?:^|\. )Later audit:")
 
 
 @dataclasses.dataclass
@@ -286,7 +287,7 @@ def read_tests(commit: str, module: str) -> dict[str, str]:
         shown = git("show", f"{commit}:{SOURCE}/tests/{module}.py")
         return test_texts(shown.stdout if shown.returncode == 0 else "")
     path = TESTS / f"{module}.py"
-    return test_texts(path.read_text() if path.is_file() else "")
+    return test_sources(path) if path.is_file() else {}
 
 
 class Audit:
@@ -318,7 +319,7 @@ class Audit:
             now = self.tests_at("", other).get(name)
             if was is None or (other, name) == (module, row.function):
                 continue
-            if was != now and not (now is None and row.ruling == "merged"):
+            if was != now:
                 moved.add(f"{other}.py::{name}")
         return moved
 
@@ -366,7 +367,9 @@ def check_module(audit: Audit, module: str) -> list[Found]:
         if name not in sources:
             found.append(Found(name, "removed" if row.ruling == "removed" else "gone"))
     return [
-        f._replace(later=f.function in rows and LATER in rows[f.function].reason)
+        f._replace(
+            later=bool(f.function in rows and LATER.search(rows[f.function].reason))
+        )
         for f in found
     ]
 

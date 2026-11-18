@@ -33,14 +33,14 @@ Write `planning/test-audit/register/<module>.tsv` with one row for each test fun
   - Cite an issue only when its title or body describes the test's input. Check every number with `gh issue view <n> --json title,body`. A reference that comes only from a commit message often belongs to another change in that commit.
   - Write British English, with no em dashes and no sentence hinged on a colon.
 
-Then stamp and check:
+Do not stamp. The coordinator commits the test change, then stamps the register, so that each row names the commit where its test and the tests its reason names reached their final form. To see that nothing else is off before you report, stamp a copy in a `/tmp` worktree of the branch with your test change applied, and run `check` there:
 
 ```bash
 uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
 uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check <module>
 ```
 
-Stamp once, after the test change is in place, and do not commit. The rows then name the commit the branch started from, which stays in its history. Every function must come out `unchanged`. Stop and report any that does not.
+Every function must come out `unchanged` there, except a row whose named sibling your own change removed or edited, which the coordinator's stamp settles. Stop and report anything else.
 
 Then list, for each row, the backticked tokens that `register.named()` matches against `register.tree_definitions()` (with `planning/test-audit/scripts` on `sys.path`). Every row must track at least one definition unless its test runs no `src/prov` code, and no token may match an unrelated definition.
 
