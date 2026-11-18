@@ -122,6 +122,8 @@ def test_langtag_only_after_a_string() -> None:
     assert values('"a place"@en')[1] == "en"
     assert kinds("ex:a@b") == [TokenKind.NAME]
     assert values("ex:a@b") == [("ex", "a@b")]
+    assert kinds("ex:a @en") == [TokenKind.NAME, TokenKind.NAME]
+    assert values("ex:a @en") == [("ex", "a"), ("", "@en")]
 
 
 def test_typed_literal_marker_vs_percent_in_name() -> None:
