@@ -1,6 +1,6 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
+Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
 
 ---
 
@@ -30,7 +30,7 @@ Examine each follow-up as a proposal. Judge every test it names, and say in `## 
 ## Rules that earlier audits showed are easy to break
 
 - Write `Pins` and `Reason` from what the test itself shows: the call, the input, the expected result and the contract's source. For a `keep` or a `protected`, the two cells become the register reason word for word. So do not say in them which internal function the input reaches, unless the test calls it directly, and do not say that the test alone catches a fault. Put an argument about the code in `## Proposals`, where the verifier tests it. Write each cell as a sentence ending in a full stop, because `draft` joins them, Pins first. When you find no source, write `No source found.`
-- A `delete` is a hypothesis. Before you give `delete` or drop a row, write down every way the candidate's input differs from the takeover's, and check each against rules 2 and 3 of "Rules for each verdict". If the source branches on any difference, or you cannot tell, the verdict is `keep` or `merge`, and the proposal names the difference for the verifier.
+- A `delete` is a hypothesis. Before you give `delete` or drop a row, write down every way the candidate's input differs from the takeover's, and check each against rules 2 and 3 of "Rules for each verdict". If the source branches on any difference, a plausible fault could separate the two inputs, or you cannot tell, the verdict is `keep` or `merge`.
 - A `merge` keeps every input and every assertion in its original form. Propose one only when it also passes rule 5: the merged test is as easy to read as the originals.
 - Read the issue a test names before you give it a verdict.
 - If you cannot decide a case, give `keep` with confidence `low` and say why in Note.
