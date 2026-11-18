@@ -1,0 +1,2 @@
+function	ruling	ruled_by	confidence	audit_commit	fingerprint	reason
+test_example_round_trips	protected	classifier	medium	a50d61a31e06	628a6494fd98407b	Each canonical document of `examples.tests` survives the `roundtrip` check under the model target and under every serialisation format, and a mention-bearing document raises `ProvJSONLDException` naming the mention under `jsonld`. `docs/reference/conformance.md` row C2 (PROV-JSONLD has no Mention term), and the shared-target layout in `src/prov/tests/conftest.py`.

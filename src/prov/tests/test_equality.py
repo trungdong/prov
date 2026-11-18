@@ -39,6 +39,14 @@ def _document_with_bundles(*names: str) -> ProvDocument:
     return document
 
 
+def _document_with_bundle_entity(entity: str) -> ProvDocument:
+    # The top level stays empty and only bundle b1 holds a record, so two
+    # such documents differ only in the bundle's content.
+    document = _ex()
+    document.bundle("b1").entity(entity)
+    return document
+
+
 def _bundle_with_e1() -> ProvBundle:
     bundle = _ex().bundle("b")
     bundle.entity("e1")
@@ -70,6 +78,12 @@ EQUALITY_PAIRS = [
         lambda: _document_with_bundles("b2", "b1"),
         True,
         id="same-bundles",
+    ),
+    pytest.param(
+        lambda: _document_with_bundle_entity("e1"),
+        lambda: _document_with_bundle_entity("e2"),
+        False,
+        id="same-bundle-different-content",
     ),
     pytest.param(
         _bundle_with_e1, _document_with_bundles, False, id="bundle-vs-document"

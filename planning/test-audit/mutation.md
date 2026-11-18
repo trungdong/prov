@@ -16,16 +16,19 @@ source_paths = ["src/prov/"]
 only_mutate = ["src/prov/serializers/provjson.py"]
 pytest_add_cli_args = [
     "-p", "no:cacheprovider",
+    # These tests fail whatever is mutated.
     "--deselect", "src/prov/tests/test_provn_profiles.py::test_lenient_warning_reports_the_read_call_site",
     "--deselect", "src/prov/tests/test_read.py::test_read_auto_detect_emits_the_winners_warnings_once_at_the_caller",
     "--deselect", "src/prov/tests/test_read.py::test_read_auto_detect_emits_under_the_callers_module_name",
+    # These tests fail when dot.py is mutated.
+    "--deselect", "src/prov/tests/test_dot.py::test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site",
+    "--deselect", "src/prov/tests/test_dot.py::test_prov_to_dot_warns_once_for_a_bundle_that_is_not_a_document",
+    # These tests fail when bundle.py or records.py is mutated.
     "--deselect", "src/prov/tests/test_dot.py::test_plot_warns_once_and_saves_a_nested_bundle",
     "--deselect", "src/prov/tests/test_model.py::test_bundle_unified_is_deprecated",
     "--deselect", "src/prov/tests/test_model.py::test_the_document_argument_is_deprecated",
     "--deselect", "src/prov/tests/test_provn_profiles.py::test_lenient_warning_reports_the_deserialize_call_site",
     "--deselect", "src/prov/tests/test_xml.py::test_nested_reference_warning_is_attributed_to_the_caller",
-    "--deselect", "src/prov/tests/test_dot.py::test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site",
-    "--deselect", "src/prov/tests/test_dot.py::test_prov_to_dot_warns_once_for_a_bundle_that_is_not_a_document",
 ]
 pytest_add_cli_args_test_selection = ["src/prov/tests/"]
 process_isolation = "forkserver"
@@ -46,7 +49,7 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 
 ## Compare a removal
 
-1. Add a `--deselect`, `<item id>` pair to `pytest_add_cli_args` for each item of each test to remove.
+1. Add a `--deselect`, `<item id>` pair to `pytest_add_cli_args` for each item of each test to remove. Put them at the end of the array under their own comment, `# Removal candidates for this run.`, so they stay apart from the permanent groups.
 2. Run `mm.sh run --max-children 8 $(grep ': killed' baseline.txt | sed 's/: killed//')`.
 3. Save the result as `removal.txt` in the same way.
 4. List every id that `removal.txt` shows as `survived` or `no tests`. These are the newly undetected mutants.
@@ -67,6 +70,6 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 - Check the collected count with `pytest --collect-only -q` before a run. A `--deselect` id that does not match exactly does nothing and raises no error.
 - `--deselect` matches a prefix of the item id, and `-k` matches substrings. `--deselect src/prov/tests/test_read.py::test_read_auto_detects_xml` also removes `test_read_auto_detects_xml_from_seekable_stringio`. For a parametrised function, pass each item id with its `[...]` part. For a plain function whose name starts another's, use `-k "not <short> or <long>"`, for example `-k "not test_read_auto_detects_xml or test_read_auto_detects_xml_from_seekable_stringio"`. Check that the collected count fell by exactly the number of candidates.
 - mutmut does not say which test killed a mutant. Only the run with and without the tests shows it.
-- mutmut's trampoline adds a stack frame. The tests deselected in the configuration check the caller of a warning, so they fail under it and stay deselected in every run. The first three fail whatever is mutated, the two `prov_to_dot` call-site tests fail when `dot.py` is mutated, and the rest fail when `bundle.py` or `records.py` is mutated. Deselecting them in every run costs nothing. Two other tests also check a warning's caller and may fail under the trampoline when the file that warns is mutated, `test_model.py::test_container_reads_are_deprecated` and `test_warnings.py::test_warn_outside_a_collection_warns_at_the_caller`. When a clean baseline fails on one of them, deselect it in that run and add it to the configuration above. A `--deselect` of a parametrised function's bare id removes all its items, so name the id with its `[...]` part only when one item is meant.
+- mutmut's trampoline adds a stack frame. The tests deselected in the configuration check the caller of a warning, so they fail under it and stay deselected in every run. The comment above each group in the configuration says when its tests fail. Deselecting them in every run costs nothing. Two other tests also check a warning's caller and may fail under the trampoline when the file that warns is mutated, `test_model.py::test_container_reads_are_deprecated` and `test_warnings.py::test_warn_outside_a_collection_warns_at_the_caller`. When a clean baseline fails on one of them, deselect it in that run and add it to the configuration above, in the group whose comment matches or under a new comment. A `--deselect` of a parametrised function's bare id removes all its items, so name the id with its `[...]` part only when one item is meant.
 - Start mutmut in the foreground with the Bash tool's maximum timeout of 10 minutes. A run that takes longer moves to the background. Wait for its exit notice, run nothing else in that worktree until then, and never poll for it, for example with `pgrep -f "mutmut run"`, whose pattern matches the waiting shell's own command line, so the loop never ends. To check that no run is left, use `ps -ax -o pid,command | grep -E 'mutmut (run|results)' | grep -v grep`.
 - Do not run the check beside the gate runner or the benchmark A/B. It starts 8 worker processes. Queue the gates between mutation runs.

@@ -864,23 +864,6 @@ def test_serialize_xml_to_text_mode_named_temporary_file(doc, tmp_path) -> None:
         assert ProvDocument.deserialize(stream.name, format="xml") == doc
 
 
-# The following cover ProvDocument.__eq__'s bundle-comparison early-out and
-# unified()'s no-bundles loop (planning/test-gap-checklist.md, T13 item under
-# model.py).
-
-
-def test_not_equal_when_matching_bundle_content_differs() -> None:
-    d1 = ProvDocument()
-    d1.set_default_namespace("http://example.org/")
-    d1.bundle("b1").entity("e1")
-
-    d2 = ProvDocument()
-    d2.set_default_namespace("http://example.org/")
-    d2.bundle("b1").entity("e2")
-
-    assert d1 != d2
-
-
 # ProvBundle.__eq__: the set-equality fast path and the slow path it
 # falls back to when ProvRecord.__eq__ is looser than ProvRecord.__hash__.
 
@@ -902,6 +885,8 @@ def test_equal_when_same_records_added_in_different_order() -> None:
     assert d2 == d1
 
 
+# The following covers unified()'s no-bundles loop
+# (planning/test-gap-checklist.md, T13 item under model.py).
 def test_unified_with_no_bundles() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
