@@ -105,10 +105,10 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 - The wheel leaves out `prov.tests`, and `MANIFEST.in` grafts the directory into the sdist,
   so a new fixture needs no packaging edit.
 
+New shared record types, attributes or serializer behaviours go into the shared parametrised
+modules so every target is exercised, never into per-format tests.
+
 `planning/test-audit/` holds the test-suite audit: `rubric.md` says what earns a test its
 place, `register/` records the standing ruling and reason for each audited test, and
 `README.md` is the runbook. Read the runbook before an audit, and a test's register row
 before proposing to remove or merge it.
-
-New shared record types, attributes or serializer behaviours go into the shared parametrised
-modules so every target is exercised, never into per-format tests.

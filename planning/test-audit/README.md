@@ -28,10 +28,13 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check
    ```
 
-2. Build the evidence for the whole suite. Run the suite once with per-test coverage contexts, then run the two evidence scripts. Each script's docstring gives its arguments.
+2. Build the evidence for the whole suite. Run the suite once with per-test coverage contexts and list the collected items. Then run the two evidence scripts. Each script's docstring gives its arguments. The output folder must exist.
 
    ```bash
    COVERAGE_FILE=<work>/evidence/coverage-contexts.sqlite uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-context=test --cov-report=
+   uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest --collect-only -q -p no:cacheprovider > <work>/evidence/collected-items.txt
+   uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/provenance.py <work>/evidence
+   uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/coverage_nominations.py <work>/evidence/coverage-contexts.sqlite <work>/evidence/collected-items.txt <work>/evidence
    ```
 
 3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
@@ -68,6 +71,7 @@ Rules that keep the cost down and the result sound:
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.
+- Settle each row the check reports as gone. Mark it `removed` with the reason, or delete it when the test was renamed.
 
 ## What the first audit found about the method
 
