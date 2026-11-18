@@ -53,7 +53,7 @@ def _write(document, tmp_path, fmt, filename, **kwargs):
     ],
 )
 def test_read_explicit_format(document, tmp_path, fmt: str, spelling: str) -> None:
-    path = _write(document, tmp_path, fmt, f"doc-{spelling}.{fmt}")
+    path = _write(document, tmp_path, fmt, f"doc.{fmt}")
     result = prov.read(str(path), format=spelling)
     assert result == document
 
@@ -163,8 +163,8 @@ def test_read_garbage_content_raises_type_error() -> None:
     message = str(ctx.value)
     assert message.startswith("Could not read from the source.")
     assert ctx.value.__cause__ is None
-    # The message names both remedies: the format= parameter, and the
-    # raw-content reading of a str that names no file.
+    # The message names the format= parameter as the remedy and says that a
+    # str naming no file was read as raw content.
     assert "specify the format" in message
     assert "raw content" in message
 
