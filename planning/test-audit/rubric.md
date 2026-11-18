@@ -131,7 +131,7 @@ Rules for every register row:
 
 - Write the reason for a reader who has not seen the ledger.
 - Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists. A reader can then follow the reason to its source. Cite an issue only when its title or body describes the test's input. A reference that comes only from a commit message often belongs to another change in that commit.
-- Write a follow-up for a later audit as a sentence that opens with `Later audit:`, for example a pair to send to the verifier. The register check lists those rows. Put it only on a live row, never on a `removed` row, because an audit reopens a `removed` row only to ask whether to restore the test, so no one acts on its follow-up. A follow-up about a removed test's job goes on the row of the test that took the job over, or follows `README.md` step 3 when that module has no register.
+- Write a follow-up for a later audit as a sentence that opens with `Later audit:`, for example a pair to send to the verifier. The register check lists those rows. Put it on a live row, never on a `removed` row, because an audit reopens a `removed` row only to ask whether to restore the test. A follow-up about a removed test's job goes on the row of the test that took the job over, or follows `README.md` step 3 when that module has no register.
 - A later audit that judges a row again empties its `audit_commit` and `fingerprint`, so that `stamp` anchors the row at the new commit. A row whose ruling stands keeps both. Without this, the check reports a re-affirmed "source moved" row again on every run.
 
 Rules for a row a later layer ruled:
