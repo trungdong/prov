@@ -286,6 +286,8 @@ def test_json_decoder_decodes_a_document() -> None:
     assert json.loads(text, cls=ProvJSONDecoder) == _read(text)
 
 
+# One row per time attribute. The reader decodes every relation's prov:time
+# along one path, so wasGeneratedBy stands for them all.
 _TIMES = [
     pytest.param(
         "wasGeneratedBy", {"prov:entity": "ex:e"}, "prov:time", id="generation"
