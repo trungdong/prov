@@ -349,11 +349,12 @@ class Audit:
         return Found(row.function, "source moved" if names else "removed", names)
 
     def row_names(self, module: str, row: Row) -> list[str]:
-        """List the definitions and sibling tests that a row's reason follows."""
-        lines = sorted(
-            f"  {path}::{qual}"
-            for path, qual in named(self.now, named_tokens(row.reason))
-        )
+        """List the definitions and sibling tests that a row's reason follows, and
+        each backticked name that matches no definition."""
+        tokens = named_tokens(row.reason)
+        lines = sorted(f"  {path}::{qual}" for path, qual in named(self.now, tokens))
+        missing = {".".join(parts) for parts in tokens if not named(self.now, [parts])}
+        lines += [f"  {name} (matches nothing)" for name in sorted(missing)]
         for other, name in sorted(set(SIBLING.findall(row.reason))):
             if (other, name) != (module, row.function):
                 gap = "" if name in read_tests("", other) else " (no such test)"

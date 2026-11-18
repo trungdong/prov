@@ -45,7 +45,7 @@ Skip this step when the ruling removes and merges nothing.
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check --names <module>
    ```
 
-   The first must show no function as `new` or `gone`, and no `changed` line with a note. An unstamped row shows as `changed`, and an unstamped `removed` row as `source moved` with the note `unknown audit commit`. The second prints what each row a later layer ruled follows, from earlier audits too. Check the rows you wrote. Each must follow at least one definition, unless its test runs no `src/prov` code. No token may match an unrelated definition. Only a test this change removed or folded in may show `(no such test)`.
+   The first must show no function as `new` or `gone`, and no `changed` line with a note. An unstamped row shows as `changed`, and an unstamped `removed` row as `source moved` with the note `unknown audit commit`. The second prints what each row a later layer ruled follows, from earlier audits too. Check the rows you wrote. Each must follow at least one definition, unless its test runs no `src/prov` code. No token may match an unrelated definition. A token marked `(matches nothing)` must be a constant or a name outside `src/prov`, never a misspelt definition. Only a test this change removed or folded in may show `(no such test)`.
 
 ## Report
 

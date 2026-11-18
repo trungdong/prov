@@ -56,7 +56,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    - Run `check --names` over the batch's modules. A row written in this batch was anchored after every change of the batch, so the check cannot see a sibling test that a later apply step changed. Re-read each row written in this batch that names a test in another test file the batch changed, whether or not that file has a register. Re-read each line marked `(no such test)` too.
    - Empty the `audit_commit` and `fingerprint` of each row you corrected or re-read, stamp again and commit the register files as a new commit.
 5. Open one pull request for the batch. It holds the test changes and the register files of every module in it. The pull request needs no `HISTORY.md` entry.
-6. Bring the rows the check lists under `rewrite and query` and `later audit` to the maintainer. Each one gets a fix in a later change, an issue, or a recorded reason to leave it.
+6. The rows the check lists under `rewrite and query` and `later audit` are the audit's standing backlog. Report the rows this batch added to the maintainer with the pull request. A row leaves the lists when a later change carries out the rewrite or answers the query or the follow-up, and an audit rules on the row again.
 
 ## For the coordinator
 
