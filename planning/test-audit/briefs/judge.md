@@ -11,7 +11,7 @@ You are read-only. Change no file except the output file named below. No commits
 ## What to read
 
 - `<repo>/planning/test-audit/rubric.md`. "Rules for the judge" binds you. Read it first.
-- `<work>/ledger/<module>.md`, and the files the earlier layers wrote: `<module>.verify-removal.md` and `<module>.mutation-removals.md` for removals, `<module>.verify-merge.md`, `<module>.mutation.md` and `<module>.merge.patch` for merges. Treat what they say as claims to check.
+- `<work>/ledger/<module>.md`, and the files the earlier layers wrote: `<module>.verify-removal.md` and `<module>.mutation-removal.md` for removals, `<module>.verify-merge.md`, `<module>.mutation-merge.md` and `<module>.merge.patch` for merges. Treat what they say as claims to check.
 - The code itself: the test module (and the patched copy in `<worktree>` for merges), the source the tests exercise, and the promises about a specific input in `HISTORY.md`, `docs/` and the issue a test names. Read the issue. When it lists several shapes as separate defects, each shape keeps its test.
 
 ## What to rule on

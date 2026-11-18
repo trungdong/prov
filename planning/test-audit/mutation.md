@@ -2,6 +2,10 @@
 
 The mutation check shows whether removing or merging tests leaves a detected mutant undetected. It was tested with mutmut 3.8.1. Start mutmut with `uv run --with mutmut`, so that no dependency changes. Run it in a scratch worktree of the branch under test. Never commit the configuration.
 
+## Scope
+
+The coordinator names the source files to mutate, from these rules. For a removal, take every file where the candidates cover a line that fewer than five other test functions cover, and the files the candidates' own calls pass through: the model path of the call under test, and the one serializer or reader the module is about. For a merge, take the files the merged tests exercise, by the same rule. A shared module that runs every serializer (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) does not add every serializer this way. Count the mutants before the baseline runs, and record the command you used. If the scope comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
+
 ## Configuration
 
 Append this to the scratch worktree's `pyproject.toml`. Set `only_mutate` to the source files the check covers. It can name several. Keep every `--deselect` pair in every run, baseline included.

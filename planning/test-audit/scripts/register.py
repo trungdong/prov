@@ -48,7 +48,7 @@ GROUPS = ("unchanged", "changed", "new", "source moved", "gone")
 Def = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
 SIBLING = re.compile(r"\b(test_\w+)\.py::(\w+)")
-LATER = re.compile(r"(?:^|\. )Later audit:")
+LATER = re.compile(r"(?:^|[.!?][)\"']?\s+)Later audit:")
 
 
 @dataclasses.dataclass
@@ -356,7 +356,7 @@ def check_module(audit: Audit, module: str) -> list[Found]:
 
     # A test module that no longer exists leaves only rows without a function.
 
-    sources = test_sources(path) if path.is_file() else {}
+    sources = audit.tests_at("", module)
     ids = collect_ids(path) if sources else {}
     rows = read_register(register)
     found = [

@@ -110,7 +110,7 @@ Rules for the judge:
 |---|---|
 | `function` | The test function |
 | `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed` |
-| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the judge. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
+| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, or added the test. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
 | `audit_commit` | The commit the ruling was made against |
 | `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |

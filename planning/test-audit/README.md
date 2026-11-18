@@ -22,7 +22,7 @@ A module with no file in `register/` has not been audited.
 
 Working files (evidence, ledgers, verifier and judge reports) go in a dated folder under `planning/plans/`, which is gitignored. Only the register and a change to the rules are committed.
 
-1. Run the register check. It prints the tests that are new, changed or whose source moved since their ruling.
+1. Run the register check. It prints the tests that are new, changed or whose source moved since their ruling, and lists the rows whose reason carries a `Later audit:` follow-up.
 
    ```bash
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check
@@ -37,7 +37,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/coverage_nominations.py <work>/evidence/coverage-contexts.sqlite <work>/evidence/collected-items.txt <work>/evidence
    ```
 
-3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
+3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed, and takes each `Later audit:` follow-up as a proposal to examine. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
 4. Apply the maintainer's rulings on a branch. Run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Commit the test change, then write or update the module's register file and stamp it. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after the test change is committed. That commit must stay in the branch's history. So commit the register file as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register file again.
 
    ```bash
