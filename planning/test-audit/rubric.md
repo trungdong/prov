@@ -21,7 +21,7 @@ A test stays as it is when it passes both checks.
 | Verdict | When to give it |
 |---|---|
 | `keep` | The test passes both checks. |
-| `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`). Every input and every assertion stays. |
+| `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) or into another module's parametrised test with the same body. Every input and every assertion stays. |
 | `narrow` | The test is sound, but one parameter axis or several rows do not change the behaviour under test. Name the axis or the rows. |
 | `delete` | Another named test fails whenever this test fails. Name that test. |
 | `rewrite` | The test pins an incidental detail (exact message wording that no document promises, a private attribute, an internal call order) and not the contract, or it passes with and without the code it guards. Say what the assertion misses. The audit records it and does not act on it. |
