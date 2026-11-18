@@ -3,7 +3,10 @@
 `register/<module>.tsv` holds one ruling for each test function of a module. `stamp`
 records the fingerprint of each function once its ruling is final. `check` sorts every
 function into unchanged, changed, new, source moved and gone, so that a later audit
-judges only what is not unchanged. The format is in `rubric.md` (The register).
+judges only what is not unchanged. A row is source moved when a backticked `src/prov`
+definition or a sibling test (`test_x.py::test_y`) named in its reason changed since its
+audit commit. A reason that opens, or opens a sentence, with `Later audit:` is listed
+after the groups. The format is in `rubric.md` (The register).
 
     python planning/test-audit/scripts/register.py stamp test_json
     python planning/test-audit/scripts/register.py check [--list] [test_json ...]
@@ -44,6 +47,8 @@ ALLOWED = {
 GROUPS = ("unchanged", "changed", "new", "source moved", "gone")
 Def = ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef
 NAME = re.compile(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*")
+SIBLING = re.compile(r"\b(test_\w+)\.py::(\w+)")
+LATER = re.compile(r"(?:^|[.!?][)\"']?\s+)Later audit:")
 
 
 @dataclasses.dataclass
@@ -61,6 +66,7 @@ class Found(NamedTuple):
     function: str
     group: str
     note: str = ""
+    later: bool = False
 
 
 COLUMNS = tuple(f.name for f in dataclasses.fields(Row))
@@ -98,7 +104,11 @@ def module_path(module: str) -> Path:
 
 def test_sources(path: Path) -> dict[str, str]:
     """Map each module-level test function to its source text."""
-    text = path.read_text()
+    return test_texts(path.read_text())
+
+
+def test_texts(text: str) -> dict[str, str]:
+    """Map each module-level test function in a module's text to its source text."""
     lines = text.splitlines()
     return {
         node.name: span_text(lines, node)
@@ -271,6 +281,16 @@ def named(defs: Digests, tokens: list[list[str]]) -> Digests:
     }
 
 
+@functools.cache
+def read_tests(commit: str, module: str) -> dict[str, str]:
+    """Map a test module's functions to source at a commit ("" for the work tree)."""
+    if commit:
+        shown = git("show", f"{commit}:{SOURCE}/tests/{module}.py")
+        return test_texts(shown.stdout if shown.returncode == 0 else "")
+    path = TESTS / f"{module}.py"
+    return test_sources(path) if path.is_file() else {}
+
+
 class Audit:
     """Classify test functions against a register, reading each commit once."""
 
@@ -278,18 +298,32 @@ class Audit:
         self.now = tree_definitions()
         self.before: dict[str, Digests | None] = {}
 
-    def moved(self, row: Row, old: Digests) -> str:
+    def moved_defs(self, row: Row, old: Digests) -> set[str]:
         """Name the definitions in the reason that differ from the audit commit."""
         tokens = named_tokens(row.reason)
         was, now = named(old, tokens), named(self.now, tokens)
         if set(was.values()) == set(now.values()):
-            return ""
-        return ", ".join(
-            sorted({k[1] for k in was.keys() | now.keys() if was.get(k) != now.get(k)})
-        )
+            return set()
+        return {k[1] for k in was.keys() | now.keys() if was.get(k) != now.get(k)}
+
+    def moved_siblings(self, module: str, row: Row) -> set[str]:
+        """Name the sibling tests in the reason that differ from the audit commit."""
+        moved = set()
+        for other, name in set(SIBLING.findall(row.reason)):
+            if (other, name) == (module, row.function):
+                continue
+            was = read_tests(row.audit_commit, other).get(name)
+            if was is not None and was != read_tests("", other).get(name):
+                moved.add(f"{other}.py::{name}")
+        return moved
+
+    def moved(self, module: str, row: Row, old: Digests) -> str:
+        """Name the definitions and sibling tests that moved since the audit commit."""
+        names = self.moved_defs(row, old) | self.moved_siblings(module, row)
+        return ", ".join(sorted(names))
 
     def classify(
-        self, name: str, row: Row | None, source: str, ids: Sequence[str]
+        self, module: str, name: str, row: Row | None, source: str, ids: Sequence[str]
     ) -> Found:
         if row is None:
             return Found(name, "new")
@@ -302,7 +336,7 @@ class Audit:
         old = self.before[row.audit_commit]
         if old is None:
             return Found(name, "changed", "unknown audit commit")
-        names = self.moved(row, old)
+        names = self.moved(module, row, old)
         return Found(name, "source moved", names) if names else Found(name, "unchanged")
 
 
@@ -316,17 +350,22 @@ def check_module(audit: Audit, module: str) -> list[Found]:
 
     # A test module that no longer exists leaves only rows without a function.
 
-    sources = test_sources(path) if path.is_file() else {}
+    sources = read_tests("", module)
     ids = collect_ids(path) if sources else {}
     rows = read_register(register)
     found = [
-        audit.classify(name, rows.get(name), source, ids.get(name, []))
+        audit.classify(module, name, rows.get(name), source, ids.get(name, []))
         for name, source in sources.items()
     ]
     for name, row in rows.items():
         if name not in sources:
             found.append(Found(name, "removed" if row.ruling == "removed" else "gone"))
-    return found
+    return [
+        f._replace(
+            later=bool(f.function in rows and LATER.search(rows[f.function].reason))
+        )
+        for f in found
+    ]
 
 
 def print_report(results: dict[str, list[Found]]) -> None:
@@ -341,6 +380,7 @@ def print_report(results: dict[str, list[Found]]) -> None:
         print(f"{module:<32}" + "".join(f"{c:>14}" for c in counts))
     for group in GROUPS[1:]:
         print_group(group, audited)
+    print_later(audited)
 
 
 def print_group(group: str, audited: dict[str, list[Found]]) -> None:
@@ -349,6 +389,15 @@ def print_group(group: str, audited: dict[str, list[Found]]) -> None:
         print(f"\n{group} ({len(hits)})")
     for module, f in hits:
         print(f"  {module}::{f.function}" + (f"  {f.note}" if f.note else ""))
+
+
+def print_later(audited: dict[str, list[Found]]) -> None:
+    """List the rows whose reason holds a later audit's note."""
+    hits = [f"{m}::{f.function}" for m, fs in audited.items() for f in fs if f.later]
+    if hits:
+        print(f"\nlater audit ({len(hits)})")
+    for hit in hits:
+        print(f"  {hit}")
 
 
 def cmd_check(modules: list[str], list_only: bool) -> None:

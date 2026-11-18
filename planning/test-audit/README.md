@@ -22,7 +22,7 @@ A module with no file in `register/` has not been audited.
 
 Working files (evidence, ledgers, verifier and judge reports) go in a dated folder under `planning/plans/`, which is gitignored. Only the register and a change to the rules are committed.
 
-1. Run the register check. It prints the tests that are new, changed or whose source moved since their ruling.
+1. Run the register check. It prints the tests that are new, changed or whose source moved since their ruling, and lists the rows whose reason carries a `Later audit:` follow-up.
 
    ```bash
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check
@@ -37,8 +37,8 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/coverage_nominations.py <work>/evidence/coverage-contexts.sqlite <work>/evidence/collected-items.txt <work>/evidence
    ```
 
-3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
-4. Apply the maintainer's rulings on a branch. Run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Write or update the module's register file, then stamp it. Each stamped row names the commit that was `HEAD` at that moment, and that commit must stay in the branch's history. So commit the test change and the register file as new commits, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register file again.
+3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed, and takes each `Later audit:` follow-up as a proposal to examine. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
+4. Apply the maintainer's rulings on a branch. Run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Commit the test change alone, then stamp the module's register file and commit it. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after the test change is committed. That commit must stay in the branch's history. So commit the register file as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register file again.
 
    ```bash
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
@@ -65,7 +65,7 @@ Rules that keep the cost down and the result sound:
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5. Its classifier verdicts go straight to the register, with `ruled_by` set to `classifier`.
-- Run one mutation check at a time.
+- Run one mutation check at a time, and never beside the gate runner.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.

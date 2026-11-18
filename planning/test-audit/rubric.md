@@ -56,7 +56,7 @@ Do not propose a change to these. Mark them `protected`.
 1. **A contract reached through a private name.** When the behaviour is a real contract and the test reaches it through a private function or class, give `keep` and name the private name in Note. Give `rewrite` only when the thing pinned is itself incidental.
 2. **How close a takeover test must be.** A takeover test must give the code the same input shape as the candidate. These differences can hide a fault, so they block `delete` and block dropping a row: which attribute holds the value, a list against a single value, the list length, the order of items, the depth of a repeated key, a second key beside the first.
 3. **When a row may go.** A row may go only when it differs from a kept row in the record type or the section name alone, and the source has no branch on that name between the entry point and the statement under test. A row with its own message format, its own branch or its own input shape stays.
-4. **When separate functions merge.** Functions merge into one parametrised test when their bodies are the same apart from the input values and the expected values. The merged body has no branch on a parameter. Every input and every assertion of the originals stays, in its original form. When a merge needs a branch, the verdict is `keep`.
+4. **When separate functions merge.** Functions merge into one parametrised test when their bodies are the same apart from the input values and the expected values. The merged body has no branch on a parameter. Every input and every assertion of the originals stays, in its original form. When a merge needs a branch, the verdict is `keep`. When an existing parametrised test has the same body, prefer adding rows to it over a new function, as long as the result still passes rule 5.
 5. **A merge must be better, not only shorter.** A reader finds the behaviour as quickly as before, a failure still names the case that broke, and the merged function does not mix behaviours that deserve their own names. A merge that saves lines and hides intent is a `keep`.
 6. **Tests that assert only "does not raise".** Give `keep` when the test sits beside a rejecting rule and guards against over-rejection. Name the rule in Reason.
 7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit does not move tests.
@@ -110,9 +110,9 @@ Rules for the judge:
 |---|---|
 | `function` | The test function |
 | `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed` |
-| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the judge |
+| `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, or added the test. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
-| `audit_commit` | The commit the ruling was made against |
+| `audit_commit` | The commit at which the row's test, and the tests its reason names, were last confirmed. It is stamped after the change that applies the ruling is committed |
 | `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
 | `reason` | The contract the test pins and the fault only it catches |
 
@@ -121,8 +121,11 @@ The fingerprint covers the function's own text and its collected item ids. A cha
 Rules for a register row:
 
 - Write the reason for a reader who has not seen the ledger. Say what the test pins, and what would go unnoticed without it.
-- Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists. A reader can then follow the reason to its source.
-- When the reason depends on how the code is written, name the function or the class in backticks, for example `_decode_time`. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed. It tracks only a function or a class under `src/prov`, outside the tests. A constant, a test helper, a standard-library name or a misspelt name matches nothing, and the check stays silent about it.
+- Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists. A reader can then follow the reason to its source. Cite an issue only when its title or body describes the test's input. A reference that comes only from a commit message often belongs to another change in that commit.
+- A claim about which code a test reaches, or that a test alone catches a fault, rests on a fault someone planted and ran, in the verifier's, the mutation check's or the judge's file or in the apply step's own run. Without one, name the fault the test guards and do not claim it is the only guard.
+- When the reason depends on how the code is written, name in backticks every function or class the argument passes through, not only the first and the last, for example `_decode_time` (methods as `Class.method`). A module-level constant may stay in backticks, but name the function that applies it too. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed. It tracks only a function or a class under `src/prov`, outside the tests. A constant, a test helper, a standard-library name or a misspelt name matches nothing, and the check stays silent about it. A bare common word, such as `identifier`, matches every definition of that name and flags the row for unrelated changes, so write it without backticks.
+- Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
+- Write a follow-up for a later audit as a sentence that opens with `Later audit:`, for example a pair to send to the verifier. The register check lists those rows.
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
 - A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it.
@@ -135,7 +138,7 @@ Rules for a register row:
 | Unchanged | The fingerprint matches and no named definition changed | Nothing. The ruling stands |
 | Changed | The fingerprint differs | The test goes through the layers again |
 | New | The function has no row | The test goes through the layers |
-| Source moved | The fingerprint matches, but a definition the reason names changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? |
+| Source moved | The fingerprint matches, but a definition or a test the reason names changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? |
 | Gone | A row has no function and its ruling is not `removed` | Mark the row `removed` with the reason, or delete it when the test was renamed |
 
 A new test that duplicates an old one is the test that fails the unique-job check, so an old ruling is not reopened because a test was added.

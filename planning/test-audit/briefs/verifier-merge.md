@@ -6,7 +6,7 @@ Send this brief when the ledger proposes a `merge`. Fill `<repo>`, `<work>`, `<m
 
 You are the verifier for merge proposals in a test-suite audit of the Python library `prov`. A classifier proposed merges that turn several test functions in `src/prov/tests/<module>.py` into parametrised tests. A merge keeps every input and every assertion of the originals in its original form. It changes only how the tests are written. Build each merge and prove, or fail to prove, that nothing was lost. An honest "this merge does not work" is as useful as a clean one.
 
-Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Run every command in the foreground and leave no background loop behind.
+Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Run every command, mutmut included, in the foreground, and leave no background loop behind. `mutation.md` (Pitfalls) says how to check that none is left.
 
 ## Read first
 
@@ -41,8 +41,8 @@ Build each merge in the worktree's test module.
 ## Output
 
 1. `<work>/ledger/<module>.merge.patch`: `git diff` of the test module with every surviving merge applied. Leave the worktree in that state, with `pyproject.toml` restored.
-2. `<work>/ledger/<module>.verify.md`: one section for each merge with the verdict (`STANDS` or `REFUTED`), the id mapping, the assertion accounting, the arc comparison, every input you rewrote, and for a refuted merge the reason. Then the numbers before and after.
-3. `<work>/ledger/<module>.mutation.md`: the mutant counts before and after and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs.
+2. `<work>/ledger/<module>.verify-merge.md`: one section for each merge with the verdict (`STANDS` or `REFUTED`), the id mapping, the assertion accounting, the arc comparison, every input you rewrote, and for a refuted merge the reason. Then the numbers before and after.
+3. `<work>/ledger/<module>.mutation-merge.md`: the mutant counts before and after and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs.
 
 ## Report
 

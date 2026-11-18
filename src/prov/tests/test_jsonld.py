@@ -364,16 +364,32 @@ def test_deserialize_resolves_rdf_in_a_bundle(
     assert value.uri == rdf_uri + "x"
 
 
-def test_deserialize_keeps_a_document_binding_of_a_submission_prefix() -> None:
+@pytest.mark.parametrize(
+    "submission_context",
+    [
+        pytest.param(JSONLD_CONTEXT_URL, id="url"),
+        # The embedded copy must be recognised as the submission context. Read
+        # as a namespace map, it would register the submission's rdf IRI again,
+        # under a renamed prefix.
+        pytest.param(load_vendored_context(), id="embedded"),
+    ],
+)
+def test_deserialize_keeps_a_document_binding_of_a_submission_prefix(
+    submission_context: Any,
+) -> None:
     text = json.dumps(
         {
-            "@context": [{"rdf": "http://other.example/"}, JSONLD_CONTEXT_URL],
+            "@context": [{"rdf": "http://other.example/"}, submission_context],
             "@graph": [{"@type": "Entity", "@id": "rdf:e"}],
         }
     )
     doc = ProvDocument.deserialize(content=text, format="jsonld")
     (record,) = doc.get_records()
     assert record.identifier.uri == "http://other.example/e"
+    assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
+        **_SUBMISSION_NAMESPACES,
+        "rdf": "http://other.example/",
+    }
 
 
 def test_deserialize_without_the_submission_context_leaves_its_prefixes_undeclared() -> (
