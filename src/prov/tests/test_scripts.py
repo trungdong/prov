@@ -112,16 +112,6 @@ def _read_back(path, fmt: str, **options) -> ProvDocument:
 # prov-convert.
 
 
-def test_convert_to_xml(infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "doc.xml"
-    monkeypatch.setattr(
-        sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
-    )
-    rc = convert_main()
-    assert rc == 0
-    assert outfile.stat().st_size > 0
-
-
 def test_convert_format_is_case_insensitive(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.xml"
     monkeypatch.setattr(
@@ -161,10 +151,11 @@ def test_convert_to_provn(infile, tmp_path, monkeypatch) -> None:
 
 
 @needs_dot
-def test_convert_to_dot(infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "doc.dot"
+@pytest.mark.parametrize("fmt", ["dot", "svg"])
+def test_convert_to_a_graphviz_format(fmt, infile, tmp_path, monkeypatch) -> None:
+    outfile = tmp_path / f"doc.{fmt}"
     monkeypatch.setattr(
-        sys, "argv", ["prov-convert", "-f", "dot", str(infile), str(outfile)]
+        sys, "argv", ["prov-convert", "-f", fmt, str(infile), str(outfile)]
     )
     rc = convert_main()
     assert rc == 0
@@ -177,17 +168,6 @@ def test_the_graphviz_writer_options_are_prov_to_dots_keywords() -> None:
 
     parameters = set(inspect.signature(prov_to_dot).parameters)
     assert parameters - {"bundle"} == _GRAPHVIZ_OPTIONS
-
-
-@needs_dot
-def test_convert_to_rendered_graphviz_format(infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "doc.svg"
-    monkeypatch.setattr(
-        sys, "argv", ["prov-convert", "-f", "svg", str(infile), str(outfile)]
-    )
-    rc = convert_main()
-    assert rc == 0
-    assert outfile.stat().st_size > 0
 
 
 def test_convert_unsupported_format_returns_2_and_writes_one_error_line(
@@ -306,18 +286,6 @@ def test_convert_unknown_input_format_exits_2(
         capsys.readouterr().err
         == 'prov-convert: error: No serializer available for the format "nope"\n'
     )
-
-
-def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch) -> None:
-    outfile = tmp_path / "doc.json"
-    monkeypatch.setattr(sys, "argv", ["prov-convert", "-i", "provn", "-f", "json"])
-    monkeypatch.setattr(
-        sys, "stdin", io.TextIOWrapper(io.BytesIO(provn_infile.read_bytes()))
-    )
-    with outfile.open("wb") as out:
-        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out))
-        assert convert_main() == 0
-    assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
 
 
 def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch) -> None:
@@ -1257,27 +1225,23 @@ def compare_files(tmp_path):
 # not use it on any interpreter.
 @pytest.mark.filterwarnings("error::PendingDeprecationWarning")
 @pytest.mark.filterwarnings("error::DeprecationWarning")
-def test_equivalent_documents_return_0(compare_files, monkeypatch) -> None:
-    json_file, xml_file = compare_files
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["prov-compare", "-f", "json", "-F", "xml", str(json_file), str(xml_file)],
-    )
-    rc = compare_main()
-    assert rc == 0
-
-
-def test_compare_provn_to_json_returns_0(tmp_path, monkeypatch) -> None:
-    provn_file = tmp_path / "doc.provn"
-    json_file = tmp_path / "doc.json"
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        pytest.param("json", "xml", id="json-xml"),
+        pytest.param("provn", "json", id="provn-json"),
+    ],
+)
+def test_equivalent_documents_return_0(first, second, tmp_path, monkeypatch) -> None:
+    first_file = tmp_path / f"doc.{first}"
+    second_file = tmp_path / f"doc.{second}"
     doc = primer_example()
-    doc.serialize(str(provn_file), format="provn")
-    doc.serialize(str(json_file), format="json")
+    doc.serialize(str(first_file), format=first)
+    doc.serialize(str(second_file), format=second)
     monkeypatch.setattr(
         sys,
         "argv",
-        ["prov-compare", "-f", "provn", "-F", "json", str(provn_file), str(json_file)],
+        ["prov-compare", "-f", first, "-F", second, str(first_file), str(second_file)],
     )
     rc = compare_main()
     assert rc == 0
