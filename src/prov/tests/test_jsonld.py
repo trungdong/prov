@@ -517,6 +517,31 @@ def test_roundtrip_context_embed_registers_only_the_submission_prefixes() -> Non
     }
 
 
+def test_deserialize_embedded_submission_context_registers_only_its_prefixes() -> None:
+    # An embedded copy of the submission context registers the prefixes the
+    # submission context binds and nothing else, so a stray prefix or "@vocab"
+    # added to the copy is ignored rather than read as a namespace map.
+    text = json.dumps(
+        {
+            "@context": [
+                {"ex": EX_URI},
+                {
+                    **load_vendored_context(),
+                    "stray": "http://stray.example/",
+                    "@vocab": "http://stray.example/vocab#",
+                },
+            ],
+            "@graph": [{"@type": "Entity", "@id": "ex:e1"}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
+        "ex": EX_URI,
+        **_SUBMISSION_NAMESPACES,
+    }
+    assert doc.get_default_namespace() is None
+
+
 @pytest.mark.parametrize(
     "payload, match",
     [
