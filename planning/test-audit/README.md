@@ -74,6 +74,7 @@ An Opus session coordinates an audit. It reads this file and `rubric.md`, dispat
 Rules that keep the cost down and the result sound:
 
 - Set the model on every agent. No agent inherits the coordinator's model.
+- Every brief you write, from a template or not, ends with two rules. The agent never runs `git stash`, and `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module.
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5. `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
