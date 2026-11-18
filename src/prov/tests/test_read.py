@@ -49,6 +49,7 @@ def _write(document, tmp_path, fmt, filename, **kwargs):
         # Default rdf_format is "trig" on both the write and read sides.
         pytest.param("rdf", "rdf", id="rdf"),
         pytest.param("jsonld", "jsonld", id="jsonld"),
+        pytest.param("provn", "provn", id="provn"),
         pytest.param("json", "JSON", id="format-is-lowercased"),
     ],
 )
@@ -84,6 +85,9 @@ def test_read_accepts_file_object(document, tmp_path) -> None:
         # rdf is attempted (as trig, the default) right after json, so a
         # trig-serialized document round trips through auto-detection.
         pytest.param("rdf", id="rdf"),
+        # The json candidate raises JSONDecodeError and the rdf candidate
+        # BadSyntax on PROV-N text, so the provn deserializer is reached.
+        pytest.param("provn", id="provn"),
         # #239: the rdf candidate raises rdflib's BadSyntax (a SyntaxError) on
         # XML input; read() must treat any candidate failure as "try the next
         # format" so the xml deserializer is reached.
