@@ -282,7 +282,7 @@ def test_add_bundle_rejects_document_with_nested_bundles() -> None:
 @pytest.mark.parametrize(
     ("value", "expected_fragment"),
     [
-        pytest.param('{"foo": "bar"}', '{\\"f', id="single-quotes"),
+        pytest.param('{"foo": "bar"}', '{\\"f', id="quoted-key"),
         pytest.param('"""foo\\nbar"""', '\\"\\"\\"f', id="triple-quotes"),
     ],
 )
@@ -295,9 +295,9 @@ def test_literal_provn_escapes_double_quotes(
 
 
 # The following cover the Literal/datatype-parsing helpers
-# (planning/test-gap-checklist.md, T13 item under model.py: parse_xsd_datetime,
-# parse_boolean, Literal __eq__/__ne__/__hash__, and the langtag-forces-
-# InternationalizedString warning).
+# (planning/test-gap-checklist.md, T13 item under model.py: parse_boolean,
+# Literal __eq__/__ne__/__hash__, and the langtag-forces-InternationalizedString
+# warning).
 
 
 def test_parse_boolean_variants() -> None:
@@ -419,17 +419,19 @@ def test_record_value_converted_from_provrecord_for_generic_attribute(doc) -> No
 
 
 @pytest.mark.parametrize(
-    ("method", "identifier"),
+    "call",
     [
-        pytest.param("entity", None, id="entity-none"),
-        pytest.param("entity", "", id="entity-empty"),
-        pytest.param("activity", None, id="activity-none"),
+        pytest.param(lambda d: d.entity(None), id="entity-none"),  # type: ignore[arg-type]
+        pytest.param(lambda d: d.entity(""), id="entity-empty"),
+        pytest.param(lambda d: d.activity(None), id="activity-none"),  # type: ignore[arg-type]
     ],
 )
-def test_element_without_identifier_raises(method: str, identifier: str | None) -> None:
+def test_element_without_identifier_raises(
+    call: Callable[[ProvDocument], object],
+) -> None:
     d = ProvDocument()
     with pytest.raises(ProvElementIdentifierRequired):
-        getattr(d, method)(identifier)
+        call(d)
 
 
 def _unresolved(name: str, reason: str, of: str = "") -> str:
@@ -862,7 +864,7 @@ def test_serialize_xml_to_text_mode_named_temporary_file(doc, tmp_path) -> None:
         assert ProvDocument.deserialize(stream.name, format="xml") == doc
 
 
-# The following cover ProvDocument.__eq__'s bundle-comparison early-outs and
+# The following cover ProvDocument.__eq__'s bundle-comparison early-out and
 # unified()'s no-bundles loop (planning/test-gap-checklist.md, T13 item under
 # model.py).
 

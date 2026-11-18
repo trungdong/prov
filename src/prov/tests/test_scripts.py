@@ -152,7 +152,7 @@ def test_convert_to_provn(infile, tmp_path, monkeypatch) -> None:
 
 @needs_dot
 @pytest.mark.parametrize("fmt", ["dot", "svg"])
-def test_convert_to_a_graphviz_format(fmt, infile, tmp_path, monkeypatch) -> None:
+def test_convert_to_a_graphviz_format(infile, tmp_path, monkeypatch, fmt) -> None:
     outfile = tmp_path / f"doc.{fmt}"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", fmt, str(infile), str(outfile)]
@@ -1226,22 +1226,29 @@ def compare_files(tmp_path):
 @pytest.mark.filterwarnings("error::PendingDeprecationWarning")
 @pytest.mark.filterwarnings("error::DeprecationWarning")
 @pytest.mark.parametrize(
-    ("first", "second"),
+    ("format1", "format2"),
     [
         pytest.param("json", "xml", id="json-xml"),
         pytest.param("provn", "json", id="provn-json"),
     ],
 )
-def test_equivalent_documents_return_0(first, second, tmp_path, monkeypatch) -> None:
-    first_file = tmp_path / f"doc.{first}"
-    second_file = tmp_path / f"doc.{second}"
-    doc = primer_example()
-    doc.serialize(str(first_file), format=first)
-    doc.serialize(str(second_file), format=second)
+def test_equivalent_documents_return_0(tmp_path, monkeypatch, format1, format2) -> None:
+    first_file = tmp_path / f"doc.{format1}"
+    second_file = tmp_path / f"doc.{format2}"
+    _write(first_file, format1)
+    _write(second_file, format2)
     monkeypatch.setattr(
         sys,
         "argv",
-        ["prov-compare", "-f", first, "-F", second, str(first_file), str(second_file)],
+        [
+            "prov-compare",
+            "-f",
+            format1,
+            "-F",
+            format2,
+            str(first_file),
+            str(second_file),
+        ],
     )
     rc = compare_main()
     assert rc == 0
