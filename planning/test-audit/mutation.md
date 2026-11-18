@@ -40,6 +40,7 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 1. Delete `mutants/` in the scratch worktree.
 2. Run `mm.sh run --max-children 8`.
 3. Save the result: `mm.sh results --all true | sed 's/^ *//' > baseline.txt`. Each line reads `<id>: killed`, `survived`, `no tests` or `not checked`.
+4. Note the wall time of this run and of every later run. The report gives each one, so that the cost of the check stays a measured figure.
 
 ## Compare a removal
 

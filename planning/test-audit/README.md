@@ -8,7 +8,7 @@ This folder holds the rules, the tools and the standing results of the test-suit
 | `register/<module>.tsv` | The standing ruling and reason for each test function of an audited module |
 | `scripts/provenance.py` | Writes `provenance.tsv`: the first commit and the issue references of each test function |
 | `scripts/coverage_nominations.py` | Writes `coverage-nominations.tsv` and `item-arcsets.tsv` from a coverage run with per-test contexts |
-| `scripts/register.py` | `stamp` fills the fingerprints of a module's register rows. `check` lists the tests a new audit must judge |
+| `scripts/register.py` | `draft` copies the classifier's rows into a module's register. `stamp` fills the fingerprints of the rows. `check` lists the tests a new audit must judge |
 | `mutation.md` | The mutmut configuration and commands for the mutation check |
 | `briefs/` | The brief template for each layer's agent |
 
@@ -22,7 +22,7 @@ A module with no file in `register/` has not been audited.
 
 Working files (evidence, ledgers, verifier and judge reports) go in a dated folder under `planning/plans/`, which is gitignored. Only the register and a change to the rules are committed.
 
-1. Run the register check. It prints the tests that are new, changed or whose source moved since their ruling, and lists the rows whose reason carries a `Later audit:` follow-up.
+1. Run the register check. It prints the tests that are new, changed or whose source moved since their ruling. It also lists the rows ruled `rewrite` or `query` and the rows whose reason carries a `Later audit:` follow-up.
 
    ```bash
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py check
@@ -38,17 +38,27 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    ```
 
 3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed, and takes each `Later audit:` follow-up as a proposal to examine. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
-4. Apply the maintainer's rulings on a branch. Run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Commit the test change alone, then stamp the module's register file and commit it. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after the test change is committed. That commit must stay in the branch's history. So commit the register file as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register file again.
+4. Apply the maintainer's rulings for the whole batch on one branch. A batch is the modules one coordinator session audits, about five.
+   - Dispatch the apply agent for each module the maintainer ruled on, one module at a time. It changes the tests and writes the register rows a later layer ruled. Commit each module's test change before the next dispatch, and give the next agent the suite counts of the branch at that commit. Otherwise its counts include a change it did not make. For a module with nothing to apply, run `draft` yourself. It writes the classifier's `keep` and `protected` rows and names the tests it left out.
 
-   ```bash
-   uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
-   ```
+     ```bash
+     uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py draft <module> <work>/ledger/<module>.md
+     ```
 
-5. Open one pull request for the module. It holds the test change and the register file. The pull request needs no `HISTORY.md` entry.
+   - Run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal.
+   - When every test change of the batch is committed, one commit for each module, stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
+
+     ```bash
+     uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
+     ```
+
+   - Run the check after the stamp. `stamp` keeps the anchor of a row whose own text is unchanged. So a row of an existing register that names a test this batch removed, merged or edited still comes out `source moved`. Re-read each such reason against the change and correct it if it no longer holds. Then empty its `audit_commit` and `fingerprint` and stamp again.
+5. Open one pull request for the batch. It holds the test changes and the register files of every module in it. The pull request needs no `HISTORY.md` entry.
+6. Bring the rows the check lists under `rewrite and query` and `later audit` to the maintainer. Each one gets a fix in a later change, an issue, or a recorded reason to leave it.
 
 ## For the coordinator
 
-An Opus session coordinates an audit. It reads this file and `rubric.md`, dispatches one agent for each layer from the templates in `briefs/`, and brings each judge's list to the maintainer. It does not read test modules itself.
+An Opus session coordinates an audit. It reads this file and `rubric.md`, dispatches one agent for each layer from the templates in `briefs/`, and brings each judge's list to the maintainer. It leaves the reading of test modules to the agents, apart from the rows the check reports after a stamp.
 
 | Layer | Brief | Model |
 |---|---|---|
@@ -64,7 +74,7 @@ Rules that keep the cost down and the result sound:
 - Set the model on every agent. No agent inherits the coordinator's model.
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
-- A module with no proposal skips layers 3 to 5. Its classifier verdicts go straight to the register, with `ruled_by` set to `classifier`.
+- A module with no proposal skips layers 3 to 5. `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
 - Run one mutation check at a time, and never beside the gate runner.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
@@ -78,4 +88,5 @@ Rules that keep the cost down and the result sound:
 - Coverage cannot decide anything on its own. Most test functions cover no arc that another test does not also cover, because the round-trip tests run most of the package.
 - A classifier's `delete` is a hypothesis. The verifier refuted every deletion the first classifier proposed, each time with a plausible fault that only the candidate caught.
 - Most of the overlap is in how tests are written (one body repeated for each format), not in what they cover. A merge keeps every case and removes the repetition.
+- A register reason written from reading is often wrong about which code a test reaches. So a row for a test no proposal touched says only what the test itself shows, and a claim about the code rests on a planted fault.
 - mutmut's instrumentation adds a stack frame. A test that checks which caller a warning is attributed to fails under it and must be deselected from a mutation run. `mutation.md` lists the tests.

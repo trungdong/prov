@@ -70,12 +70,14 @@ The classifier writes one row for each test function, in file order.
 |---|---|
 | Test | The function name |
 | Items | The number of collected items |
-| Pins | The behaviour the test pins, in one sentence |
+| Pins | The behaviour the test pins, in one sentence, in terms the test itself shows (the call, the input and the expected result) |
 | Reason | The contract and its source (issue number, conformance row, spec section, docs page), or `none found` |
 | Sibling | The nearest test that covers similar ground, as `module::function`, or `-` |
 | Verdict | One verdict from the table above |
 | Confidence | `high`, `medium` or `low` |
 | Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. Otherwise empty |
+
+For a `keep` or a `protected` that no later layer examines, the Pins and Reason cells become the register reason word for word. So neither cell says which internal code the input reaches, and neither says that the test alone catches a fault. Nobody has planted a fault to show either. An argument about the code belongs in the proposal, where the verifier tests it.
 
 ## The layers of judgement
 
@@ -89,7 +91,7 @@ Each module passes through these layers in order. A later layer reads everything
 | 4. Coverage and mutation check | Sonnet agent with coverage contexts and mutmut | For the proposals the verifier did not refute: the arcs in `src/prov` that only the candidates cover (there must be none), and whether any detected mutant becomes undetected (items deselected for a removal, the patch applied for a merge) |
 | 5. Judge | Opus agent, read-only | The final list, with a ruling and a recorded reason for every proposal |
 | 6. Maintainer | The maintainer | Accepts or amends the judge's list. Nothing changes in the suite before this |
-| 7. Register | Script and a Sonnet agent | One row for each test function of the module in `register/`, with the ruling, the reason and a fingerprint |
+| 7. Register | Script and a Sonnet agent | One row for each test function of the module in `register/`, with the ruling, the reason and a fingerprint. The script copies the classifier's row for a test no later layer examined, and the agent writes the rows a later layer ruled |
 
 Rules for the judge:
 
@@ -114,31 +116,44 @@ Rules for the judge:
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
 | `audit_commit` | The commit at which the row's test, and the tests its reason names, were last confirmed. It is stamped after the change that applies the ruling is committed |
 | `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
-| `reason` | The contract the test pins and the fault only it catches |
+| `reason` | What the test pins and the contract behind it. A row a later layer ruled also gives the evidence for the ruling |
 
 The fingerprint covers the function's own text and its collected item ids. A change to a module-level case list, a helper or a fixture that the test uses goes unnoticed unless the item ids change.
 
-Rules for a register row:
+A register holds two kinds of row.
 
-- Write the reason for a reader who has not seen the ledger. Say what the test pins, and what would go unnoticed without it.
+- **A row the classifier ruled** (`ruled_by` is `classifier`). No proposal touched the test and no later layer examined it. `scripts/register.py draft` copies its reason from the ledger's Pins and Reason cells. The row records what the test pins and the contract behind it. It records that the classifier, by reading, found no sibling that does the same job, and that is not proof. The register check does not follow the names in such a row, so a later change to the code that makes the test redundant goes unreported.
+- **A row a later layer ruled** (`ruled_by` is `judge` or `maintainer`). A proposal touched the test, or the judge or the maintainer examined it. An agent writes its reason from the judge's table. The ruling depends on how the code is written, so the register check follows the code and the tests the reason names.
+
+The registers of `test_json`, `test_read`, `test_provn_lexer`, `test_jsonld` and `test_statements` give their classifier rows the longer form, with code names. Those reasons were reviewed in their pull requests and stay as they are. The check no longer follows them.
+
+Rules for every register row:
+
+- Write the reason for a reader who has not seen the ledger.
 - Cite the issue, the conformance row or the document that underpins the test, as `#532`, whenever one exists. A reader can then follow the reason to its source. Cite an issue only when its title or body describes the test's input. A reference that comes only from a commit message often belongs to another change in that commit.
-- A claim about which code a test reaches, or that a test alone catches a fault, rests on a fault someone planted and ran, in the verifier's, the mutation check's or the judge's file or in the apply step's own run. Without one, name the fault the test guards and do not claim it is the only guard.
-- When the reason depends on how the code is written, name in backticks every function or class the argument passes through, not only the first and the last, for example `_decode_time` (methods as `Class.method`). A module-level constant may stay in backticks, but name the function that applies it too. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed. It tracks only a function or a class under `src/prov`, outside the tests. A constant, a test helper, a standard-library name or a misspelt name matches nothing, and the check stays silent about it. A bare common word, such as `identifier`, matches every definition of that name and flags the row for unrelated changes, so write it without backticks.
-- Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
 - Write a follow-up for a later audit as a sentence that opens with `Later audit:`, for example a pair to send to the verifier. The register check lists those rows.
+- A later audit that judges a row again empties its `audit_commit` and `fingerprint`, so that `stamp` anchors the row at the new commit. A row whose ruling stands keeps both. Without this, the check reports a re-affirmed "source moved" row again on every run.
+
+Rules for a row a later layer ruled:
+
+- Say what would go unnoticed without the test, or why nothing is lost without it.
+- A claim about which code a test reaches, or that a test alone catches a fault, rests on a fault someone planted and ran, in the verifier's, the mutation check's or the judge's file or in the apply step's own run. Without one, name the fault the test guards and do not claim it is the only guard.
+- Name in backticks every function or class the argument passes through, not only the first and the last, for example `_decode_time` (methods as `Class.method`). A module-level constant may stay in backticks, but name the function that applies it too. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed. It tracks only a function or a class under `src/prov`, outside the tests. A constant, a test helper, a standard-library name or a misspelt name matches nothing, and the check stays silent about it. A bare common word, such as `identifier`, matches every definition of that name and flags the row for unrelated changes, so write it without backticks. `check --names` prints what each row follows.
+- Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
-- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it.
-- A later audit that judges a row again empties its `audit_commit` and `fingerprint`, so that `stamp` anchors the row at the new commit. A row whose ruling stands keeps both. Without this, the check reports a re-affirmed "source moved" row again on every run.
+- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes.
 
 `scripts/register.py check` sorts every test function into one of these groups.
 
 | Group | Meaning | What a later audit does |
 |---|---|---|
-| Unchanged | The fingerprint matches and no named definition changed | Nothing. The ruling stands |
+| Unchanged | The fingerprint matches. For a row a later layer ruled, no definition or test the reason names changed | Nothing. The ruling stands |
 | Changed | The fingerprint differs | The test goes through the layers again |
 | New | The function has no row | The test goes through the layers |
-| Source moved | The fingerprint matches, but a definition or a test the reason names changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? |
+| Source moved | A row a later layer ruled, `removed` rows included, names a definition or a test that changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? For a `removed` row, a yes brings the test back |
 | Gone | A row has no function and its ruling is not `removed` | Mark the row `removed` with the reason, or delete it when the test was renamed |
+
+After the groups, the check lists the rows that still wait for someone to act: each row ruled `rewrite` or `query`, and each row with a `Later audit:` follow-up.
 
 A new test that duplicates an old one is the test that fails the unique-job check, so an old ruling is not reopened because a test was added.

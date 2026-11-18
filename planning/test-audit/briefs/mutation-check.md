@@ -27,7 +27,7 @@ Does the suite lose anything without them?
 
 ## Output
 
-Write `<work>/ledger/<module>.mutation-removal.md`: the exact ids, the arcs only the candidates cover (or "none"), the source files mutated, the baseline and rerun numbers for each file, and the newly undetected mutants with their diffs (or the sentence "No mutant became undetected").
+Write `<work>/ledger/<module>.mutation-removal.md`: the exact ids, the arcs only the candidates cover (or "none"), the source files mutated, the baseline and rerun numbers for each file, the wall time of each run, and the newly undetected mutants with their diffs (or the sentence "No mutant became undetected").
 
 ## Report
 
