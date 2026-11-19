@@ -47,12 +47,10 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 Count before the baseline, never from the baseline's progress line.
 
 1. Append the configuration and write `mm.sh`, as the section above says.
-2. Delete `mutants/`.
-3. Run `mm.sh run no_such_mutant`. It builds the mutants and runs the suite once to map tests to mutants. Then it stops with `AssertionError: Filtered for specific mutants, but nothing matches`, before any mutant runs.
-4. Check that the run ended on that error. A failing test ends it earlier, and Pitfalls says how to handle one.
-5. Count all the mutants with `mm.sh results --all true | wc -l`.
-6. Count each file's mutants with `mm.sh results --all true | grep -c '^ *prov\.model\._values\.'`, with that file's module path in the pattern.
-7. Record the counts and the commands. If the total comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
+2. Delete `mutants/`. Delete `/tmp/mutation/` if it exists, and make it again, empty.
+3. Run `mm.sh run no_such_mutant`. It builds the mutants and runs the suite once to map tests to mutants. Then it stops with `AssertionError: Filtered for specific mutants, but nothing matches`, before any mutant runs. Any other ending is a failing test, and Pitfalls says how to handle one.
+4. Save the list once: `mm.sh results --all true | sed 's/^ *//' > /tmp/mutation/count.txt`. Count all the mutants with `wc -l < /tmp/mutation/count.txt`, and each file's with `grep -c '^prov\.model\._values\.' /tmp/mutation/count.txt`, with that file's module path in the pattern.
+5. Record the counts and the commands. If the total comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
 
 ## Baseline
 

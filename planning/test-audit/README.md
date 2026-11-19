@@ -46,7 +46,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
      ```
 
    - When every test change of the batch is committed, one commit for each module whose tests changed, run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Each apply agent ran the same comparison for its own module, and this run covers the batch as a whole.
-   - Give each test commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...". The stamped rows name these commits, so a reword means a rebase and a new stamp.
+   - Give each test commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...".
    - Then stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
 
      ```bash
