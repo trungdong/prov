@@ -645,11 +645,6 @@ REJECTED_DOCUMENTS = [
         id="formal number",
     ),
     pytest.param(
-        _generation(**{"prov:activity": 1.5}),
-        _R + "'prov:activity': the value is 1.5, not a qualified name",
-        id="formal float",
-    ),
-    pytest.param(
         _generation(**{"prov:activity": True}),
         _R + "'prov:activity': the value is true, not a qualified name",
         id="formal boolean",

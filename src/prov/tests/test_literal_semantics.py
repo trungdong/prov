@@ -47,16 +47,9 @@ def test_decimal_literals_compare_in_value_space() -> None:
     assert Literal(10, XSD_DECIMAL) != Literal("10.01", XSD_DECIMAL)
 
 
-def test_ill_formed_decimal_literals_compare_lexically() -> None:
-    # A text that decimal.Decimal cannot parse compares as text.
-    assert Literal("abc", XSD_DECIMAL) == Literal("abc", XSD_DECIMAL)
-    assert hash(Literal("abc", XSD_DECIMAL)) == hash(Literal("abc", XSD_DECIMAL))
-    assert Literal("abc", XSD_DECIMAL) != Literal("abd", XSD_DECIMAL)
-
-
 # One value each (XSD 1.1 Part 2, sections 3.3.2 to 3.3.5 and 3.4.x): two texts
 # in a datatype's lexical space that denote the same value in its value space
-# (#527, #593, #594, #595).
+# (#527, #593, #594, #595), or the same text outside it, which compares as text.
 SAME_VALUE: list[tuple[Literal, Literal]] = [
     (Literal("5", XSD_INT), Literal("05", XSD_INT)),
     (Literal("5", XSD_LONG), Literal("+5", XSD_LONG)),
@@ -77,6 +70,7 @@ SAME_VALUE: list[tuple[Literal, Literal]] = [
     (Literal("1.0", XSD_DECIMAL), Literal("\t1.0\n", XSD_DECIMAL)),
     (Literal("1.5", XSD_DOUBLE), Literal("\r1.5 ", XSD_DOUBLE)),
     (Literal("true", XSD_BOOLEAN), Literal(" true", XSD_BOOLEAN)),
+    (Literal("abc", XSD_DECIMAL), Literal("abc", XSD_DECIMAL)),
 ]
 
 # Two values: a different asserted datatype (#235), a text outside the lexical
@@ -94,6 +88,7 @@ DIFFERENT_VALUE: list[tuple[Literal, Literal]] = [
     (Literal("nan", XSD_DOUBLE), Literal("NaN", XSD_DOUBLE)),
     (Literal("1e1", XSD_DECIMAL), Literal("10", XSD_DECIMAL)),
     (Literal("abc", XSD_INT), Literal("abd", XSD_INT)),
+    (Literal("abc", XSD_DECIMAL), Literal("abd", XSD_DECIMAL)),
     (Literal("1", XSD_INT), Literal("2", XSD_INT)),
     (Literal("\u00a05", XSD_INT), Literal("5", XSD_INT)),
     (Literal("\f5", XSD_INT), Literal("5", XSD_INT)),
@@ -473,6 +468,7 @@ class _Text(str):
         (b"\xab\x01", XSD["hexBinary"], "AB01"),
         (datetime.date(2012, 1, 1), XSD["date"], "2012-01-01"),
         (_Level.LOW, XSD_INT, "5"),
+        pytest.param(_OddFloat(0.1), XSD_DECIMAL, "0.1", id="float-subclass"),
         # No form in the given datatype: prov's spelling, under that datatype (N29).
         (b"\x00", XSD["duration"], "AA=="),
     ],
@@ -595,7 +591,3 @@ def test_a_plain_value_keys_as_its_twin(
 )
 def test_a_value_with_no_plain_form_keys_by_its_type(value: object, slot: type) -> None:
     assert _only_key(value)[0] is slot
-
-
-def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:
-    assert Literal(_OddFloat(0.1), XSD_DECIMAL).value == "0.1"
