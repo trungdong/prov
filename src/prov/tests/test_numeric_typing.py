@@ -1,8 +1,4 @@
-"""Numeric datatype fidelity (3.0): #249/#251 (PROV-N).
-
-Old behaviour (2.x): PROV-N rendered out-of-int32 ints as bare INT_LITERALs
-and floats as %g xsd:float.
-"""
+"""Numeric datatype fidelity: plain ints and floats keep their size and precision in every format (#244, #246, #249, #251, #256)."""
 
 import json
 

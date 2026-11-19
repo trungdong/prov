@@ -468,9 +468,9 @@ class _Text(str):
         (b"\xab\x01", XSD["hexBinary"], "AB01"),
         (datetime.date(2012, 1, 1), XSD["date"], "2012-01-01"),
         (_Level.LOW, XSD_INT, "5"),
+        pytest.param(_OddFloat(0.1), XSD_DECIMAL, "0.1", id="float-subclass"),
         # No form in the given datatype: prov's spelling, under that datatype (N29).
         (b"\x00", XSD["duration"], "AA=="),
-        pytest.param(_OddFloat(0.1), XSD_DECIMAL, "0.1", id="float-subclass"),
     ],
     ids=str,
 )
