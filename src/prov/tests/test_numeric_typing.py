@@ -1,4 +1,6 @@
-"""Numeric datatype fidelity: plain ints and floats keep their size and precision in every format (#244, #246, #249, #251, #256)."""
+"""Plain ints and floats keep their size and precision in every format (#244,
+#246, #249, #251, #256).
+"""
 
 import json
 

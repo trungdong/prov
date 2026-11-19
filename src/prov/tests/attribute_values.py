@@ -1,7 +1,9 @@
 """Shared attribute-value corpus for the attribute round-trip tests.
 
 ``ATTRIBUTE_VALUES`` is the list of datatypes ``test_attributes.py`` feeds
-through every target. Keep the entries and their order stable: ``test_xml_schema.py`` references values by index, and the ``attr-N`` ids of ``test_attributes.py``, which the audit register cites, follow the order.
+through every target. Keep the entries and their order stable, because
+``test_xml_schema.py`` references values by index and the ``attr-N`` ids of
+``test_attributes.py``, which the audit register cites, follow the order.
 """
 
 import datetime
