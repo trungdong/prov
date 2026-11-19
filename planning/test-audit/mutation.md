@@ -4,7 +4,7 @@ The mutation check shows whether removing or merging tests leaves a detected mut
 
 ## Scope
 
-The coordinator names the source files to mutate, from these rules. For a removal, take every file where the candidates cover a line that fewer than five other test functions cover, and the files the candidates' own calls pass through: the model path of the call under test, and the one serializer or reader the module is about. For a merge, take the files the merged tests exercise, by the same rule. A shared module that runs every serializer (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) does not add every serializer this way. Count the mutants before the baseline runs, never from the baseline's progress line. Delete `mutants/`, run `mm.sh run no_such_mutant`, then count with `mm.sh results --all true | wc -l`. The run builds the mutants, runs the suite once to map tests to mutants, and stops with an `AssertionError` before any mutant runs, so ignore its exit status. Delete `mutants/` again before the baseline. Record the count and the commands. If the scope comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
+The coordinator names the source files to mutate, from these rules. For a removal, take every file where the candidates cover a line that fewer than five other test functions cover, and the files the candidates' own calls pass through: the model path of the call under test, and the one serializer or reader the module is about. For a merge, take the files the merged tests exercise, by the same rule. A shared module that runs every serializer (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) does not add every serializer this way. Count the mutants of the scope before the baseline runs, as the section Count the mutants says.
 
 ## Configuration
 
@@ -16,7 +16,7 @@ source_paths = ["src/prov/"]
 only_mutate = ["src/prov/serializers/provjson.py"]
 pytest_add_cli_args = [
     "-p", "no:cacheprovider",
-    # This profile fixes the Hypothesis examples, so a mutant that only the property tests kill gets the same status in every run.
+    # This profile fixes the Hypothesis examples, so a mutant that only the property tests kill gets the same status in every run. It runs 50 examples, not the default 200.
     "--hypothesis-profile=ci",
     # These tests fail whatever is mutated.
     "--deselect", "src/prov/tests/test_provn_profiles.py::test_lenient_warning_reports_the_read_call_site",
@@ -42,9 +42,21 @@ Write the command prefix once as a script, `mm.sh`, so a shell guard does not re
 uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mutmut mutmut "$@"
 ```
 
+## Count the mutants
+
+Count before the baseline, never from the baseline's progress line.
+
+1. Append the configuration and write `mm.sh`, as the section above says.
+2. Delete `mutants/`.
+3. Run `mm.sh run no_such_mutant`. It builds the mutants and runs the suite once to map tests to mutants. Then it stops with `AssertionError: Filtered for specific mutants, but nothing matches`, before any mutant runs.
+4. Check that the run ended on that error. A failing test ends it earlier, and Pitfalls says how to handle one.
+5. Count all the mutants with `mm.sh results --all true | wc -l`.
+6. Count each file's mutants with `mm.sh results --all true | grep -c '^ *prov\.model\._values\.'`, with that file's module path in the pattern.
+7. Record the counts and the commands. If the total comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
+
 ## Baseline
 
-1. Delete `mutants/` in the scratch worktree. Make an empty folder `/tmp/mutation/` for the result files, because a file left in the worktree can reach a commit.
+1. Delete `mutants/` in the scratch worktree. Delete `/tmp/mutation/` if it exists, and make it again, empty, for the result files. A file left in the worktree can reach a commit.
 2. Run `mm.sh run --max-children 8`.
 3. Save the result: `mm.sh results --all true | sed 's/^ *//' > /tmp/mutation/baseline.txt`. Each line reads `<id>: killed`, `survived`, `no tests` or `not checked`.
 4. Note the wall time of this run and of every later run. The report gives each one, so that the cost of the check stays a measured figure.

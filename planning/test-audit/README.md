@@ -46,6 +46,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
      ```
 
    - When every test change of the batch is committed, one commit for each module whose tests changed, run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Each apply agent ran the same comparison for its own module, and this run covers the batch as a whole.
+   - Give each test commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...". The stamped rows name these commits, so a reword means a rebase and a new stamp.
    - Then stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
 
      ```bash
@@ -81,8 +82,7 @@ Rules that keep the cost down and the result sound:
 - Run one mutation check at a time, and never beside the gate runner.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
-- A takeover claim in a question to the maintainer quotes the verifier's or the judge's file, never the ledger's description. Copy each takeover from the judge's `## Final list` line, not from a summary of it.
-- Write each commit message before the stamp, and name no batch in it (`CLAUDE.md`, Commits and PRs). For example, write "The audit found ...". A reword after the stamp needs a rebase, and then every register needs a new stamp.
+- A takeover claim in a question to the maintainer copies the judge's `## Final list` line for that item, never a summary of it and never the ledger's description.
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.
