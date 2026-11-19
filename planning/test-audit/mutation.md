@@ -4,7 +4,7 @@ The mutation check shows whether removing or merging tests leaves a detected mut
 
 ## Scope
 
-The coordinator names the source files to mutate, from these rules. For a removal, take every file where the candidates cover a line that fewer than five other test functions cover, and the files the candidates' own calls pass through: the model path of the call under test, and the one serializer or reader the module is about. For a merge, take the files the merged tests exercise, by the same rule. A shared module that runs every serializer (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) does not add every serializer this way. Count the mutants before the baseline runs, and record the command you used. If the scope comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
+The coordinator names the source files to mutate, from these rules. For a removal, take every file where the candidates cover a line that fewer than five other test functions cover, and the files the candidates' own calls pass through: the model path of the call under test, and the one serializer or reader the module is about. For a merge, take the files the merged tests exercise, by the same rule. A shared module that runs every serializer (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) does not add every serializer this way. Count the mutants before the baseline runs, never from the baseline's progress line. Delete `mutants/`, run `mm.sh run no_such_mutant`, then count with `mm.sh results --all true | wc -l`. The run builds the mutants, runs the suite once to map tests to mutants, and stops with an `AssertionError` before any mutant runs, so ignore its exit status. Delete `mutants/` again before the baseline. Record the count and the commands. If the scope comes to more than about 3,000, stop and report the files and counts for the coordinator to rule.
 
 ## Configuration
 
@@ -16,6 +16,8 @@ source_paths = ["src/prov/"]
 only_mutate = ["src/prov/serializers/provjson.py"]
 pytest_add_cli_args = [
     "-p", "no:cacheprovider",
+    # This profile fixes the Hypothesis examples, so a mutant that only the property tests kill gets the same status in every run.
+    "--hypothesis-profile=ci",
     # These tests fail whatever is mutated.
     "--deselect", "src/prov/tests/test_provn_profiles.py::test_lenient_warning_reports_the_read_call_site",
     "--deselect", "src/prov/tests/test_read.py::test_read_auto_detect_emits_the_winners_warnings_once_at_the_caller",
@@ -42,30 +44,30 @@ uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph --with mu
 
 ## Baseline
 
-1. Delete `mutants/` in the scratch worktree.
+1. Delete `mutants/` in the scratch worktree. Make an empty folder `/tmp/mutation/` for the result files, because a file left in the worktree can reach a commit.
 2. Run `mm.sh run --max-children 8`.
-3. Save the result: `mm.sh results --all true | sed 's/^ *//' > baseline.txt`. Each line reads `<id>: killed`, `survived`, `no tests` or `not checked`.
+3. Save the result: `mm.sh results --all true | sed 's/^ *//' > /tmp/mutation/baseline.txt`. Each line reads `<id>: killed`, `survived`, `no tests` or `not checked`.
 4. Note the wall time of this run and of every later run. The report gives each one, so that the cost of the check stays a measured figure.
 
 ## Compare a removal
 
 1. Add a `--deselect`, `<item id>` pair to `pytest_add_cli_args` for each item of each test to remove. Put them at the end of the array under their own comment, `# Removal candidates for this run.`, so they stay apart from the permanent groups.
-2. Run `mm.sh run --max-children 8 $(grep ': killed' baseline.txt | sed 's/: killed//')`.
-3. Save the result as `removal.txt` in the same way.
-4. List every id that `removal.txt` shows as `survived` or `no tests`. These are the newly undetected mutants.
+2. Run `mm.sh run --max-children 8 $(grep ': killed' /tmp/mutation/baseline.txt | sed 's/: killed//')`.
+3. Save the result as `/tmp/mutation/removal.txt` in the same way.
+4. List every id that `/tmp/mutation/removal.txt` shows as `survived` or `no tests`. These are the newly undetected mutants.
 
 ## Compare a merge
 
 1. Apply the merge patch to the scratch worktree.
 2. Delete `mutants/`.
 3. Run `mm.sh run --max-children 8` from scratch.
-4. Save the result as `merge.txt`.
-5. Run `diff baseline.txt merge.txt`. Any `killed` that becomes `survived` or `no tests` is a mutant that changed status.
+4. Save the result as `/tmp/mutation/merge.txt`.
+5. Run `diff /tmp/mutation/baseline.txt /tmp/mutation/merge.txt`. Any `killed` that becomes `survived` or `no tests` is a mutant that changed status.
 
 ## Pitfalls
 
 - Keep `process_isolation = "forkserver"`. The default `fork` fails the clean run on a `test_identifier_slots.py` case.
-- A rerun resets earlier results. Save `baseline.txt` before the first rerun.
+- A rerun resets earlier results. Save `/tmp/mutation/baseline.txt` before the first rerun.
 - Count `no tests` as undetected. It means every test mapped to the mutant is deselected.
 - Check the collected count with `pytest --collect-only -q` before a run. A `--deselect` id that does not match exactly does nothing and raises no error.
 - `--deselect` matches a prefix of the item id, and `-k` matches substrings. `--deselect src/prov/tests/test_read.py::test_read_auto_detects_xml` also removes `test_read_auto_detects_xml_from_seekable_stringio`. For a parametrised function, pass each item id with its `[...]` part. For a plain function whose name starts another's, use `-k "not <short> or <long>"`, for example `-k "not test_read_auto_detects_xml or test_read_auto_detects_xml_from_seekable_stringio"`. Check that the collected count fell by exactly the number of candidates.
