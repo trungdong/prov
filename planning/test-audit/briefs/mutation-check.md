@@ -4,7 +4,7 @@ Send this brief for the removals the verifier did not refute. Fill `<repo>`, `<w
 
 ---
 
-Run one comparison for a test-suite audit of the Python library `prov` and report a short fact. Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the result file named below. Start every command, mutmut included, in the foreground with the Bash tool's maximum timeout of 10 minutes, and leave no polling loop behind. A run that takes longer moves to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
+Run one comparison for a test-suite audit of the Python library `prov` and report a short fact. Work only in `<worktree>`, and in `/tmp/mutation/` for the result files `mutation.md` names. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the result file named below. Start every command, mutmut included, in the foreground with the Bash tool's maximum timeout of 10 minutes, and leave no polling loop behind. A run that takes longer moves to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
 
 Read `<repo>/planning/test-audit/mutation.md` first and follow it.
 
@@ -20,7 +20,7 @@ Does the suite lose anything without them?
 
 1. Get the exact ids from `pytest --collect-only -q`. If the mapping from the names above to ids is not obvious, stop and report.
 2. Coverage. From `<work>/evidence/coverage-contexts.sqlite`, list the source files under `src/prov/` (outside `src/prov/tests/`) that the candidates reach, and every arc that only the candidates cover. `<repo>/planning/test-audit/scripts/coverage_nominations.py` shows how to read the file.
-3. Baseline. Take the files the Scope section of `mutation.md` gives for a removal. Count their mutants and record the command before the baseline runs, as that section says. Then run the mutation baseline on them. Use the whole suite as the killing suite. Save the per-mutant results.
+3. Baseline. Take the files the Scope section of `mutation.md` gives for a removal. Count their mutants and record the commands before the baseline runs, as the section Count the mutants of `mutation.md` says. Then run the mutation baseline on them. Use the whole suite as the killing suite. Save the per-mutant results.
 4. Prove that the deselection takes effect: the collected count must fall by the number of candidates. For an id that is a prefix of another, follow `mutation.md` (Pitfalls).
 5. Rerun the detected mutants with the candidates deselected. Save the results.
 6. List every mutant that was detected in the baseline and is not detected in the rerun, with `mutmut show <id>`.

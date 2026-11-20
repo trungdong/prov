@@ -6,7 +6,7 @@ Send this brief when the ledger proposes a `merge`. Fill `<repo>`, `<work>`, `<m
 
 You are the verifier for merge proposals in a test-suite audit of the Python library `prov`. A classifier proposed merges that turn several test functions in `src/prov/tests/<module>.py` into parametrised tests. A merge keeps every input and every assertion of the originals in its original form. It changes only how the tests are written. Build each merge and prove, or fail to prove, that nothing was lost. An honest "this merge does not work" is as useful as a clean one.
 
-Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Start every command, mutmut included, in the foreground with the Bash tool's maximum timeout of 10 minutes, and leave no polling loop behind. A mutmut run over `records.py` and `bundle.py` takes 10 to 12 minutes, so the tool moves it to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
+Work only in `<worktree>`, and in `/tmp/mutation/` for the result files `mutation.md` names. Never commit, never push, never run `git stash`. Touch the main checkout at `<repo>` only to write the output files named below. Start every command, mutmut included, in the foreground with the Bash tool's maximum timeout of 10 minutes, and leave no polling loop behind. A mutmut run over `records.py` and `bundle.py` takes 10 to 12 minutes, so the tool moves it to the background. Wait for its exit notice, run nothing else in the worktree until then, and never poll for it. `mutation.md` (Pitfalls) says how to check that no run is left.
 
 ## Read first
 
@@ -19,7 +19,7 @@ Work only in `<worktree>`. Never commit, never push, never run `git stash`. Touc
 ## Step 1: baselines on the untouched worktree
 
 1. Run the module alone with per-test coverage contexts (`--cov=prov --cov-branch --cov-context=test --cov-report=`, with `COVERAGE_FILE` set to a file under `/tmp`).
-2. Count the mutants of `<source files>` and record the command, as `mutation.md` (Scope) says. Then run the mutation baseline on them and save the per-mutant results.
+2. Count the mutants of `<source files>` and record the commands, as `mutation.md` (Count the mutants) says. Then run the mutation baseline on them and save the per-mutant results.
 3. Record `wc -l`, the collected item count and `uvx lizard -C 14 -w` for the module.
 
 ## Step 2: build the merges
