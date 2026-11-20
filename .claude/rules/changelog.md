@@ -1,3 +1,8 @@
+---
+paths:
+  - "HISTORY.md"
+---
+
 # Changelog entries
 
 These rules govern every entry in `HISTORY.md`. The maintainer owns `HISTORY.md`, so an
