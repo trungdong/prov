@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from prov.model import XSD_INT, XSD_LONG, canonical_xsd_datatype
+from prov.model import XSD_INT, XSD_INTEGER, XSD_LONG, canonical_xsd_datatype
 from prov.tests.conftest import ex_document
 
 INT32_MAX = 2**31 - 1
@@ -65,12 +65,25 @@ def test_int_boundaries_roundtrip(value, roundtrip) -> None:
         (INT32_MAX + 1, XSD_LONG),
         (-(2**31), XSD_INT),
         (-(2**31) - 1, XSD_LONG),
+        (INT64_MAX, XSD_LONG),
+        (INT64_MAX + 1, XSD_INTEGER),
+        (-(2**63), XSD_LONG),
+        (-(2**63) - 1, XSD_INTEGER),
     ],
-    ids=["int32-max", "past-int32-max", "int32-min", "past-int32-min"],
+    ids=[
+        "int32-max",
+        "past-int32-max",
+        "int32-min",
+        "past-int32-min",
+        "int64-max",
+        "past-int64-max",
+        "int64-min",
+        "past-int64-min",
+    ],
 )
-def test_xsd_int_bounds_pick_the_datatype(value, datatype) -> None:
-    # A boundary int typed xsd:long still round-trips equal, so only its
-    # datatype shows an off-by-one in the xsd:int bounds.
+def test_xsd_int_and_long_bounds_pick_the_datatype(value, datatype) -> None:
+    # An int at a bound still round-trips equal when typed one size up, so only
+    # its datatype shows a bound that wrongly leaves it out.
     assert canonical_xsd_datatype(value) == datatype
 
 
