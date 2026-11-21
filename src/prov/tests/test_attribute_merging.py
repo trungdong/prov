@@ -86,10 +86,7 @@ def _typed_values_by_name(record, attr_name):
     ],
 )
 def test_construction_retains_differently_typed_values(
-    doc,
-    first: int,
-    second: float | bool,
-    expected: set[tuple[type, int | float | bool]],
+    doc, first, second, expected
 ) -> None:
     e = doc.entity("ex:e", [("ex:v", first), ("ex:v", second)])
     assert _typed_values_by_name(e, "ex:v") == expected
