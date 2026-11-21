@@ -103,10 +103,15 @@ def in_history(commit: str) -> bool:
     return git("merge-base", "--is-ancestor", commit, "HEAD").returncode == 0
 
 
+def source_lines(lines: list[str], start: int, end: int | None) -> str:
+    """Return the source lines from the 1-based start to end, each stripped on the right."""
+    return "\n".join(line.rstrip() for line in lines[start - 1 : end])
+
+
 def span_text(lines: list[str], node: Def) -> str:
     """Return the node's source from its first decorator to its last line."""
     start = min([node.lineno] + [d.lineno for d in node.decorator_list])
-    return "\n".join(line.rstrip() for line in lines[start - 1 : node.end_lineno])
+    return source_lines(lines, start, node.end_lineno)
 
 
 def module_path(module: str) -> Path:
@@ -119,35 +124,34 @@ def test_sources(path: Path) -> dict[str, str]:
     return test_texts(path.read_text())
 
 
-def test_texts(text: str) -> dict[str, str]:
-    """Map each module-level test function in a module's text to its source text."""
-    lines = text.splitlines()
-    return {
-        node.name: span_text(lines, node)
-        for node in ast.parse(text).body
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
-        and node.name.startswith("test_")
-    }
-
-
 def assigned_names(node: ast.stmt) -> set[str]:
     """Return the names a top-level assignment binds, tuple targets included."""
     if isinstance(node, ast.Assign):
         targets = node.targets
-    elif isinstance(node, ast.AnnAssign):
+    elif isinstance(node, ast.AnnAssign | ast.AugAssign):
         targets = [node.target]
     else:
         return set()
     return {n.id for t in targets for n in ast.walk(t) if isinstance(n, ast.Name)}
 
 
-def case_lists(text: str) -> dict[str, list[str]]:
-    """Map each test to the module-level assignments its decorators name, in source order."""
+def test_texts(text: str) -> dict[str, str]:
+    """Map each module-level test function to its text, which the fingerprint hashes.
+
+    The text is the function's own span, then the source of each top-level assignment
+    that binds a name in its decorators, each statement once and in source order,
+    joined with newlines. The stored fingerprints depend on that order. The text leaves
+    out an imported name, a name the body reads, a list that a named list draws from, a
+    module-level call that mutates a list and an assignment inside a compound statement.
+    """
     tree, lines = ast.parse(text), text.splitlines()
     assigns = [(node, assigned_names(node)) for node in tree.body]
-    found: dict[str, list[str]] = {}
+    texts: dict[str, str] = {}
     for node in tree.body:
-        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+        if not (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+            and node.name.startswith("test_")
+        ):
             continue
         used = {
             n.id
@@ -155,12 +159,17 @@ def case_lists(text: str) -> dict[str, list[str]]:
             for n in ast.walk(d)
             if isinstance(n, ast.Name)
         }
-        found[node.name] = [
-            "\n".join(line.rstrip() for line in lines[a.lineno - 1 : a.end_lineno])
-            for a, names in assigns
-            if names & used
-        ]
-    return found
+        texts[node.name] = "\n".join(
+            [
+                span_text(lines, node),
+                *(
+                    source_lines(lines, a.lineno, a.end_lineno)
+                    for a, names in assigns
+                    if names & used
+                ),
+            ]
+        )
+    return texts
 
 
 def collect_ids(path: Path) -> dict[str, list[str]]:
@@ -182,9 +191,8 @@ def collect_ids(path: Path) -> dict[str, list[str]]:
     return {name: sorted(items) for name, items in ids.items()}
 
 
-def fingerprint(source: str, ids: Sequence[str], lists: Sequence[str] = ()) -> str:
-    text = "\n".join([source, *lists, *sorted(ids)])
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+def fingerprint(source: str, ids: Sequence[str]) -> str:
+    return hashlib.sha256("\n".join([source, *sorted(ids)]).encode()).hexdigest()[:16]
 
 
 def validate(row: Row, where: str) -> None:
@@ -251,7 +259,6 @@ def cmd_stamp(module: str) -> None:
     problems = stamp_problems(rows, sources)
     if any(problems.values()):
         fail("\n".join([str(register), *(f"{k}: {v}" for k, v in problems.items())]))
-    lists = case_lists(path.read_text())
     ids, head = collect_ids(path), git("rev-parse", "--short=12", "HEAD").stdout.strip()
     stamped = current = 0
     for name, row in rows.items():
@@ -260,7 +267,7 @@ def cmd_stamp(module: str) -> None:
                 row.fingerprint, row.audit_commit = "", head
                 stamped += 1
             continue
-        new = fingerprint(sources[name], ids.get(name, []), lists.get(name, []))
+        new = fingerprint(sources[name], ids.get(name, []))
 
         # A rebase leaves a row pointing at a commit outside the branch's history,
         # which a fresh clone does not hold. Such a row is stamped again.
@@ -408,19 +415,13 @@ class Audit:
         return [f"{module}::{row.function}", *(lines or ["  nothing"])]
 
     def classify(
-        self,
-        module: str,
-        name: str,
-        row: Row | None,
-        source: str,
-        ids: Sequence[str],
-        lists: Sequence[str] = (),
+        self, module: str, name: str, row: Row | None, source: str, ids: Sequence[str]
     ) -> Found:
         if row is None:
             return Found(name, "new")
         if row.ruling == "removed":
             return Found(name, "changed", "ruled removed but the function exists")
-        if row.fingerprint != fingerprint(source, ids, lists):
+        if row.fingerprint != fingerprint(source, ids):
             return Found(name, "changed")
         names = self.followed(module, row)
         if names is None:
@@ -440,12 +441,9 @@ def check_module(audit: Audit, module: str) -> list[Found]:
 
     sources = read_tests("", module)
     ids = collect_ids(path) if sources else {}
-    lists = case_lists(path.read_text()) if sources else {}
     rows = read_register(register)
     found = [
-        audit.classify(
-            module, name, rows.get(name), source, ids.get(name, []), lists[name]
-        )
+        audit.classify(module, name, rows.get(name), source, ids.get(name, []))
         for name, source in sources.items()
     ]
     for name, row in rows.items():
