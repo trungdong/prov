@@ -3,7 +3,7 @@ serializer round-trip tests (planning/test-gap-checklist.md, T13), and
 the local parts 3.3.0 rejects (#524)."""
 
 import re
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
@@ -47,7 +47,7 @@ def test_contains_a_matching_name(argument: str | Identifier) -> None:
     "argument",
     [
         pytest.param("http://other.org/thing", id="non-matching-uri"),
-        pytest.param(cast(Any, 12345), id="non-str-non-identifier"),
+        pytest.param(12345, id="non-str-non-identifier"),
     ],
 )
 def test_does_not_contain_another_name(argument: Any) -> None:
@@ -72,7 +72,7 @@ def test_qname_for_contained_name(argument: str | Identifier) -> None:
     "argument",
     [
         pytest.param("http://other.org/thing", id="non-contained-uri"),
-        pytest.param(cast(Any, 12345), id="non-str-non-identifier"),
+        pytest.param(12345, id="non-str-non-identifier"),
     ],
 )
 def test_qname_for_another_name_returns_none(argument: Any) -> None:
