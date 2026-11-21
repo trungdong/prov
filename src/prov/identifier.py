@@ -485,6 +485,16 @@ class Namespace:
         """Namespace prefix."""
         return self._prefix
 
+    def _local_part(self, identifier: str | Identifier) -> str | None:
+        """The part of ``identifier``'s URI after this namespace's URI, or ``None``
+        when the URI does not start with it or cannot be determined."""
+        uri = (
+            identifier
+            if isinstance(identifier, str)
+            else (identifier.uri if isinstance(identifier, Identifier) else None)
+        )
+        return uri[len(self._uri) :] if uri and uri.startswith(self._uri) else None
+
     def contains(self, identifier: str | Identifier) -> bool:
         """Check whether the given identifier's URI is contained in this namespace.
 
@@ -495,12 +505,7 @@ class Namespace:
             ``True`` if the identifier's URI starts with this namespace's URI,
             ``False`` otherwise (including when the URI cannot be determined).
         """
-        uri = (
-            identifier
-            if isinstance(identifier, str)
-            else (identifier.uri if isinstance(identifier, Identifier) else None)
-        )
-        return uri.startswith(self._uri) if uri else False
+        return self._local_part(identifier) is not None
 
     def qname(self, identifier: str | Identifier) -> QualifiedName | None:
         """Resolve an identifier to a :class:`QualifiedName` in this namespace.
@@ -512,15 +517,8 @@ class Namespace:
             A new :class:`QualifiedName` in this namespace if ``identifier``'s
             URI starts with this namespace's URI, otherwise ``None``.
         """
-        uri = (
-            identifier
-            if isinstance(identifier, str)
-            else (identifier.uri if isinstance(identifier, Identifier) else None)
-        )
-        if uri and uri.startswith(self._uri):
-            return QualifiedName(self, uri[len(self._uri) :])
-        else:
-            return None
+        local_part = self._local_part(identifier)
+        return None if local_part is None else QualifiedName(self, local_part)
 
     def __eq__(self, other: Any) -> bool:
         return (
