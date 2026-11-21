@@ -9,7 +9,7 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
 ## Read first
 
 - `<repo>/planning/test-audit/rubric.md`, above all the section "The register".
-- `<work>/ledger/<module>.md` (the classifier's verdict and reason for every function), `<module>.verify-removal.md` and `<module>.mutation-removal.md` for removals and `<module>.verify-removal.md` for a `rewrite` the verifier probed, `<module>.verify-merge.md`, `<module>.mutation-merge.md` and `<module>.merge.patch` for merges, and `<module>.judge.md`. A module with no proposal has no judge file, and the maintainer's answer on its `rewrite` and `query` verdicts is the whole ruling.
+- `<work>/ledger/<module>.md` (the classifier's verdict and reason for every function), `<module>.verify-removal.md` and `<module>.mutation-removal.md` for removals, `<module>.section.patch` for a dropped section, and `<module>.verify-removal.md` for a `rewrite` the verifier probed, `<module>.verify-merge.md`, `<module>.mutation-merge.md` and `<module>.merge.patch` for merges, and `<module>.judge.md`. A module with no proposal has no judge file, and the maintainer's answer on its `rewrite` and `query` verdicts is the whole ruling.
 - The maintainer's ruling:
 
 <the ruling>
@@ -19,7 +19,7 @@ You are applying the accepted rulings of a test-suite audit of the Python librar
 Skip this step when the ruling removes and merges nothing.
 
 - Before you delete anything, read the body of each takeover the ruling names for a removal: its call, its arguments and its assertions. When a takeover does not cover what the removed test asserted, stop and report, because the removal may be unsound.
-- For a removal, delete exactly the items on the accepted list and nothing else.
+- For a removal, delete exactly the items on the accepted list and nothing else. For a dropped section, apply the accepted section patch and nothing else.
 - For merges, apply only the accepted merges from the patch, with the changes the judge required. Leave out every hunk of a merge ruled `keep`, and every import only such a hunk needed. When a merge folds a test in from another module, read the comments around the deleted test in that module, and rewrite or remove each one that still describes it.
 - `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module. When an accepted change needs such a map and the patch does not supply that module, stop and report.
 - Run `ruff check` and `ruff format --check` on each test module you changed, then the whole suite with coverage: `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --cov=prov --cov-branch --cov-report=term`. The `TOTAL` line must show the same statements missed and the same branches partly covered as the same run on `main`. Stop and report any difference. Compare the passed, skipped and xfailed counts with `<base counts>` and the expected change, and stop and report any difference you cannot account for item by item.

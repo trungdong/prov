@@ -1,6 +1,6 @@
 # Brief: coverage and mutation check for removals (layer 4, Sonnet, medium effort)
 
-Send this brief for the removals the verifier did not refute. A dropped section is a removal, so give its patch in place of candidate items. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a scratch worktree at the same commit as `main`) and the exact list of candidate items. Run one mutation check at a time on a machine: mutmut uses every core, and a second run causes false timeouts.
+Send this brief for the removals the verifier did not refute. A dropped section is a removal, so give the path of its patch, `<work>/ledger/<module>.section.patch`, in place of candidate items. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a scratch worktree at the same commit as `main`) and the exact list of candidate items. Run one mutation check at a time on a machine: mutmut uses every core, and a second run causes false timeouts.
 
 ---
 

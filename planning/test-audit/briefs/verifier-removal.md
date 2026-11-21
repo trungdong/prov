@@ -39,7 +39,7 @@ The test command is `uv run --python 3.12 --extra rdf --extra xml --extra dot --
 
 ## Output
 
-Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. Plain British English, no em dashes. Give one verdict per proposal or row and use it consistently, from the first line of its section to the table.
+Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. For a dropped section, end its section with the patch that deletes it, as `git diff` prints it, so the coordinator can save it as `<work>/ledger/<module>.section.patch`. Plain British English, no em dashes. Give one verdict per proposal or row and use it consistently, from the first line of its section to the table.
 
 ## Report
 
