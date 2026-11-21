@@ -53,37 +53,36 @@ def _flat_names(flat: ProvDocument) -> list[str]:
     return [str(record.identifier) for record in flat.get_records()]
 
 
-def test_flattening_1_bundle_with_default_namespace(roundtrip: Roundtrip) -> None:
-    flat = document_with_n_bundles_having_default_namespace(1).flattened()
-    assert _flat_names(flat) == ["dn:e"]
+@pytest.mark.parametrize(
+    ("n", "expected"),
+    [
+        pytest.param(1, ["dn:e"], id="1 bundle"),
+        pytest.param(2, ["dn:e", "dn_1:e"], id="2 bundles"),
+        pytest.param(3, ["dn:e", "dn_1:e", "dn_2:e"], id="3 bundles"),
+    ],
+)
+def test_flattening_bundles_with_default_namespace(
+    roundtrip: Roundtrip, n: int, expected: list[str]
+) -> None:
+    flat = document_with_n_bundles_having_default_namespace(n).flattened()
+    assert _flat_names(flat) == expected
     roundtrip(flat)
 
 
-def test_flattening_2_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
-    flat = document_with_n_bundles_having_default_namespace(2).flattened()
-    assert _flat_names(flat) == ["dn:e", "dn_1:e"]
-    roundtrip(flat)
-
-
-def test_flattening_3_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
-    flat = document_with_n_bundles_having_default_namespace(3).flattened()
-    assert _flat_names(flat) == ["dn:e", "dn_1:e", "dn_2:e"]
-    roundtrip(flat)
-
-
-def test_flattening_1_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(1)
+@pytest.mark.parametrize(
+    ("n", "expected"),
+    [
+        pytest.param(1, ["dn:e"], id="1 bundle"),
+        pytest.param(2, ["dn:e", "dn_1:e"], id="2 bundles"),
+    ],
+)
+def test_flattening_bundles_beside_a_document_default(
+    roundtrip: Roundtrip, n: int, expected: list[str]
+) -> None:
+    prov_doc = document_with_n_bundles_having_default_namespace(n)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
     flat = prov_doc.flattened()
-    assert _flat_names(flat) == ["dn:e"]
-    roundtrip(flat)
-
-
-def test_flattening_2_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(2)
-    prov_doc.set_default_namespace("http://www.example.org/default/0")
-    flat = prov_doc.flattened()
-    assert _flat_names(flat) == ["dn:e", "dn_1:e"]
+    assert _flat_names(flat) == expected
     roundtrip(flat)
 
 
