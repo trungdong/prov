@@ -80,6 +80,7 @@ Rules that keep the cost down and the result sound:
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5, apart from the removal verifier's planted fault for a `rewrite` (step 3). `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
 - Run one mutation check at a time, and never beside the gate runner or a judge.
+- Give each judge its own worktree, because a judge may plant a fault there.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
 - A takeover claim in a question to the maintainer copies the judge's `## Final list` line for that item, never a summary of it and never the ledger's description.

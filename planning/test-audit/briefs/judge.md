@@ -1,6 +1,6 @@
 # Brief: judge (layer 5, Opus, read-only apart from a restored planted fault)
 
-Send this brief when a module has at least one proposal. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a detached worktree at `main`, with the merge patch applied when there is one) and the list of proposals. Do not tell the judge what you or the maintainer expect it to rule.
+Send this brief when a module has at least one proposal. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a detached worktree at `main` that no other judge shares, with the merge patch applied when there is one) and the list of proposals. Do not tell the judge what you or the maintainer expect it to rule.
 
 ---
 
