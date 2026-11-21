@@ -396,7 +396,7 @@ def encoding_provn_value(value: object) -> str:
     ``datetime``, or a ``Decimal``, ``date``, ``time``, ``timedelta``, ``UUID``
     or bytes-like value) is written as ``"text" %% datatype``, except an
     ``xsd:int``, which is a bare ``INT_LITERAL``. Booleans render as
-    ``"true"``/``"false"``, and floats as full-precision ``xsd:double`` (#251). Plain ints are typed by magnitude: within +/-(2**31-1) they render
+    ``"true"``/``"false"``, and floats as full-precision ``xsd:double`` (#251). Plain ints are typed by magnitude: from -(2**31) to 2**31-1 they render
     as a bare ``INT_LITERAL`` (PROV-N [60] sugar for ``xsd:int``); beyond that
     they carry an explicit ``xsd:long``/``xsd:integer`` suffix (#249). A
     qualified name, and any value with no PROV form or no lexical form, is
