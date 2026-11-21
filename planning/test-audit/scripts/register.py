@@ -145,7 +145,11 @@ def test_texts(text: str) -> dict[str, str]:
     module-level call that mutates a list and an assignment inside a compound statement.
     """
     tree, lines = ast.parse(text), text.splitlines()
-    assigns = [(node, assigned_names(node)) for node in tree.body]
+    assigns = [
+        (source_lines(lines, node.lineno, node.end_lineno), names)
+        for node in tree.body
+        if (names := assigned_names(node))
+    ]
     texts: dict[str, str] = {}
     for node in tree.body:
         if not (
@@ -160,14 +164,7 @@ def test_texts(text: str) -> dict[str, str]:
             if isinstance(n, ast.Name)
         }
         texts[node.name] = "\n".join(
-            [
-                span_text(lines, node),
-                *(
-                    source_lines(lines, a.lineno, a.end_lineno)
-                    for a, names in assigns
-                    if names & used
-                ),
-            ]
+            [span_text(lines, node), *(src for src, names in assigns if names & used)]
         )
     return texts
 
