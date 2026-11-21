@@ -1,6 +1,6 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions.
+Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module, or several small modules that together hold at most about 60 test functions. When two classifiers split a batch, fill `<other classifier>` with the other's modules, as `src/prov/tests/<module>.py`; otherwise delete the placeholder.
 
 ---
 
@@ -11,6 +11,8 @@ You are one classifier in a test-suite audit of the Python library `prov` (W3C P
 <modules>
 
 Take each module in turn. Wherever this brief says `<module>`, it means each of these modules, and you write one ledger for each. Search for siblings across the whole suite, and name a sibling in another of your modules as you would any other.
+
+<other classifier> Another classifier holds those modules. Name a sibling there in full as `module.py::function` and give no verdict for a test there. A `Later audit:` sentence that names one as a `delete` candidate is not a verdict, so write it, and name the pair in `## Proposals` for the coordinator to reconcile.
 
 ## Listed tests
 

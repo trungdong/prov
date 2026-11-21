@@ -37,7 +37,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/coverage_nominations.py <work>/evidence/coverage-contexts.sqlite <work>/evidence/collected-items.txt <work>/evidence
    ```
 
-3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed, and takes each `Later audit:` follow-up as a proposal to examine. Put a follow-up for a module with no register in that module's classifier brief, as `<follow-ups>`. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it.
+3. Take one module at a time through layers 2 to 6 of `rubric.md`: the classifier, the verifier, the mutation check, the judge and the maintainer. For a module that has a register file, the classifier reads only the tests the check listed, and takes each `Later audit:` follow-up as a proposal to examine. Put a follow-up for a module with no register in that module's classifier brief, as `<follow-ups>`. A judge may flag a test that no earlier layer proposed. A flag is a new proposal, so take it through layers 3 to 5 again before the maintainer rules on it. A `rewrite` that rests on "passes with and without the code it guards" goes to the removal verifier for one planted fault, the guarded code removed, before the maintainer rules on it. This holds in a module with no other proposal too.
 4. Apply the maintainer's rulings for the whole batch on one branch. A batch is the modules one coordinator session audits, about five.
    - Dispatch the apply agent for each module the maintainer ruled on, one module at a time. The maintainer rules on each proposal the judge listed and on each `rewrite` or `query` verdict. The agent changes the tests and writes the register rows a later layer ruled. Commit each module's test change before the next dispatch, and give the next agent the suite counts of the branch at that commit. Otherwise its counts include a change it did not make. A module with no proposal and no `rewrite` or `query` verdict has nothing to apply. Run `draft` for it yourself. It writes the classifier's `keep` and `protected` rows and names the tests it left out.
 
@@ -46,7 +46,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
      ```
 
    - When every test change of the batch is committed, one commit for each module whose tests changed, run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Each apply agent ran the same comparison for its own module, and this run covers the batch as a whole.
-   - Give each test commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...".
+   - Give each test commit and the register commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...". A reword after the stamp rebuilds every later commit and orphans the rows anchored at them.
    - Then stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
 
      ```bash
@@ -67,7 +67,7 @@ An Opus session coordinates an audit. It reads this file and `rubric.md`, dispat
 |---|---|---|
 | 2. Classifier | `briefs/classifier.md` | Sonnet |
 | 3. Verifier, removals | `briefs/verifier-removal.md` | Sonnet, own worktree |
-| 3 and 4. Verifier, merges | `briefs/verifier-merge.md` | Sonnet, scratch worktree |
+| 3 and 4. Verifier, merges and dropped sections | `briefs/verifier-merge.md` | Sonnet, scratch worktree |
 | 4. Coverage and mutation check, removals | `briefs/mutation-check.md` | Sonnet, scratch worktree |
 | 5. Judge | `briefs/judge.md` | Opus, read-only |
 | 7. Apply and register | `briefs/apply.md` | Sonnet |
@@ -87,6 +87,8 @@ Rules that keep the cost down and the result sound:
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.
 - Settle each row the check reports as gone. Mark it `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed.
+- A small pull request that adds a row or a case to a test a later layer ruled extends that ruling. Its register row keeps `ruled_by`, says what the maintainer added and why (`rubric.md`, The register), and is stamped again. It needs no question to the maintainer.
+- When a judge or a classifier asks for a fault to be planted before anyone proposes removing a test it keeps, put the request on that test's row as a `Later audit:` sentence at apply time. A request left only in a ledger is lost.
 
 ## What the first audit found about the method
 

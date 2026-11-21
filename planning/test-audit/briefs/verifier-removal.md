@@ -16,6 +16,8 @@ You are the verifier in a test-suite audit of the Python library `prov`. A class
 
 <list each proposal, one row at a time for a parametrised test>
 
+A `rewrite` that rests on "passes with and without the code it guards" comes here too. For it, remove the guarded code, run the whole suite, and report what fails.
+
 ## Method, for each proposal or row
 
 A proposal is REFUTED when a plausible fault exists that the candidate catches and that no remaining test in the whole suite catches.
@@ -25,7 +27,7 @@ A. Read. State what the candidate asserts that the takeover does not: a differen
 B. Plant faults. Write up to four small, plausible faults in the source the candidate exercises, one at a time. A plausible fault is one a real edit could introduce: a guard narrowed so it misses the candidate's input shape, one attribute name special-cased, the second element of a list mishandled, an order changed, a field dropped from a message. For each fault:
 
 1. Run the candidate alone. If it still passes, the fault is not relevant. Try another.
-2. If it fails, run the WHOLE suite with the candidate deselected. Pass each id to `--deselect` exactly as `pytest --collect-only -q` prints it, and check that the collected count fell by the right number. For an id that is a prefix of another, follow `mutation.md` (Pitfalls). For a row, also deselect the other rows proposed for removal from the same test.
+2. If it fails, run the WHOLE suite with the candidate deselected. Pass each id to `--deselect` exactly as `pytest --collect-only -q` prints it, and check that the collected count fell by the right number. For an id that is a prefix of another, follow `mutation.md` (Pitfalls). For a row, also deselect the other rows proposed for removal from the same test. When another proposal names this candidate as its takeover, or this candidate's takeover is itself proposed, deselect them together.
 3. If the whole suite passes, the fault separates the candidate. Record the diff, and say whether a maintainer could plausibly write it (rule 8).
 4. Restore the source with `git checkout -- src/` and confirm `git status --short` is clean before the next fault.
 
@@ -37,7 +39,7 @@ The test command is `uv run --python 3.12 --extra rdf --extra xml --extra dot --
 
 ## Output
 
-Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. Plain British English, no em dashes.
+Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. Plain British English, no em dashes. Give one verdict per proposal and use it consistently, from the first line of its section to the table.
 
 ## Report
 
