@@ -47,7 +47,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
 
    - When every test change of the batch is committed, one commit for each module whose tests changed, run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Each apply agent ran the same comparison for its own module, and this run covers the batch as a whole.
    - Give each test commit and the register commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...".
-   - Then stamp every module of the batch, and every other module whose register an apply agent corrected or gave a takeover row, and commit the register files. Run `check` on such a module at the base first and settle what it reports, as the restamp guard under For the coordinator says. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never reword, amend or rebase a commit the rows name, because that rebuilds it and every later commit and orphans every row anchored at any of them. If the branch is rebased all the same, stamp again and commit the register files again.
+   - Run `check` on `main` for each module outside the batch whose register an apply agent changed, and settle what it reports, as the bullet on a stamp outside a full audit says (For the coordinator). Then stamp every module of the batch and each of those modules, and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never reword, amend or rebase a commit the rows name, because that rebuilds it and every later commit and orphans every row anchored at any of them. If the branch is rebased all the same, stamp again and commit the register files again.
 
      ```bash
      uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
@@ -69,7 +69,7 @@ An Opus session coordinates an audit. It reads this file and `rubric.md`, dispat
 | 3. Verifier, removals | `briefs/verifier-removal.md` | Sonnet, own worktree |
 | 3 and 4. Verifier, merges | `briefs/verifier-merge.md` | Sonnet, scratch worktree |
 | 4. Coverage and mutation check, removals | `briefs/mutation-check.md` | Sonnet, scratch worktree |
-| 5. Judge | `briefs/judge.md` | Opus, read-only |
+| 5. Judge | `briefs/judge.md` | Opus, read-only apart from a restored planted fault |
 | 7. Apply and register | `briefs/apply.md` | Sonnet |
 
 Rules that keep the cost down and the result sound:
@@ -90,10 +90,10 @@ Rules that keep the cost down and the result sound:
 - Three kinds of small pull request need no question to the maintainer:
   - One that adds a row or a case to a test a later layer ruled extends that ruling. Its register row follows the `ruled_by` cell of `rubric.md` (The register).
   - One that makes an edit that changes no input value and no assertion, such as a literal replaced by a constant of equal value or a renamed local, also extends the ruling. The commit message says why the edit changes neither, and the pre-PR regime reviews the diff.
-  - One that adds a test writes the test's row in the same pull request, as `keep` ruled by the `maintainer`, with a reason that names the fault the test guards. Its reason follows the rules for a row a later layer ruled (`rubric.md`, The register). `stamp` refuses a module with a test that has no row.
-  - When review folds an existing test into the test a small pull request adds, the new test's row is `merged`, ruled by the `maintainer`, and the original gets a `removed` row naming the takeover.
-- Before any stamp outside a full audit, such as after a small pull request or a change to the fingerprint, run `check` on the base, before the change, and settle every row of the module it reports as source moved or changed. Then stamp the rows again. `check` reports a row as changed before it looks for source moved, and a stamp moves `audit_commit` past any change still pending. After the stamp, a row that names a test the pull request changed comes out source moved. Re-read its reason against the change, then empty its `audit_commit` and `fingerprint` and stamp again (`rubric.md`, The register).
+  - One that adds a test writes the test's row in the same pull request, as `keep` ruled by the `maintainer`, with a reason that names the fault the test guards. Its reason follows the rules for a row a later layer ruled (`rubric.md`, The register). `stamp` refuses a module with a test that has no row. When the maintainer rules in review that an existing test folds into the new one, the new test's row is `merged`, ruled by the `maintainer`, and the original gets a `removed` row naming the takeover.
+- Before any stamp outside a full audit, such as after a small pull request or a change to the fingerprint, run `check` on the base, before the change, and settle every row of the module it reports as source moved or changed. Then stamp the rows again. `check` reports a row as changed before it looks for source moved, and a stamp moves `audit_commit` past any change still pending. After the stamp, follow the last three bullets of step 4.
 - When a judge or a classifier asks for a fault to be planted before anyone proposes removing a test it keeps, put the request on that test's row as a `Later audit:` sentence at apply time. A request left only in a ledger is lost.
+- When a takeover sits in another module of the batch, give that module's proposals on it to the verifier and the judge of the candidate's module.
 - When a ruling routes work to a layer, trace one case through every brief from the classifier to the register before the commit: the send condition, the method, the verdict and the file each agent hands on.
 
 ## What the first audit found about the method

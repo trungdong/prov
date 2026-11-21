@@ -24,8 +24,8 @@ For a dropped section, apply its patch wherever a step deselects the candidates,
 2. Coverage. From `<work>/evidence/coverage-contexts.sqlite`, list the source files under `src/prov/` (outside `src/prov/tests/`) that the candidates reach, and every arc that only the candidates cover. `<repo>/planning/test-audit/scripts/coverage_nominations.py` shows how to read the file.
 3. Baseline. Take the files the Scope section of `mutation.md` gives for a removal. Count their mutants and record the commands before the baseline runs, as the section Count the mutants of `mutation.md` says. Then run the mutation baseline on them. Use the whole suite as the killing suite. Save the per-mutant results.
 4. Prove that the deselection takes effect: the collected count must fall by the number of candidates. For an id that is a prefix of another, follow `mutation.md` (Pitfalls).
-5. Rerun the detected mutants with the candidates deselected. Save the results.
-6. List every mutant that was detected in the baseline and is not detected in the rerun, with `mutmut show <id>`.
+5. Rerun the killed mutants with the candidates deselected, as `mutation.md` (Compare a removal) says. Save the results.
+6. List every mutant that was killed in the baseline and is not detected in the rerun, with `mutmut show <id>`.
 
 ## Output
 

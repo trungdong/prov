@@ -56,7 +56,7 @@ Count before the baseline, never from the baseline's progress line.
 
 1. Delete `mutants/` in the scratch worktree. Delete `/tmp/mutation/` if it exists, and make it again, empty, for the result files. A file left in the worktree can reach a commit.
 2. Run `mm.sh run --max-children 8`.
-3. Save the result: `mm.sh results --all true | sed 's/^ *//' > /tmp/mutation/baseline.txt`. Each line reads `<id>: killed`, `survived`, `no tests` or `not checked`.
+3. Save the result: `mm.sh results --all true | sed 's/^ *//' > /tmp/mutation/baseline.txt`. Each line reads `<id>: killed`, `timeout`, `survived`, `no tests` or `not checked`.
 4. Note the wall time of this run and of every later run. The report gives each one, so that the cost of the check stays a measured figure.
 
 ## Compare a removal
@@ -72,7 +72,7 @@ Count before the baseline, never from the baseline's progress line.
 2. Delete `mutants/`.
 3. Run `mm.sh run --max-children 8` from scratch.
 4. Save the result as `/tmp/mutation/merge.txt`.
-5. Run `diff /tmp/mutation/baseline.txt /tmp/mutation/merge.txt`. Any `killed` that becomes `survived` or `no tests` is a mutant that changed status.
+5. Run `diff /tmp/mutation/baseline.txt /tmp/mutation/merge.txt`. Any `killed` or `timeout` that becomes `survived` or `no tests` is a mutant that changed status.
 
 ## Pitfalls
 
@@ -84,6 +84,6 @@ Count before the baseline, never from the baseline's progress line.
 - mutmut does not say which test killed a mutant. Only the run with and without the tests shows it.
 - mutmut's trampoline adds a stack frame. The tests deselected in the configuration check the caller of a warning, so they fail under it and stay deselected in every run. The comment above each group in the configuration says when its tests fail. Deselecting them in every run costs nothing. Two other tests also check a warning's caller and may fail under the trampoline when the file that warns is mutated, `test_model.py::test_container_reads_are_deprecated` and `test_warnings.py::test_warn_outside_a_collection_warns_at_the_caller`. When a clean baseline fails on one of them, deselect it in that run and add it to the configuration above, in the group whose comment matches or under a new comment. A `--deselect` of a parametrised function's bare id removes all its items, so name the id with its `[...]` part only when one item is meant.
 - Start mutmut in the foreground with the Bash tool's maximum timeout of 10 minutes. A run that takes longer moves to the background. Wait for its exit notice, run nothing else in that worktree until then, and never poll for it, for example with `pgrep -f "mutmut run"`, whose pattern matches the waiting shell's own command line, so the loop never ends. To check that no run is left, use `ps -ax -o pid,command | grep -E 'mutmut (run|results)' | grep -v grep`.
-- `records.py` gives about 100 timeouts in every baseline. They are standing, not load, and mutmut counts a timeout as detected. Compare a removal reruns only the killed mutants, so leave the timeouts out. A mutant that turns from killed to timeout in a rerun is usually load, so run it again alone with the same deselections.
+- `records.py` gives about 100 timeouts in every baseline that mutates it. They are standing, not load. mutmut counts a timeout as detected, but step 2 of Compare a removal reruns only the killed mutants, so no standing timeout reaches the rerun. A mutant that turns from killed to timeout in a rerun is usually load, so run it again alone with the same deselections.
 - Do not run the check beside the gate runner or the benchmark A/B. It starts 8 worker processes. Queue the gates between mutation runs.
 - The count and the baseline steps empty `/tmp/mutation/`, and so does the next agent's run. Copy `count.txt` into `<work>/ledger/` as soon as you have counted, and every other result file before you finish, each under the file-name prefix your brief gives.

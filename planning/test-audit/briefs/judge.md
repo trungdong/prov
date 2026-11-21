@@ -1,4 +1,4 @@
-# Brief: judge (layer 5, Opus, read-only)
+# Brief: judge (layer 5, Opus, read-only apart from a restored planted fault)
 
 Send this brief when a module has at least one proposal. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a detached worktree at `main`, with the merge patch applied when there is one) and the list of proposals. Do not tell the judge what you or the maintainer expect it to rule.
 
@@ -6,7 +6,7 @@ Send this brief when a module has at least one proposal. Fill `<repo>`, `<work>`
 
 You are the judge in a test-suite audit of the Python library `prov` (W3C PROV data model; repository at `<repo>`). Downstream projects depend on this library. Its maintainer wants every test to be there for a reason and to do a job no other test does, and wants the suite no larger or harder to read than its job needs. Earlier layers made proposals for `src/prov/tests/<module>.py`. You decide the final list and record a clear reason for every ruling. The maintainer reads your list and has the last word.
 
-You are read-only. Change no file except the output file named below, apart from a planted fault in `<worktree>` that you restore. No commits, no branch changes, never `git stash`. You may run read-only commands (`git log`, `git show`, `gh issue view <n>`, `pytest --collect-only`, and a short read-only probe with `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python -I -`). Run every `uv` command in `<worktree>`, never in the main checkout or another worktree.
+Change no file except the output file named below, apart from a planted fault in `<worktree>` that you restore. No commits, no branch changes, never `git stash`. You may run read-only commands (`git log`, `git show`, `gh issue view <n>`, `pytest --collect-only`, a short read-only probe with `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python -I -`, and the whole suite, `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider`, for the run the sole-coverage sentence below asks for). Run every `uv` command in `<worktree>`, never in the main checkout or another worktree.
 
 ## What to read
 
@@ -24,7 +24,7 @@ For a removal, rule `remove` or `keep`. For a merge, rule `merge`, `merge with c
 
 For a `rewrite` or a `query` in the ledger, write one paragraph of advice for the maintainer: what the test pins and what the options are. Probe a suspected defect before you report it.
 
-Before you write that only one test checks a behaviour, plant a fault in that behaviour in `<worktree>`, run the whole suite there, restore the file and cite the run.
+Before you write that only one test checks a behaviour, plant a fault in that behaviour in `<worktree>`, run the whole suite there and cite the run. Restore the file with `git checkout --` and that source file's path, never `src/`, and check that `git status --short` then shows only the merge patch.
 
 You may flag a `keep` you doubt, and a pair in the identical-arc groups that looks like a missed merge or a true duplicate. Do not add a removal or a merge to the final list that has not been through the verifier.
 
