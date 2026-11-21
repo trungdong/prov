@@ -88,7 +88,10 @@ Rules that keep the cost down and the result sound:
 - Check for leftover processes after each agent that ran mutmut.
 - Settle each row the check reports as gone. Mark it `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed.
 - A small pull request that adds a row or a case to a test a later layer ruled extends that ruling, and its register row follows the `ruled_by` cell of `rubric.md` (The register). Stamp the row again. It needs no question to the maintainer.
+- A small pull request may also make an edit that changes no input value and no assertion, such as a literal replaced by a constant of equal value or a renamed local. The commit message says why the edit changes neither, and the pre-PR regime reviews the diff. Stamp the rows again. It needs no question to the maintainer.
+- A small pull request that adds a test writes its row in the same pull request: `keep`, `ruled_by` `maintainer`, with a reason that rests on the fault the pull request planted. `stamp` refuses a module with a test that has no row.
 - When a judge or a classifier asks for a fault to be planted before anyone proposes removing a test it keeps, put the request on that test's row as a `Later audit:` sentence at apply time. A request left only in a ledger is lost.
+- When a ruling routes work to a layer, trace one case through every brief from the classifier to the register before the commit: the send condition, the method, the verdict and the file each agent hands on.
 
 ## What the first audit found about the method
 

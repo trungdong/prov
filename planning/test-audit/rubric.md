@@ -152,7 +152,7 @@ Rules for a row a later layer ruled:
 | Group | Meaning | What a later audit does |
 |---|---|---|
 | Unchanged | The fingerprint matches. For a row a later layer ruled, no definition or test the reason names changed | Nothing. The ruling stands |
-| Changed | The fingerprint differs | The test goes through the layers again, unless a small pull request extended its ruling (`README.md`, For the coordinator) |
+| Changed | The fingerprint differs | The test goes through the layers again, unless a small pull request extended its ruling or made an edit that changes no input value and no assertion (`README.md`, For the coordinator) |
 | New | The function has no row | The test goes through the layers |
 | Source moved | A row a later layer ruled, `removed` rows included, names a definition or a test that changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? For a `removed` row, a yes is a proposal to restore the test, which goes to the maintainer |
 | Gone | A row has no function and its ruling is not `removed` | Mark the row `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed |
