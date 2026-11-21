@@ -67,6 +67,12 @@ def test_qname_for_another_name_returns_none(argument: Any) -> None:
     assert ns.qname(argument) is None
 
 
+def test_the_namespace_uri_itself_is_in_the_namespace() -> None:
+    ns = Namespace("ex", "http://example.org/")
+    assert ns.contains("http://example.org/")
+    assert str(ns.qname("http://example.org/")) == "ex:"
+
+
 EX = "http://example.org/"
 
 UNWRITABLE = [
