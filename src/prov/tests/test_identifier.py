@@ -38,6 +38,7 @@ NAMES_IN_EX = [
 NAMES_OUTSIDE_EX = [
     pytest.param("http://other.org/thing", id="other-uri"),
     pytest.param(12345, id="non-str-non-identifier"),
+    pytest.param("http://other.org/http://example.org/thing", id="ns-uri-not-at-start"),
 ]
 
 
@@ -64,6 +65,12 @@ def test_qname_for_contained_name(argument: str | Identifier) -> None:
 def test_qname_for_another_name_returns_none(argument: Any) -> None:
     ns = Namespace("ex", "http://example.org/")
     assert ns.qname(argument) is None
+
+
+def test_the_namespace_uri_itself_is_in_the_namespace() -> None:
+    ns = Namespace("ex", "http://example.org/")
+    assert ns.contains("http://example.org/")
+    assert str(ns.qname("http://example.org/")) == "ex:"
 
 
 EX = "http://example.org/"
