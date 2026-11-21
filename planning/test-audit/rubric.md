@@ -118,10 +118,10 @@ Rules for the judge:
 | `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, added the test, or accepted a classifier's `rewrite` or `query`. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
 | `audit_commit` | The commit at which the row's test was last confirmed, and for a row a later layer ruled, the tests its reason names. It is stamped after the change that applies the ruling is committed |
-| `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
+| `fingerprint` | A hash of the function's source, of the module-level assignments its decorators name and of its collected item ids. Empty for `removed` |
 | `reason` | What the test pins and the contract behind it. A row a later layer ruled also gives the evidence for the ruling |
 
-The fingerprint covers the function's own text and its collected item ids. A change to a module-level case list, a helper or a fixture that the test uses goes unnoticed unless the item ids change.
+The fingerprint covers the function's own text, its collected item ids and the text of each module-level assignment in the test's own module that its decorators name, such as a case list passed to `parametrize` or a constant in a `pytest.param`. A value change in such a list moves the fingerprint even when the item ids stay the same. A name imported from another module, a list that a named list draws from, a helper and a fixture go unnoticed unless the item ids change.
 
 A register holds two kinds of row.
 
