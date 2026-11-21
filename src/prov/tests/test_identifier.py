@@ -31,6 +31,8 @@ def test_namespace_rejects_a_blank_or_non_string_uri(uri: Any, message: str) -> 
         Namespace("ex", uri)
 
 
+EX = "http://example.org/"
+
 NAMES_IN_EX = [
     pytest.param("http://example.org/thing", id="str"),
     pytest.param(Identifier("http://example.org/thing"), id="identifier"),
@@ -44,36 +46,34 @@ NAMES_OUTSIDE_EX = [
 
 @pytest.mark.parametrize("argument", NAMES_IN_EX)
 def test_contains_a_matching_name(argument: str | Identifier) -> None:
-    ns = Namespace("ex", "http://example.org/")
+    ns = Namespace("ex", EX)
     assert ns.contains(argument)
 
 
 @pytest.mark.parametrize("argument", NAMES_OUTSIDE_EX)
 def test_does_not_contain_another_name(argument: Any) -> None:
-    ns = Namespace("ex", "http://example.org/")
+    ns = Namespace("ex", EX)
     assert not ns.contains(argument)
 
 
 @pytest.mark.parametrize("argument", NAMES_IN_EX)
 def test_qname_for_contained_name(argument: str | Identifier) -> None:
-    ns = Namespace("ex", "http://example.org/")
+    ns = Namespace("ex", EX)
     qname = ns.qname(argument)
     assert str(qname) == "ex:thing"
 
 
 @pytest.mark.parametrize("argument", NAMES_OUTSIDE_EX)
 def test_qname_for_another_name_returns_none(argument: Any) -> None:
-    ns = Namespace("ex", "http://example.org/")
+    ns = Namespace("ex", EX)
     assert ns.qname(argument) is None
 
 
 def test_the_namespace_uri_itself_is_in_the_namespace() -> None:
-    ns = Namespace("ex", "http://example.org/")
-    assert ns.contains("http://example.org/")
-    assert str(ns.qname("http://example.org/")) == "ex:"
+    ns = Namespace("ex", EX)
+    assert ns.contains(EX)
+    assert str(ns.qname(EX)) == "ex:"
 
-
-EX = "http://example.org/"
 
 UNWRITABLE = [
     pytest.param("a b", id="space"),

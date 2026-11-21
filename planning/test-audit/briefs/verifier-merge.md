@@ -31,6 +31,7 @@ Build each merge in the worktree's test module.
 - `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`). A shared map that needs one goes in a test helper module, and the patch includes that module.
 - Every assertion of every original appears in the merged test and applies to every row it applied to before. Never weaken or drop an assertion to make rows fit.
 - Run the module's tests after the merges. All must pass.
+- When a merged parameter would be annotated `Any`, say whether the originals' direct calls were checked by mypy. When the module is not on the mypy override list in `pyproject.toml`, annotate the parameter with the union of the row types. When a row passes a type the signature rejects on purpose, keep `Any` for that test and name the test that still carries the mypy check, as the `test_identifier` merges do.
 
 ## Step 3: prove nothing was lost
 
@@ -43,8 +44,8 @@ Build each merge in the worktree's test module.
 ## Output
 
 1. `<work>/ledger/<module>.merge.patch`: `git diff` of every test module and helper module the merges change, with every surviving merge applied. Leave the worktree in that state, with `pyproject.toml` restored.
-2. `<work>/ledger/<module>.verify-merge.md`: one section for each merge with the verdict (`STANDS` or `REFUTED`), the id mapping, the assertion accounting, the arc comparison, every input you rewrote, and for a refuted merge the reason. Then the numbers before and after.
-3. `<work>/ledger/<module>.mutation-merge.md`: the mutant counts before and after with the command that counted them, the wall time of each run and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs.
+2. `<work>/ledger/<module>.verify-merge.md`: one section for each merge with the verdict (`STANDS` or `REFUTED`), the id mapping, the assertion accounting, the arc comparison, every input you rewrote, the mypy note, and for a refuted merge the reason. Then the numbers before and after.
+3. `<work>/ledger/<module>.mutation-merge.md`: the mutant counts before and after with the command that counted them, the wall time of each run and the list of status changes, or the sentence "No mutant changed status". Name every test you deselected from the mutation runs. Copy the result files into `<work>/ledger/` as `<module>.mutation-merge-*.txt`, as `mutation.md` (Pitfalls) says.
 
 ## Report
 
