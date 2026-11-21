@@ -26,7 +26,7 @@ Work only in `<worktree>`, and in `/tmp/mutation/` for the result files `mutatio
 
 Build each merge in the worktree's test module.
 
-- Apply rule 4 strictly. If the merged body needs a branch on a parameter, openly or through a helper or a callable row value with its own logic, revert that merge and record it as REFUTED.
+- Apply rule 4 strictly. If the merged body needs a branch on a parameter, openly or through a helper or a callable row value with its own logic, revert that merge and record it as REFUTED. A lambda that only makes the call its row names passes (`rubric.md`, rule 5).
 - Carry every input over unchanged. Do not rewrite an input into an equivalent form. If you must, record the rewrite and prove the two forms are the same input for the code under test.
 - `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`). A shared map that needs one goes in a test helper module, and the patch includes that module.
 - Every assertion of every original appears in the merged test and applies to every row it applied to before. Never weaken or drop an assertion to make rows fit.

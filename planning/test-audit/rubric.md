@@ -30,7 +30,9 @@ A test stays as it is when it passes both checks.
 
 Give `delete` only when you can name the test that takes over the job. When in doubt between `delete` and `merge`, give `merge`. When in doubt between `merge` and `keep`, give `keep` with confidence `low`.
 
-When a sibling has the same input as a test and asserts less, give the test that asserts more `keep`. When the sibling is in the same module, give the sibling `delete` with this test as the takeover. When it is in another module, end this test's Reason with a `Later audit:` sentence that names the sibling as a `delete` candidate, with this test as the takeover.
+When a sibling has the same input as a test and asserts less, give the test that asserts more `keep`. When the same classifier judges the sibling too, give the sibling `delete` with this test as the takeover, named in full as `module.py::function`. Otherwise, end this test's Reason with a `Later audit:` sentence that names the sibling as a `delete` candidate, with this test as the takeover.
+
+When two tests each assert something the other does not, neither is a `delete`, because neither fails whenever the other fails. Give each of the two that this classifier judges `keep`, and name the other as its Sibling. They merge only when rule 4 allows it.
 
 ## Protected classes
 
@@ -52,15 +54,16 @@ A test is protected when it asserts a permanent limitation on the conformance pa
 - A test that guards a tracked issue keeps its place unless a sibling guards the same issue with an assertion at least as strict.
 - Two tests that reach the same code through different public entry points (for example a reader and the CLI) are not duplicates.
 - An error-path test is a duplicate only when the sibling raises from the same statement for the same cause.
+- A row of a vendored corpus test may take over a hand-written test when it raises from the same statement for the same cause and asserts at least as much. A corpus row that raises nothing takes over under the same rules as any other test. The register check follows the corpus test's text, not its corpus files, so the `removed` row names the corpus file its takeover reads.
 - An `assert_type` line, or another check that only mypy evaluates, is an assertion when the module is not on the mypy override list in `pyproject.toml`, because the mypy gate checks it on every pull request. Coverage and mutation testing cannot see it, so name the annotation it pins in Reason. A takeover must carry the same check.
 
 ## Rules for each verdict
 
-1. **A contract reached through a private name.** When the behaviour is a real contract and the test reaches it through a private function or class, give `keep` and name the private name in Note. Give `rewrite` only when the thing pinned is itself incidental.
+1. **A contract reached through a private name.** When the behaviour is a real contract and the test reaches it through a private function or class, give `keep` and name the private name in Note. Give `rewrite` only when the thing pinned is itself incidental. When no public call reaches the private code at all, give `query`.
 2. **How close a takeover test must be.** An input difference between the candidate and the takeover blocks `delete` and blocks dropping a row when the source branches on it between the entry point and the statement under test, or when a plausible fault (rule 8) could treat the two inputs differently. These differences usually block: which attribute holds the value, a list against a single value, the list length, the order of items, the depth of a repeated key, a second key beside the first. A difference that meets neither condition blocks nothing. That often holds for another value of the same type, another type of the same kind (a JSON float against an int as a formal attribute's value), the record type, the section name, or a record inside a bundle against one at the top level, but the source decides each case. When reading cannot settle it, give `merge` or `keep`.
 3. **When a row may go.** A row is held to rule 2 against the rows that stay. A row whose expected message has its own format stays.
 4. **When separate functions merge.** Functions merge into one parametrised test when their bodies are the same apart from the input values and the expected values. The merged body has no branch on a parameter. Every input and every assertion of the originals stays, in its original form. A truth test stays a truth test. Turning `assert x` and `assert not x` into `assert f(x) is expected` makes both stricter, so such inputs split across two parametrised tests, one for each form. When a merge needs a branch, the verdict is `keep`. When an existing parametrised test has the same body, prefer adding rows to it over a new function, as long as the result still passes rule 5. A function's inputs may split across two parametrised tests when each part meets this rule against the test it joins. An item id is not an input. A merge may change it when the new id still names the case.
-5. **A merge must be better, not only shorter.** A reader finds the behaviour as quickly as before, a failure still names the case that broke, and the merged function does not mix behaviours that deserve their own names. A merge that saves lines and hides intent is a `keep`.
+5. **A merge must be better, not only shorter.** A reader finds the behaviour as quickly as before, a failure still names the case that broke, and the merged function does not mix behaviours that deserve their own names. A merge that saves lines and hides intent is a `keep`. A merge passes when its body reads as plainly as one of the originals and only its parameter table grows. It fails when it needs extra machinery, such as `getattr` lookups over string columns or lines that matter only for some rows, or when its non-blank lines come to nearly twice those of the originals together. A row that names the call it makes, for example as a lambda, keeps the intent that a method name in a string hides.
 6. **Tests that assert only "does not raise".** Such a test is held to the two checks like any other, and the only fault it can catch is a raise. A rejecting rule beside it counts as its contract, because the test guards against over-rejection. Name the rule in Reason.
 7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit moves a test only as part of a merge.
 8. **No removal without an attempted refutation.** A `delete`, a `merge`, a dropped row or a dropped section goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
@@ -75,7 +78,7 @@ The classifier writes one row for each test function, in file order.
 | Items | The number of collected items |
 | Pins | The behaviour the test pins, in one sentence ending in a full stop, in terms the test itself shows (the call, the input and the expected result). A private function the test calls directly is the call |
 | Reason | The contract and its source (issue number, conformance row, spec section, docs page), as a sentence, or `No source found.` |
-| Sibling | The nearest test that covers similar ground, as `module::function`, or `-` |
+| Sibling | The nearest test that covers similar ground, as `module.py::function`, or `-` |
 | Verdict | One verdict from the table above |
 | Confidence | `high`, `medium` or `low` |
 | Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. Otherwise empty |
@@ -92,7 +95,7 @@ Each module passes through these layers in order. A later layer reads everything
 | 2. Classifier | Sonnet agent | The ledger: one verdict for each test function, and a proposal for each `merge`, `narrow` and `delete` |
 | 3. Verifier | Sonnet agent in its own worktree | For each `delete`, each dropped row and each dropped section, the faults planted and whether the suite without the candidate catches them. For each `merge`, the merged test built as a patch, with proof that its inputs, assertions and covered arcs equal those of the originals |
 | 4. Coverage and mutation check | Sonnet agent with coverage contexts and mutmut | For the proposals the verifier did not refute: the arcs in `src/prov` that only the candidates cover (there must be none), and whether any detected mutant becomes undetected (items deselected for a removal, the patch applied for a merge or a dropped section) |
-| 5. Judge | Opus agent, read-only | The final list, with a ruling and a recorded reason for every proposal |
+| 5. Judge | Opus agent, read-only apart from a restored planted fault | The final list, with a ruling and a recorded reason for every proposal |
 | 6. Maintainer | The maintainer | Accepts or amends the judge's list. Nothing changes in the suite before this |
 | 7. Register | Script and a Sonnet agent | One row for each test function of the module in `register/`, with the ruling, the reason and a fingerprint. The script copies the classifier's row for a test no later layer examined, and the agent writes the rows a later layer ruled |
 
@@ -145,7 +148,7 @@ Rules for a row a later layer ruled:
 - Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text, with the module-level assignments its decorators name, with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
-- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes.
+- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes. When a corpus row took over, it also names the corpus file.
 
 `scripts/register.py check` sorts every test function into one of these groups.
 
