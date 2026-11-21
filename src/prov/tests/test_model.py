@@ -98,8 +98,9 @@ def test_unifying() -> None:
     # named "...-PASS-cNN.json" merge (the unified record count shrinks
     # relative to the flattened one), while "...-FAIL-cNN.json" fixtures
     # carry a same-identifier conflict for constraint cNN and must raise
-    # ProvUnificationError instead. See test_unification_rules.py for a
-    # fuller, inline-constructed characterization of each constraint.
+    # ProvUnificationError instead. See test_unification_rules.py and
+    # test_unification_constraints.py for a fuller characterization of each
+    # constraint.
     json_path = os.path.dirname(os.path.abspath(__file__)) + "/unification/"
     for filename in os.listdir(json_path):
         if not filename.endswith(".json"):

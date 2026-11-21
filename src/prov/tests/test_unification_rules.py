@@ -22,7 +22,6 @@ from prov.constants import (
     PROV_MENTION,
 )
 from prov.model import (
-    ProvActivity,
     ProvDocument,
     ProvEntity,
     ProvException,
@@ -35,19 +34,6 @@ T1 = datetime.datetime(2011, 11, 16, 16, 0, 0)
 T2 = datetime.datetime(2011, 11, 16, 18, 0, 0)
 
 
-def test_spec_worked_example_merges() -> None:
-    # PROV-CONSTRAINTS §6.1 worked example (Constraint 22).
-    document = ex_document()
-    document.activity("ex:a", startTime=T1, other_attributes={"ex:x": 1})
-    document.activity("ex:a", endTime=T2, other_attributes={"ex:y": 2})
-    unified = document.unified()
-    (activity,) = unified.get_records()
-    assert isinstance(activity, ProvActivity)
-    assert activity.get_startTime() == T1
-    assert activity.get_endTime() == T2
-    assert len(activity.extra_attributes) == 2  # both ex:x and ex:y present
-
-
 def test_conflicting_concrete_formal_attributes_raise() -> None:
     # Constraint 22: two concrete startTimes cannot unify.
     document = ex_document()
@@ -57,15 +43,6 @@ def test_conflicting_concrete_formal_attributes_raise() -> None:
         document.unified()
     message = str(ctx.value)
     assert "ex:a" in message and "startTime" in message
-
-
-def test_conflicting_relation_endpoints_raise() -> None:
-    # Constraint 23: same-id generations of different entities cannot unify.
-    document = ex_document()
-    document.generation("ex:e1", "ex:a1", identifier="ex:gen1")
-    document.generation("ex:e2", "ex:a1", identifier="ex:gen1")
-    with pytest.raises(ProvUnificationError):
-        document.unified()
 
 
 def test_unification_is_scoped_per_bundle() -> None:

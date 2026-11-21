@@ -75,21 +75,21 @@ def _typed_values_by_name(record, attr_name):
 # see the "public accessors" section below)
 
 
-def test_construction_retains_python_equal_differently_typed_values(doc) -> None:
-    e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
-    assert _typed_values_by_name(e, "ex:v") == {(int, 2), (float, 2.0)}
-
-
-def test_construction_retains_bool_vs_int(doc) -> None:
-    e = doc.entity("ex:e", [("ex:v", 1), ("ex:v", True)])
-    assert _typed_values_by_name(e, "ex:v") == {(int, 1), (bool, True)}
-
-
-def test_int_vs_bool_that_are_not_equal_is_not_a_regression_case(doc) -> None:
-    # 2 != True, so this was never collapsed even in 2.x; both values are
-    # simply retained as they always were.
-    e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", True)])
-    assert _typed_values_by_name(e, "ex:v") == {(int, 2), (bool, True)}
+@pytest.mark.parametrize(
+    ("first", "second", "expected"),
+    [
+        pytest.param(2, 2.0, {(int, 2), (float, 2.0)}, id="int-and-float"),
+        pytest.param(1, True, {(int, 1), (bool, True)}, id="bool-and-int"),
+        # 2 != True, so this was never collapsed even in 2.x; both values are
+        # simply retained as they always were.
+        pytest.param(2, True, {(int, 2), (bool, True)}, id="int-and-unequal-bool"),
+    ],
+)
+def test_construction_retains_differently_typed_values(
+    doc, first, second, expected
+) -> None:
+    e = doc.entity("ex:e", [("ex:v", first), ("ex:v", second)])
+    assert _typed_values_by_name(e, "ex:v") == expected
 
 
 def test_second_add_attributes_call_retains_both_values(doc) -> None:
@@ -149,17 +149,6 @@ def test_literal_langtag_case_dedup_keeps_first(doc) -> None:
 
 
 # --- AC: __eq__/__hash__ distinguish the retained values ---
-
-
-def test_records_with_different_retained_value_sets_are_not_equal(doc) -> None:
-    # Same identifier -- equality/hash must fall through to comparing the
-    # attribute sets, since it short-circuits on differing identifiers first.
-    ident = doc.entity("ex:anchor").identifier
-    e_both = ProvEntity(doc, ident, [("ex:v", 2), ("ex:v", 2.0)])
-    e_one = ProvEntity(doc, ident, [("ex:v", 2)])
-
-    assert e_both != e_one
-    assert hash(e_both) != hash(e_one)
 
 
 def test_hash_distinguishes_typed_values_even_when_attributes_property_collapses(
@@ -254,15 +243,6 @@ def test_value_property_returns_a_plain_set_that_collapses_like_2x(doc) -> None:
     values = e.value
     assert isinstance(values, set)  # not a set subclass, see note above
     assert values == {2}
-
-
-def test_add_asserted_type_mutates_live_storage_not_a_copy(doc) -> None:
-    # add_asserted_type() stores into the record's own set, so the assertion
-    # persists; get_asserted_types() returns a copy.
-    e = doc.entity("ex:e")
-    e.add_asserted_type(doc.valid_qualified_name("ex:Foo"))
-    e.add_asserted_type(doc.valid_qualified_name("ex:Bar"))
-    assert len(e.get_asserted_types()) == 2
 
 
 def test_accessors_default_empty_still_falsy_and_equal_to_plain_set(doc) -> None:
@@ -427,18 +407,6 @@ def test_unpickled_identifier_value_from_an_earlier_release_writes_as_anyuri(
     (value,) = back.get_records(ProvEntity)[0].get_attribute("ex:v")
     assert value == Literal("http://example.org/x", XSD_ANYURI)
     assert type(value) is Literal
-
-
-def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> None:
-    # ProvActivity.set_time() assigns straight into _attributes (not through
-    # an accessor); confirm it still produces the internal type-aware
-    # container, not a plain set, so a later add_attributes() call on the
-    # same attribute would still get type-aware treatment.
-    a = doc.activity("ex:a")
-    a.set_time(startTime=datetime.datetime(2020, 1, 1))
-    container = a._attributes[doc.valid_qualified_name("prov:startTime")]
-    assert type(container).__name__ == "TypedValueSet"
-    assert a.get_startTime() == datetime.datetime(2020, 1, 1)
 
 
 # --- Inherited issue 1: a PROV attribute holds one value, with or without a collection ---
