@@ -79,7 +79,7 @@ Rules that keep the cost down and the result sound:
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5, apart from the removal verifier's planted fault for a `rewrite` (step 3). `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
-- Run one mutation check at a time, and never beside the gate runner.
+- Run one mutation check at a time, and never beside the gate runner or a judge.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
 - A takeover claim in a question to the maintainer copies the judge's `## Final list` line for that item, never a summary of it and never the ledger's description.
@@ -91,9 +91,9 @@ Rules that keep the cost down and the result sound:
   - One that adds a row or a case to a test a later layer ruled extends that ruling. Its register row follows the `ruled_by` cell of `rubric.md` (The register).
   - One that makes an edit that changes no input value and no assertion, such as a literal replaced by a constant of equal value or a renamed local, also extends the ruling. The commit message says why the edit changes neither, and the pre-PR regime reviews the diff.
   - One that adds a test writes the test's row in the same pull request, as `keep` ruled by the `maintainer`, with a reason that names the fault the test guards. Its reason follows the rules for a row a later layer ruled (`rubric.md`, The register). `stamp` refuses a module with a test that has no row. When the maintainer rules in review that an existing test folds into the new one, the new test's row is `merged`, ruled by the `maintainer`, and the original gets a `removed` row naming the takeover.
-- Before any stamp outside a full audit, such as after a small pull request or a change to the fingerprint, run `check` on the base, before the change, and settle every row of the module it reports as source moved or changed. Then stamp the rows again. `check` reports a row as changed before it looks for source moved, and a stamp moves `audit_commit` past any change still pending. After the stamp, follow the last three bullets of step 4.
+- Before any stamp outside a full audit, such as after a small pull request or a change to the fingerprint, run `check` on the base, before the change, and settle every row of the module it reports as source moved or changed. Then stamp the rows again. `check` reports a row as changed before it looks for source moved, and a stamp moves `audit_commit` past any change still pending. After the stamp, follow the last three bullets of step 4, reading the pull request's modules for the batch's.
 - When a judge or a classifier asks for a fault to be planted before anyone proposes removing a test it keeps, put the request on that test's row as a `Later audit:` sentence at apply time. A request left only in a ledger is lost.
-- When a takeover sits in another module of the batch, give that module's proposals on it to the verifier and the judge of the candidate's module.
+- When a takeover sits in another module of the batch, give that module's proposals on it to the verifier and the judge of the candidate's module, and the candidate's proposal to those of the takeover's module.
 - When a ruling routes work to a layer, trace one case through every brief from the classifier to the register before the commit: the send condition, the method, the verdict and the file each agent hands on.
 
 ## What the first audit found about the method

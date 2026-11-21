@@ -24,7 +24,7 @@ For a removal, rule `remove` or `keep`. For a merge, rule `merge`, `merge with c
 
 For a `rewrite` or a `query` in the ledger, write one paragraph of advice for the maintainer: what the test pins and what the options are. Probe a suspected defect before you report it.
 
-Before you write that only one test checks a behaviour, cite a run that shows it. The run is a fault in that behaviour under which the whole suite fails that test and no other. Cite one from the verifier's file when its run deselected that test alone, or plant one in `<worktree>` and run the whole suite there (`uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider`). Restore a planted file with `git checkout --` and that source file's path, never `src/`, and check that `git status --short` then shows only the merge patch.
+Before you write that only one test checks a behaviour, cite a run that shows it. The run is a fault in that behaviour under which the whole suite fails that test and no other. Cite one from the verifier's file when its run deselected that test alone, or plant one in `<worktree>` and run the whole suite there (`uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --hypothesis-profile=ci`). Restore a planted file with `git checkout --` and that source file's path, never `src/`, and check that `git status --short` then shows only the merge patch.
 
 You may flag a `keep` you doubt, and a pair in the identical-arc groups that looks like a missed merge or a true duplicate. Do not add a removal or a merge to the final list that has not been through the verifier.
 

@@ -148,7 +148,7 @@ Rules for a row a later layer ruled:
 - Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text, with the module-level assignments its decorators name, with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
-- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes.
+- A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes. When a corpus row took over, it also names the corpus file.
 
 `scripts/register.py check` sorts every test function into one of these groups.
 
