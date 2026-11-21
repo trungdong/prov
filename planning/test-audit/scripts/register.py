@@ -103,10 +103,15 @@ def in_history(commit: str) -> bool:
     return git("merge-base", "--is-ancestor", commit, "HEAD").returncode == 0
 
 
+def source_lines(lines: list[str], start: int, end: int | None) -> str:
+    """Return the source lines from the 1-based start to end, each stripped on the right."""
+    return "\n".join(line.rstrip() for line in lines[start - 1 : end])
+
+
 def span_text(lines: list[str], node: Def) -> str:
     """Return the node's source from its first decorator to its last line."""
     start = min([node.lineno] + [d.lineno for d in node.decorator_list])
-    return "\n".join(line.rstrip() for line in lines[start - 1 : node.end_lineno])
+    return source_lines(lines, start, node.end_lineno)
 
 
 def module_path(module: str) -> Path:
@@ -119,15 +124,49 @@ def test_sources(path: Path) -> dict[str, str]:
     return test_texts(path.read_text())
 
 
+def assigned_names(node: ast.stmt) -> set[str]:
+    """Return the names a top-level assignment binds, tuple targets included."""
+    if isinstance(node, ast.Assign):
+        targets = node.targets
+    elif isinstance(node, ast.AnnAssign | ast.AugAssign):
+        targets = [node.target]
+    else:
+        return set()
+    return {n.id for t in targets for n in ast.walk(t) if isinstance(n, ast.Name)}
+
+
 def test_texts(text: str) -> dict[str, str]:
-    """Map each module-level test function in a module's text to its source text."""
-    lines = text.splitlines()
-    return {
-        node.name: span_text(lines, node)
-        for node in ast.parse(text).body
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
-        and node.name.startswith("test_")
-    }
+    """Map each module-level test function to its text, which the fingerprint hashes.
+
+    The text is the function's own span, then the source of each top-level assignment
+    that binds a name in its decorators, each statement once and in source order,
+    joined with newlines. The stored fingerprints depend on that order. The text leaves
+    out an imported name, a name the body reads, a list that a named list draws from, a
+    module-level call that mutates a list and an assignment inside a compound statement.
+    """
+    tree, lines = ast.parse(text), text.splitlines()
+    assigns = [
+        (source_lines(lines, node.lineno, node.end_lineno), names)
+        for node in tree.body
+        if (names := assigned_names(node))
+    ]
+    texts: dict[str, str] = {}
+    for node in tree.body:
+        if not (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+            and node.name.startswith("test_")
+        ):
+            continue
+        used = {
+            n.id
+            for d in node.decorator_list
+            for n in ast.walk(d)
+            if isinstance(n, ast.Name)
+        }
+        texts[node.name] = "\n".join(
+            [span_text(lines, node), *(src for src, names in assigns if names & used)]
+        )
+    return texts
 
 
 def collect_ids(path: Path) -> dict[str, list[str]]:

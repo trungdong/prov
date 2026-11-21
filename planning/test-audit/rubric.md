@@ -118,10 +118,10 @@ Rules for the judge:
 | `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, added the test, or accepted a classifier's `rewrite` or `query`. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
 | `audit_commit` | The commit at which the row's test was last confirmed, and for a row a later layer ruled, the tests its reason names. It is stamped after the change that applies the ruling is committed |
-| `fingerprint` | A hash of the function's source and of its collected item ids. Empty for `removed` |
+| `fingerprint` | A hash of the function's source, of the module-level assignments its decorators name and of its collected item ids. Empty for `removed` |
 | `reason` | What the test pins and the contract behind it. A row a later layer ruled also gives the evidence for the ruling |
 
-The fingerprint covers the function's own text and its collected item ids. A change to a module-level case list, a helper or a fixture that the test uses goes unnoticed unless the item ids change.
+The fingerprint covers the function's own text, its collected item ids and the text of each module-level assignment in the test's own module that its decorators name, such as a case list passed to `parametrize` or a constant in a `pytest.param`. A value change in such a list moves the fingerprint even when the item ids stay the same. A name imported from another module, a module-level name the test's body reads, a list that a named list draws from, a helper and a fixture go unnoticed unless the item ids change.
 
 A register holds two kinds of row.
 
@@ -142,7 +142,7 @@ Rules for a row a later layer ruled:
 - Say what would go unnoticed without the test, or why nothing is lost without it.
 - A claim about which code a test reaches, or that a test alone catches a fault, rests on a fault someone planted and ran, in the verifier's, the mutation check's or the judge's file or in the apply step's own run. Without one, name the fault the test guards and do not claim it is the only guard.
 - Name in backticks every function or class the argument passes through, not only the first and the last, for example `_decode_time` (methods as `Class.method`). A module-level constant may stay in backticks, but name the function that applies it too. The register check compares each named definition with its text at `audit_commit` and flags the row when the code changed. It tracks only a function or a class under `src/prov`, outside the tests. A constant, a test helper, a standard-library name or a misspelt name matches nothing. The check stays silent about it, and `check --names` marks it `(matches nothing)`. A bare common word, such as `identifier`, matches every definition of that name and flags the row for unrelated changes, so write it without backticks. `check --names` prints what each row follows.
-- Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
+- Name a sibling, takeover or folded-in test as `module.py::function`, each one in full. The register check compares that test's text, with the module-level assignments its decorators name, with its text at `audit_commit` and flags the row when it changed or was removed. It follows only `test_` functions in `test_*.py` modules, and ignores a test that did not exist at `audit_commit`, such as a function the same change folded in. A helper or a module outside the tests matches nothing.
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost.
 - A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes.
@@ -152,7 +152,7 @@ Rules for a row a later layer ruled:
 | Group | Meaning | What a later audit does |
 |---|---|---|
 | Unchanged | The fingerprint matches. For a row a later layer ruled, no definition or test the reason names changed | Nothing. The ruling stands |
-| Changed | The fingerprint differs | The test goes through the layers again, unless a small pull request extended its ruling (`README.md`, For the coordinator) |
+| Changed | The fingerprint differs | The test goes through the layers again, unless a small pull request extended its ruling or made an edit that changes no input value and no assertion (`README.md`, For the coordinator) |
 | New | The function has no row | The test goes through the layers |
 | Source moved | A row a later layer ruled, `removed` rows included, names a definition or a test that changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? For a `removed` row, a yes is a proposal to restore the test, which goes to the maintainer |
 | Gone | A row has no function and its ruling is not `removed` | Mark the row `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed |
