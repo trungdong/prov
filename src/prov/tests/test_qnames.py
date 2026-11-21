@@ -1,8 +1,6 @@
 """Shared qualified-name and namespace round-trip tests, run once per target
 in ``SHARED_TARGETS``."""
 
-from typing import TYPE_CHECKING
-
 import pytest
 
 from prov.constants import XSD_INT
@@ -15,9 +13,6 @@ from prov.model import (
 )
 
 from .conftest import Roundtrip, default_namespace, unresolved_sentence
-
-if TYPE_CHECKING:
-    pass
 
 
 def document_with_n_bundles_having_default_namespace(n: int) -> ProvDocument:
