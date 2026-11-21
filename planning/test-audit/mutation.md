@@ -62,7 +62,7 @@ Count before the baseline, never from the baseline's progress line.
 ## Compare a removal
 
 1. Add a `--deselect`, `<item id>` pair to `pytest_add_cli_args` for each item of each test to remove. Put them at the end of the array under their own comment, `# Removal candidates for this run.`, so they stay apart from the permanent groups.
-2. Run `mm.sh run --max-children 8 $(grep ': killed' /tmp/mutation/baseline.txt | sed 's/: killed//')`.
+2. Rerun the killed and the timed-out mutants with `mm.sh run --max-children 8 $(grep -E ': (killed|timeout)$' /tmp/mutation/baseline.txt | sed -E 's/: (killed|timeout)$//')`.
 3. Save the result as `/tmp/mutation/removal.txt` in the same way.
 4. List every id that `/tmp/mutation/removal.txt` shows as `survived` or `no tests`. These are the newly undetected mutants.
 
