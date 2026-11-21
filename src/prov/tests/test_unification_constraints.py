@@ -71,8 +71,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-pytest.importorskip("lxml")
-
 from prov.model import ProvDocument, ProvUnificationError, ProvWarning
 
 if TYPE_CHECKING:
@@ -191,6 +189,7 @@ def test_corpus_inventory() -> None:
 
 @pytest.mark.parametrize("xml_path", list(_cases()))
 def test_unified_corpus_characterization(xml_path: Path) -> None:
+    pytest.importorskip("lxml")
     warns = (
         pytest.warns(ProvWarning, match="requires a value for")
         if xml_path.name in PARTY_SKIPS
@@ -271,6 +270,7 @@ def test_w3c_corpus_inventory() -> None:
 
 @pytest.mark.parametrize("provx_path", list(_w3c_cases()))
 def test_w3c_type_compatibility_characterization(provx_path: Path) -> None:
+    pytest.importorskip("lxml")
     with open(provx_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if provx_path.name in W3C_RAISES:
