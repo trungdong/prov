@@ -38,6 +38,7 @@ NAMES_IN_EX = [
 NAMES_OUTSIDE_EX = [
     pytest.param("http://other.org/thing", id="other-uri"),
     pytest.param(12345, id="non-str-non-identifier"),
+    pytest.param("http://other.org/http://example.org/thing", id="ns-uri-not-at-start"),
 ]
 
 
