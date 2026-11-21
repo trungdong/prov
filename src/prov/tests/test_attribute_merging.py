@@ -224,6 +224,23 @@ def test_get_attribute_returns_a_copy_not_the_live_container(doc) -> None:
     assert e.get_attribute("ex:v") == {2}
 
 
+@pytest.mark.parametrize(
+    "attribute, read",
+    [
+        pytest.param(
+            "prov:type", lambda r: r.get_asserted_types(), id="asserted-types"
+        ),
+        pytest.param("prov:value", lambda r: r.value, id="value"),
+    ],
+)
+def test_asserted_types_and_value_return_a_fresh_set_on_every_call(
+    doc, attribute, read
+) -> None:
+    e = doc.entity("ex:e", [(attribute, 1)])
+    read(e).add(2)  # mutating the returned set must not reach the next call
+    assert read(e) == {1}
+
+
 def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc) -> None:
     # prov:type values are always QualifiedNames, which never collapse under
     # Python equality, so unlike get_attribute()/.value this accessor's
