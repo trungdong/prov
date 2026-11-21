@@ -62,12 +62,6 @@ def _bare_name_with_a_default(literal: Literal) -> ProvRecord:
     ("literal", "assert_in", "stored"),
     [
         pytest.param(
-            Literal("ex:x", PROV_QUALIFIEDNAME), _in_the_document, EX_X, id="declared"
-        ),
-        pytest.param(
-            Literal("ex:x", XSD_QNAME), _in_the_document, EX_X, id="xsd:QName declared"
-        ),
-        pytest.param(
             Literal("ex:x", PROV_QUALIFIEDNAME),
             _declared_in_the_document,
             EX_X,

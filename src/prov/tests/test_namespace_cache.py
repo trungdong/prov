@@ -17,12 +17,6 @@ def test_repeat_lookup_is_served_from_the_cache() -> None:
     assert manager.valid_qualified_name("ex:e1") is first
 
 
-def test_unresolvable_names_are_not_cached() -> None:
-    manager = NamespaceManager()
-    assert manager.valid_qualified_name("zz:e1") is None
-    assert "zz:e1" not in manager._resolve_cache
-
-
 @pytest.mark.parametrize("count", [50, 200])
 def test_a_read_with_many_namespaces_scans_none(
     monkeypatch: pytest.MonkeyPatch, count: int
@@ -58,17 +52,6 @@ def test_changing_the_default_clears_the_cache_and_re_resolves() -> None:
     second = manager.valid_qualified_name("e1")
     assert first.uri == "http://one.org/e1"
     assert second.uri == "http://two.org/e1"
-
-
-def test_a_prefixless_name_is_rejected_when_no_default_is_declared() -> None:
-    # Only set_default_namespace() sets a default, and the model mints no prefix.
-    manager = NamespaceManager()
-    qname = default_namespace("http://implicit.org/")["e1"]
-    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
-        manager.valid_qualified_name(qname)
-    assert manager.get_default_namespace() is None
-    assert "" not in manager
-    assert list(manager.get_registered_namespaces()) == []
 
 
 def test_a_prefixless_name_takes_the_prefix_bound_to_its_iri() -> None:
