@@ -22,7 +22,7 @@ A test stays as it is when it passes both checks.
 |---|---|
 | `keep` | The test passes both checks. |
 | `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) or into another module's parametrised test with the same body. Every input and every assertion stays. |
-| `narrow` | The test is sound, but one parameter axis, several rows, or an independent section of its body (a block with its own setup and assertions) does not change the behaviour under test. Name the axis, the rows or the section. A dropped section goes to the merge verifier as a patch. |
+| `narrow` | The test is sound, but one parameter axis, several rows or an independent section of its body (a block with its own setup and assertions) does not change the behaviour under test. Name the axis, the rows or the section. A dropped section is a removal. The verifier and the mutation check run with the section patched out in place of a deselected item. |
 | `delete` | Another named test fails whenever this test fails. Name that test. |
 | `rewrite` | The test pins an incidental detail (exact message wording that no document promises, a private attribute, an internal call order, object identity (`is`) that no document promises, such as the object a cache or a fast path returns) and not the contract, or it passes with and without the code it guards. Say what the assertion misses. The audit records it and does not act on it. |
 | `query` | The test does a unique job, but no contract can be found, or the code it reaches is unreachable through the public API. The maintainer names the contract, or the test and its code go together in a separate change. |
@@ -63,7 +63,7 @@ A test is protected when it asserts a permanent limitation on the conformance pa
 5. **A merge must be better, not only shorter.** A reader finds the behaviour as quickly as before, a failure still names the case that broke, and the merged function does not mix behaviours that deserve their own names. A merge that saves lines and hides intent is a `keep`.
 6. **Tests that assert only "does not raise".** Such a test is held to the two checks like any other, and the only fault it can catch is a raise. A rejecting rule beside it counts as its contract, because the test guards against over-rejection. Name the rule in Reason.
 7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit moves a test only as part of a merge.
-8. **No removal without an attempted refutation.** A `delete`, a `merge` or a dropped row goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
+8. **No removal without an attempted refutation.** A `delete`, a `merge`, a dropped row or a dropped section goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
 
 ## Ledger row
 
@@ -90,8 +90,8 @@ Each module passes through these layers in order. A later layer reads everything
 |---|---|---|
 | 1. Evidence | Scripts | `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv` for the whole suite |
 | 2. Classifier | Sonnet agent | The ledger: one verdict for each test function, and a proposal for each `merge`, `narrow` and `delete` |
-| 3. Verifier | Sonnet agent in its own worktree | For each `delete` and each dropped row, the faults planted and whether the suite without the candidate catches them. For each `merge`, the merged test built as a patch, with proof that its inputs, assertions and covered arcs equal those of the originals |
-| 4. Coverage and mutation check | Sonnet agent with coverage contexts and mutmut | For the proposals the verifier did not refute: the arcs in `src/prov` that only the candidates cover (there must be none), and whether any detected mutant becomes undetected (items deselected for a removal, the patch applied for a merge) |
+| 3. Verifier | Sonnet agent in its own worktree | For each `delete`, each dropped row and each dropped section, the faults planted and whether the suite without the candidate catches them. For each `merge`, the merged test built as a patch, with proof that its inputs, assertions and covered arcs equal those of the originals |
+| 4. Coverage and mutation check | Sonnet agent with coverage contexts and mutmut | For the proposals the verifier did not refute: the arcs in `src/prov` that only the candidates cover (there must be none), and whether any detected mutant becomes undetected (items deselected for a removal, the patch applied for a merge or a dropped section) |
 | 5. Judge | Opus agent, read-only | The final list, with a ruling and a recorded reason for every proposal |
 | 6. Maintainer | The maintainer | Accepts or amends the judge's list. Nothing changes in the suite before this |
 | 7. Register | Script and a Sonnet agent | One row for each test function of the module in `register/`, with the ruling, the reason and a fingerprint. The script copies the classifier's row for a test no later layer examined, and the agent writes the rows a later layer ruled |
@@ -114,7 +114,7 @@ Rules for the judge:
 | Column | Content |
 |---|---|
 | `function` | The test function |
-| `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed`. A test that keeps its name and loses rows is `narrowed`. A test that gains rows or functions in a merge is `merged`, also when it loses rows, and its reason names both changes. A function that no longer exists, a split one included, is `removed` |
+| `ruling` | `keep`, `merged`, `narrowed`, `rewrite`, `query`, `protected` or `removed`. A test that keeps its name and loses rows or a section is `narrowed`. A test that gains rows or functions in a merge is `merged`, also when it loses rows, and its reason names both changes. A function that no longer exists, a split one included, is `removed` |
 | `ruled_by` | The layer whose ruling stands: `classifier` when no later layer examined the test, `judge` when the maintainer accepted the judge's ruling, `maintainer` when the maintainer ruled differently from the layer whose ruling would otherwise stand, added the test, or accepted a classifier's `rewrite` or `query`. When the maintainer extends a ruling that stands, for example by adding a row to a judge-ruled merge, `ruled_by` keeps the layer whose ruling stands, and the reason says what the maintainer added and why |
 | `confidence` | The classifier's confidence for a ruling no later layer examined, otherwise `-` |
 | `audit_commit` | The commit at which the row's test was last confirmed, and for a row a later layer ruled, the tests its reason names. It is stamped after the change that applies the ruling is committed |
@@ -152,7 +152,7 @@ Rules for a row a later layer ruled:
 | Group | Meaning | What a later audit does |
 |---|---|---|
 | Unchanged | The fingerprint matches. For a row a later layer ruled, no definition or test the reason names changed | Nothing. The ruling stands |
-| Changed | The fingerprint differs | The test goes through the layers again |
+| Changed | The fingerprint differs | The test goes through the layers again, unless a small pull request extended its ruling (`README.md`, For the coordinator) |
 | New | The function has no row | The test goes through the layers |
 | Source moved | A row a later layer ruled, `removed` rows included, names a definition or a test that changed since `audit_commit` | The classifier reads the diff and answers one question: does it undo the recorded reason? For a `removed` row, a yes is a proposal to restore the test, which goes to the maintainer |
 | Gone | A row has no function and its ruling is not `removed` | Mark the row `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed |

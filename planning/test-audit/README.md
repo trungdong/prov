@@ -46,8 +46,8 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
      ```
 
    - When every test change of the batch is committed, one commit for each module whose tests changed, run the suite with coverage on the branch and on `main`, and compare the `TOTAL` line of the two reports. The statements missed and the branches partly covered must be equal. Each apply agent ran the same comparison for its own module, and this run covers the batch as a whole.
-   - Give each test commit and the register commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...". A reword after the stamp rebuilds every later commit and orphans the rows anchored at them.
-   - Then stamp every module of the batch and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never amend or rebase a commit the rows name. If the branch is rebased all the same, stamp again and commit the register files again.
+   - Give each test commit and the register commit its final message when you make it, and name no batch in it (`CLAUDE.md`, Commits and PRs), for example "The audit found ...".
+   - Then stamp every module of the batch, and every other module whose register an apply agent corrected, and commit the register files. Each stamped row names the commit that was `HEAD` at that moment, and the check compares the tests a reason names with their text at that commit, so stamp after every test change of the batch is committed. That commit must stay in the branch's history. So commit the register files as a new commit, and never reword, amend or rebase a commit the rows name, because that rebuilds it and every later commit and orphans every row anchored at any of them. If the branch is rebased all the same, stamp again and commit the register files again.
 
      ```bash
      uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph python planning/test-audit/scripts/register.py stamp <module>
@@ -67,7 +67,7 @@ An Opus session coordinates an audit. It reads this file and `rubric.md`, dispat
 |---|---|---|
 | 2. Classifier | `briefs/classifier.md` | Sonnet |
 | 3. Verifier, removals | `briefs/verifier-removal.md` | Sonnet, own worktree |
-| 3 and 4. Verifier, merges and dropped sections | `briefs/verifier-merge.md` | Sonnet, scratch worktree |
+| 3 and 4. Verifier, merges | `briefs/verifier-merge.md` | Sonnet, scratch worktree |
 | 4. Coverage and mutation check, removals | `briefs/mutation-check.md` | Sonnet, scratch worktree |
 | 5. Judge | `briefs/judge.md` | Opus, read-only |
 | 7. Apply and register | `briefs/apply.md` | Sonnet |
@@ -78,7 +78,7 @@ Rules that keep the cost down and the result sound:
 - Every brief you send, from a template or not, carries two rules, and you add whichever one it lacks. The agent never runs `git stash`, and `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module.
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
-- A module with no proposal skips layers 3 to 5. `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
+- A module with no proposal skips layers 3 to 5, apart from the removal verifier's planted fault for a `rewrite` (step 3). `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
 - Run one mutation check at a time, and never beside the gate runner.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
