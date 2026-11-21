@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from prov.model import XSD_INT, XSD_LONG, canonical_xsd_datatype
 from prov.tests.conftest import ex_document
 
 INT32_MAX = 2**31 - 1
@@ -55,6 +56,22 @@ def test_int_boundaries_roundtrip(value, roundtrip) -> None:
     document = ex_document()
     document.entity("ex:e1", {"ex:v": value})
     roundtrip(document)
+
+
+@pytest.mark.parametrize(
+    ("value", "datatype"),
+    [
+        (INT32_MAX, XSD_INT),
+        (INT32_MAX + 1, XSD_LONG),
+        (-(2**31), XSD_INT),
+        (-(2**31) - 1, XSD_LONG),
+    ],
+    ids=["int32-max", "past-int32-max", "int32-min", "past-int32-min"],
+)
+def test_xsd_int_bounds_pick_the_datatype(value, datatype) -> None:
+    # A boundary int typed xsd:long still round-trips equal, so only its
+    # datatype shows an off-by-one in the xsd:int bounds.
+    assert canonical_xsd_datatype(value) == datatype
 
 
 def test_json_dollar_is_always_a_string() -> None:
