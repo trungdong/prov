@@ -217,11 +217,20 @@ def test_get_attribute_returns_a_plain_set_that_collapses_like_2x(doc) -> None:
     assert values == {2}  # 2.0 collapses in this copy, exactly as in 2.x
 
 
-def test_get_attribute_returns_a_copy_not_the_live_container(doc) -> None:
-    e = doc.entity("ex:e", [("ex:v", 2)])
-    values = e.get_attribute("ex:v")
-    values.add(999)  # mutating the returned set must not touch storage
-    assert e.get_attribute("ex:v") == {2}
+@pytest.mark.parametrize(
+    ("attribute", "read"),
+    [
+        pytest.param("ex:v", lambda r: r.get_attribute("ex:v"), id="get-attribute"),
+        pytest.param(
+            "prov:type", lambda r: r.get_asserted_types(), id="asserted-types"
+        ),
+        pytest.param("prov:value", lambda r: r.value, id="value"),
+    ],
+)
+def test_accessors_return_a_fresh_set_on_every_call(doc, attribute, read) -> None:
+    e = doc.entity("ex:e", [(attribute, 1)])
+    read(e).add(2)  # mutating the returned set must not reach the next call
+    assert read(e) == {1}
 
 
 def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc) -> None:
