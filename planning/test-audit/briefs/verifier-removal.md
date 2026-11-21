@@ -16,7 +16,7 @@ You are the verifier in a test-suite audit of the Python library `prov`. A class
 
 <list each proposal, one row at a time for a parametrised test>
 
-For a `rewrite` in the list, skip the method below. Remove the guarded code the list names, run the whole suite, and name every test that fails. Its verdict is STANDS when the candidate passes and REFUTED when it fails.
+For a `rewrite` in the list, skip the method below. Remove the guarded code the list names and run the candidate alone. When it fails, the verdict is REFUTED. When it passes, the verdict is STANDS, and you run the whole suite and name every test that fails.
 
 ## Method, for each proposal or row
 

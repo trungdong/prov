@@ -29,7 +29,7 @@ For a dropped section, apply its patch wherever a step deselects the candidates,
 
 ## Output
 
-Write `<work>/ledger/<module>.mutation-removal.md`: the exact ids, the arcs only the candidates cover (or "none"), the source files mutated, the mutant count of each file and the command that counted it, the baseline and rerun numbers for each file, the wall time of each run, and the newly undetected mutants with their diffs (or the sentence "No mutant became undetected"). Copy every result file from `/tmp/mutation/` into `<work>/ledger/` as `<module>.mutation-removal-*.txt` before you finish, because the next agent empties `/tmp/mutation/`. Copy `count.txt` the same way as soon as you have counted, because the baseline step empties `/tmp/mutation/` too.
+Write `<work>/ledger/<module>.mutation-removal.md`: the exact ids, the arcs only the candidates cover (or "none"), the source files mutated, the mutant count of each file and the command that counted it, the baseline and rerun numbers for each file, the wall time of each run, and the newly undetected mutants with their diffs (or the sentence "No mutant became undetected"). Copy the result files into `<work>/ledger/` as `<module>.mutation-removal-*.txt`, as `mutation.md` (Pitfalls) says.
 
 ## Report
 
