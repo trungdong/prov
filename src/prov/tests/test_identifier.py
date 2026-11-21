@@ -31,46 +31,53 @@ def test_namespace_rejects_a_blank_or_non_string_uri(uri: Any, message: str) -> 
         Namespace("ex", uri)
 
 
-def test_contains_with_matching_str() -> None:
+@pytest.mark.parametrize(
+    "argument",
+    [
+        pytest.param("http://example.org/thing", id="str"),
+        pytest.param(Identifier("http://example.org/thing"), id="identifier"),
+    ],
+)
+def test_contains_a_matching_name(argument: str | Identifier) -> None:
     ns = Namespace("ex", "http://example.org/")
-    assert ns.contains("http://example.org/thing")
+    assert ns.contains(argument)
 
 
-def test_contains_with_matching_identifier() -> None:
+@pytest.mark.parametrize(
+    "argument",
+    [
+        pytest.param("http://other.org/thing", id="non-matching-uri"),
+        pytest.param(cast(Any, 12345), id="non-str-non-identifier"),
+    ],
+)
+def test_does_not_contain_another_name(argument: Any) -> None:
     ns = Namespace("ex", "http://example.org/")
-    assert ns.contains(Identifier("http://example.org/thing"))
+    assert not ns.contains(argument)
 
 
-def test_contains_with_non_matching_uri() -> None:
+@pytest.mark.parametrize(
+    "argument",
+    [
+        pytest.param("http://example.org/thing", id="str"),
+        pytest.param(Identifier("http://example.org/thing"), id="identifier"),
+    ],
+)
+def test_qname_for_contained_name(argument: str | Identifier) -> None:
     ns = Namespace("ex", "http://example.org/")
-    assert not ns.contains("http://other.org/thing")
-
-
-def test_contains_with_non_str_non_identifier_returns_false() -> None:
-    ns = Namespace("ex", "http://example.org/")
-    assert not ns.contains(cast(Any, 12345))
-
-
-def test_qname_for_contained_str() -> None:
-    ns = Namespace("ex", "http://example.org/")
-    qname = ns.qname("http://example.org/thing")
+    qname = ns.qname(argument)
     assert str(qname) == "ex:thing"
 
 
-def test_qname_for_contained_identifier() -> None:
+@pytest.mark.parametrize(
+    "argument",
+    [
+        pytest.param("http://other.org/thing", id="non-contained-uri"),
+        pytest.param(cast(Any, 12345), id="non-str-non-identifier"),
+    ],
+)
+def test_qname_for_another_name_returns_none(argument: Any) -> None:
     ns = Namespace("ex", "http://example.org/")
-    qname = ns.qname(Identifier("http://example.org/thing"))
-    assert str(qname) == "ex:thing"
-
-
-def test_qname_for_non_contained_uri_returns_none() -> None:
-    ns = Namespace("ex", "http://example.org/")
-    assert ns.qname("http://other.org/thing") is None
-
-
-def test_qname_for_non_str_non_identifier_returns_none() -> None:
-    ns = Namespace("ex", "http://example.org/")
-    assert ns.qname(cast(Any, 12345)) is None
+    assert ns.qname(argument) is None
 
 
 EX = "http://example.org/"
