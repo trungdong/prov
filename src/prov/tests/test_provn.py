@@ -1021,10 +1021,8 @@ def test_strict_rejects_bare_mention_with_a_hint() -> None:
 
 
 def test_model_errors_carry_the_statement_position() -> None:
-    # A membership whose collection identifier resolves but the record
-    # constructor rejects (an element with no identifier cannot happen via
-    # the grammar; a relation to a bundle-typed value can), so exercise the
-    # generic wrapping with a time literal the model cannot parse.
+    # An xsd:dateTime the parser cannot read raises at its own token, and the
+    # error carries the line of the statement.
     with pytest.raises(ProvNSyntaxError) as ctx:
         parse("used(ex:a1, ex:e1, 2011-13-40T99:00:00)")
     assert ctx.value.line == 4
