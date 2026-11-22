@@ -1493,7 +1493,12 @@ def test_leading_byte_order_mark_is_skipped() -> None:
 
 def test_bytearray_stream_is_decoded() -> None:
     text = "document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument"
-    doc = ProvDocument.deserialize(io.BytesIO(bytearray(text, "utf-8")), format="provn")
+
+    class BytearrayStream:
+        def read(self) -> bytearray:
+            return bytearray(text, "utf-8")
+
+    doc = ProvDocument.deserialize(BytearrayStream(), format="provn")
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
 
 
