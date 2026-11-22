@@ -400,7 +400,8 @@ def encoding_provn_value(value: object) -> str:
     as a bare ``INT_LITERAL`` (PROV-N [60] sugar for ``xsd:int``); beyond that
     they carry an explicit ``xsd:long``/``xsd:integer`` suffix (#249). A
     qualified name, and any value with no PROV form or no lexical form, is
-    rendered via :func:`str`.
+    rendered via :func:`str`. A ``str`` subclass is quoted from the text that
+    :func:`str` returns for it.
     """
     if isinstance(value, str):
         return _provn_string_literal(value)
