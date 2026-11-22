@@ -97,7 +97,7 @@ Each module passes through these layers in order. A later layer reads everything
 |---|---|---|
 | 1. Evidence | Scripts | `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv` for the whole suite |
 | 2. Classifier | Sonnet agent | The ledger: one verdict for each test function, and a proposal for each merge and each `narrow` and `delete` |
-| 3. Verifier | Sonnet agent in its own worktree | For each `delete`, each dropped row and each dropped section, the faults planted and whether the suite without the candidate catches them. For each `merge`, the merged test built as a patch, with proof that it keeps every input, assertion and covered arc of the originals, and a list of each assertion a joining row gains |
+| 3. Verifier | Sonnet agent in its own worktree | For each `delete`, each dropped row and each dropped section, the faults planted and whether the suite without the candidate catches them. For each merge, the merged test built as a patch, with proof that it keeps every input, assertion and covered arc of the originals, and a list of each assertion a joining row gains |
 | 4. Coverage and mutation check | Sonnet agent with coverage contexts and mutmut | For the proposals the verifier did not refute: the arcs in `src/prov` that only the candidates cover (there must be none), and whether any detected mutant becomes undetected (items deselected for a removal, the patch applied for a merge or a dropped section) |
 | 5. Judge | Opus agent, read-only apart from a restored planted fault | The final list, with a ruling and a recorded reason for every proposal |
 | 6. Maintainer | The maintainer | Accepts or amends the judge's list. Nothing changes in the suite before this |
