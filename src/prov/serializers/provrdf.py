@@ -1031,8 +1031,8 @@ class ProvRDFSerializer(Serializer):
             # bundle-local prefix colliding with a document-level one may
             # clobber it instead of being renamed. With a standalone Graph
             # that outcome varies from run to run on the same rdflib, so it
-            # cannot be tied to a version. container.graph() is deterministic
-            # from the 7.0.0 floor upwards.
+            # cannot be tied to a version. container.graph() is
+            # deterministic from rdflib 7.0.0 upwards.
             named_graph = container.graph(bundle.identifier)
             container.addN((s, p, o, named_graph) for s, p, o in bundle)
             # Bundle-local namespace bindings (and the bundle's own default
