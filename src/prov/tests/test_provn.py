@@ -1494,7 +1494,7 @@ def test_leading_byte_order_mark_is_skipped() -> None:
 def test_bytearray_stream_is_decoded() -> None:
     text = "document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument"
 
-    class BytearrayStream:
+    class BytearrayStream(io.IOBase):
         def read(self) -> bytearray:
             return bytearray(text, "utf-8")
 
