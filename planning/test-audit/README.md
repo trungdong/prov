@@ -86,6 +86,7 @@ Rules that keep the cost down and the result sound:
 - A takeover claim in a question to the maintainer copies the judge's `## Final list` line for that item, never a summary of it and never the ledger's description.
 - When the maintainer chooses an option a judge offered, probe the option's own wording against the code before you carry it out.
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
+- When a new rule changes what counts as a source or a duplicate, sweep every register for the rows it undoes. Brief the agent with the rule itself, never with reviewers' examples or a keyword filter.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.
 - Settle each row the check reports as gone. Mark it `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed.
