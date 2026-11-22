@@ -243,12 +243,15 @@ def test_string_subclass_is_written_through_its_str() -> None:
 
 
 @pytest.mark.parametrize(
-    "value, written",
+    ("value", "written"),
     [
-        (NS["a"], "'ex:a'"),
-        (Identifier("http://example.org/b"), '"http://example.org/b" %% xsd:anyURI'),
+        pytest.param(NS["a"], "'ex:a'", id="qualified name"),
+        pytest.param(
+            Identifier("http://example.org/b"),
+            '"http://example.org/b" %% xsd:anyURI',
+            id="identifier",
+        ),
     ],
-    ids=["qualified-name", "identifier"],
 )
 def test_encoding_provn_value_writes_a_name_as_a_provn_literal(value, written) -> None:
     assert encoding_provn_value(value) == written
