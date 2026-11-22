@@ -18,6 +18,10 @@
   `"iri" %% xsd:anyURI`, the forms the PROV-N writer uses. Call `str()` on the value for
   the bare form, which 3.3.0 returned and the PROV-N reader rejects
   ([#821](https://github.com/trungdong/prov/pull/821))
+- The `rdf` extra needs rdflib 7.1.1 or later, because rdflib 7.0.0 rounds a time's
+  fraction beyond six digits where later releases truncate it, and 7.1.0 cannot write
+  Turtle, long Turtle, TriG or N3 for some ill-typed numbers
+  ([#824](https://github.com/trungdong/prov/pull/824))
 
 ### Fixes
 
