@@ -423,6 +423,12 @@ def encoding_provn_value(value: object) -> str:
     return f'"{text}" %% {datatype}'
 
 
+def _time_literal(value: datetime.datetime) -> Literal:
+    """A time attribute's value as an xsd:dateTime Literal cut to
+    microseconds, which every reader takes."""
+    return Literal(_xsd_datetime_text(value, statement=True), XSD_DATETIME)
+
+
 def _check_langtag(value: Any, langtag: Any) -> None:
     """Raise for a language tag that is empty or not shaped like a BCP 47 tag (#472).
 
@@ -1303,9 +1309,7 @@ class ProvRecord:
                 continue
             for value in self._attributes[attr]:
                 if attr in PROV_ATTRIBUTE_LITERALS:
-                    # A time attribute holds a datetime, cut to microseconds.
-                    cut = _xsd_datetime_text(value, statement=True)
-                    value = Literal(cut, XSD_DATETIME)
+                    value = _time_literal(value)
                 text = encoding_provn_value(value)
                 pairs.append(f"{attr.provn_bare_representation()}={text}")
         return pairs
