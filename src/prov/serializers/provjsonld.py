@@ -265,7 +265,7 @@ def encode_jsonld_statement(
         if values:
             value = first(values)
             obj[attr.localpart] = (
-                _xsd_datetime_text(value)  # type: ignore[arg-type]
+                _xsd_datetime_text(value, statement=True)  # type: ignore[arg-type]
                 if attr in PROV_ATTRIBUTE_LITERALS
                 else qname_text(value)
             )

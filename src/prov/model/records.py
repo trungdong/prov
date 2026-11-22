@@ -1288,7 +1288,7 @@ class ProvRecord:
                 continue
             value = first(values)  # a formal attribute holds one value
             if isinstance(value, datetime.datetime):
-                items.append(_xsd_datetime_text(value))
+                items.append(_xsd_datetime_text(value, statement=True))
             elif isinstance(value, QualifiedName):
                 items.append(value.provn_bare_representation())
             else:
