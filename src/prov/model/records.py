@@ -398,16 +398,25 @@ def encoding_provn_value(value: object) -> str:
     ``xsd:int``, which is a bare ``INT_LITERAL``. Booleans render as
     ``"true"``/``"false"``, and floats as full-precision ``xsd:double``. Plain ints are typed by magnitude: from -(2**31) to 2**31-1 they render
     as a bare ``INT_LITERAL`` (PROV-N sugar for ``xsd:int``); beyond that
-    they carry an explicit ``xsd:long``/``xsd:integer`` suffix. A
-    qualified name, and any value with no PROV form or no lexical form, is
-    rendered via :func:`str`. A ``str`` subclass is quoted from the text that
+    they carry an explicit ``xsd:long``/``xsd:integer`` suffix. A qualified
+    name or an identifier is written through its
+    ``provn_representation()``, as ``'ex:a'`` or ``"iri" %% xsd:anyURI``. A
+    :class:`Literal` is written through its ``provn_representation()`` too.
+    Any value with no PROV form or no lexical form is rendered via
+    :func:`str`. A ``str`` subclass is quoted from the text that
     :func:`str` returns for it.
+
+    Raises:
+        ProvException: If a qualified name has an empty local part in a
+            namespace with no prefix, which has no PROV-N spelling.
     """
+    if isinstance(value, (Identifier, Literal)):
+        return value.provn_representation()
     if isinstance(value, str):
         return _provn_string_literal(value)
     form = python_value_form(value)
     if form is None or (text := form[0]) is None:
-        return str(value)  # a qualified name, or a value with no form
+        return str(value)  # a value with no form or no lexical form
     datatype = form[1]
     if datatype == XSD_INT:
         return text  # bare INT_LITERAL is xsd:int sugar (PROV-N [60])
@@ -1293,11 +1302,7 @@ class ProvRecord:
             if attr in self.FORMAL_ATTRIBUTES:
                 continue
             for value in self._attributes[attr]:
-                text = (
-                    value.provn_representation()
-                    if isinstance(value, (Identifier, Literal))
-                    else encoding_provn_value(value)
-                )
+                text = encoding_provn_value(value)
                 pairs.append(f"{attr.provn_bare_representation()}={text}")
         return pairs
 

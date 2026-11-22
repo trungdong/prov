@@ -14,6 +14,10 @@
   name whose bare strings stay strings, as
   [the upgrade guide](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html#upgrade-provjsonld)
   details ([#783](https://github.com/trungdong/prov/issues/783))
+- `encoding_provn_value()` writes a qualified name as `'ex:a'` and an `Identifier` as
+  `"iri" %% xsd:anyURI`, the forms the PROV-N writer uses. Call `str()` on the value for
+  the bare form, which 3.3.0 returned and the PROV-N reader rejects
+  ([#821](https://github.com/trungdong/prov/pull/821))
 
 ### Fixes
 

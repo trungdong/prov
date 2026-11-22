@@ -242,6 +242,21 @@ def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
 
 
+@pytest.mark.parametrize(
+    ("value", "written"),
+    [
+        pytest.param(NS["a"], "'ex:a'", id="qualified name"),
+        pytest.param(
+            Identifier("http://example.org/b"),
+            '"http://example.org/b" %% xsd:anyURI',
+            id="identifier",
+        ),
+    ],
+)
+def test_encoding_provn_value_writes_a_name_as_a_provn_literal(value, written) -> None:
+    assert encoding_provn_value(value) == written
+
+
 class _RaisingLiteral(Literal):
     def provn_representation(self) -> str:
         raise AttributeError("boom")
