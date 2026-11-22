@@ -17,7 +17,7 @@ used, not at `import prov` time.
 
 | Extra | Packages | Backs |
 |---|---|---|
-| `rdf` | `rdflib>=7.0.0,<8` | `prov.serializers.provrdf`, PROV-O (RDF) |
+| `rdf` | `rdflib>=7.1.1,<8` | `prov.serializers.provrdf`, PROV-O (RDF) |
 | `xml` | `lxml>=3.3.5` | `prov.serializers.provxml`, PROV-XML |
 | `dot` | `pydot>=1.2.0`, `networkx>=2.0` | `prov.dot`, Graphviz rendering |
 | `graph` | `networkx>=2.0` | `prov.graph`, NetworkX interop |
@@ -26,12 +26,16 @@ used, not at `import prov` time.
 
 ### `rdf`
 
-The floor is 7.0.0 because the serializer uses `rdflib.graph.Dataset` and
-`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7. The cap below 8 is
+The floor is 7.1.1. The serializer uses `rdflib.graph.Dataset` and
+`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7. rdflib 7.0.0 rounds an
+`xsd:dateTime` fraction beyond six digits to the nearest microsecond, where later releases
+truncate it as C10 on {doc}`the conformance page <reference/conformance>` says. rdflib 7.1.0
+raises a `TypeError` when it writes Turtle, long Turtle, TriG or N3 for an attribute with
+two numeric values when one is ill-typed, such as `"abc" %% xsd:int`. The cap below 8 is
 precautionary: rdflib's next major is untested here, and the serializer already avoids the
 `Dataset` members rdflib has deprecated, so lifting it is a test run, not a rewrite.
 
-The `rdflib-compat` CI job runs the RDF tests against both bounds, `==7.0.0` and the newest
+The `rdflib-compat` CI job runs the test suite against both bounds, `==7.1.1` and the newest
 7.x. The main matrix uses the locked version. The `own-warnings` CI job counts only warnings
 attributed to `prov` modules, because rdflib's own internals raise deprecation warnings.
 

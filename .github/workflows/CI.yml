@@ -64,27 +64,32 @@ jobs:
 
   rdflib-compat:
     # The main matrix tests the locked rdflib; this job proves the declared
-    # bounds of the `rdf` extra (rdflib>=7.0.0,<8) by running the RDF tests
+    # bounds of the `rdf` extra (pyproject.toml) by running the test suite
     # against the floor and the newest allowed 7.x (see docs/dependencies.md).
-    name: rdf tests on rdflib ${{ matrix.label }}
+    name: pytest on rdflib ${{ matrix.label }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - rdflib-version: "==7.0.0"
-            label: "7.0.0 (floor)"
+          - rdflib-version: "==7.1.1"
+            label: "7.1.1 (floor)"
           - rdflib-version: ">=7,<8"
             label: "latest 7.x"
     steps:
       - uses: actions/checkout@v7
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           python-version: "3.12"
-      - run: |
+      - name: Run tests
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: |
           uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
-          uv pip install "rdflib${{ matrix.rdflib-version }}"
+          uv pip install --upgrade-package rdflib "rdflib${{ matrix.rdflib-version }}"
           uv run --no-sync python -c "import rdflib; print('rdflib', rdflib.__version__)"
-          uv run --no-sync pytest src/prov/tests/test_rdf.py
+          uv run --no-sync pytest src/prov/tests
 
   lint:
     runs-on: ubuntu-latest
