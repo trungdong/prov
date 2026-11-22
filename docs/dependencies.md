@@ -79,6 +79,7 @@ Never installed for end users.
 | `pyld>=2.0.4` | Reference JSON-LD processor used only by `test_jsonld_semantics.py`; `prov` never imports it. The floor is a defensive baseline, not a verified minimum. |
 | `pytest>=8.4.2` | The test runner. |
 | `pytest-cov>=7.1.0` | Coverage attribution under pytest. |
+| `pytest-xdist>=3.8.0` | Runs the tests on one worker per CPU (`-n auto`) in the interpreter loop of `CONTRIBUTING.md`. It stays off the pytest configuration, because the tests in the sdist run without it. |
 | `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
 | `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so the module binds it to a typed alias and carries no `type: ignore`. |
