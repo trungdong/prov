@@ -93,7 +93,7 @@ a volunteer-driven project.
 # All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
 # choosing a PyPy 3.11 interpreter or environment for that run.
 for py in 3.10 cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
-    uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
+    uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest -n auto || break
 done
 
 uv run mypy src                  # strict, library and tests; configured in pyproject.toml
@@ -110,6 +110,8 @@ loop leaves `.venv` on PyPy, where mypy does not run, so pin any later command w
 `--python 3.12` and keep the extras, as in
 `uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph mypy src`.
 
+`-n auto` runs each interpreter's tests on one pytest-xdist worker per CPU.
+
 mypy checks the tests under the same strict settings as the library, so a new test module
 needs type annotations, including `-> None` on each test function. Test modules that do not
 pass yet are listed under `[[tool.mypy.overrides]]` in `pyproject.toml` with
@@ -123,8 +125,9 @@ The Codacy line runs the [Codacy CLI](https://github.com/codacy/codacy-analysis-
 the files you changed, Markdown included. Install it once with
 `npm install -g @codacy/analysis-cli`. Codacy also analyses every pull request on GitHub,
 and Coveralls reports coverage; neither blocks a merge. The maintainer reviews Codacy's
-findings and merges with none outstanding, and `uv run coverage report` stays above the
-`fail_under` floor in `pyproject.toml`.
+findings and merges with none outstanding, and `uv run coverage run -m pytest && uv run
+coverage report` stays above the `fail_under` floor in `pyproject.toml`. Run it without
+`-n`, because `coverage run` measures no xdist worker.
 
 CI also runs an advisory `own-warnings` job, which fails if `prov` raises a
 `DeprecationWarning`, `PendingDeprecationWarning` or `FutureWarning` of its own on the

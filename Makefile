@@ -35,7 +35,7 @@ test:
 
 test-all:
 	for py in 3.10 cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do \
-		uv run --python $$py --extra rdf --extra xml --extra dot --extra graph pytest || exit 1; \
+		uv run --python $$py --extra rdf --extra xml --extra dot --extra graph pytest -n auto || exit 1; \
 	done
 
 coverage:

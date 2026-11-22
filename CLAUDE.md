@@ -82,8 +82,9 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 `unittest.TestCase`.
 
 - No fixed pass/skip/xfail count is tracked. Compare `uv run pytest -q -rsx` against the
-  prior run. A skip or xfail that is new, gone or unexplained by your change is a regression;
-  one that matches an existing `reason=` tied to a tracked issue is routine.
+  prior run. The warnings count varies between runs and is higher under `-n auto`, so leave
+  it out of the comparison. A skip or xfail that is new, gone or unexplained by your change
+  is a regression; one that matches an existing `reason=` tied to a tracked issue is routine.
 - Known-lossy cases are permanent, documented limitations; never "fix" them. RDF's PROV-O
   gap and PROV-JSONLD's missing Mention term (C1 and C2 on `docs/reference/conformance.md`)
   each leave the affected target out of the scruffy or mention round trips in
