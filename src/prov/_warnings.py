@@ -17,7 +17,13 @@ from types import FrameType
 
 
 class ProvWarning(Warning):
-    """Base class for PROV model warnings."""
+    """Base class for PROV model warnings.
+
+    A reader's warning about a skipped ``<prov:other>`` element, a
+    skipped PROV-XML attribute or unconverted PROV-O types is also a
+    ``UserWarning``, so a filter written for 3.3.0 or earlier still
+    matches it. 4.0 drops the ``UserWarning`` base.
+    """
 
 
 class ProvFutureRejectionWarning(ProvWarning):
@@ -26,6 +32,14 @@ class ProvFutureRejectionWarning(ProvWarning):
     The class stays importable so that a filter written for 3.2.3, such as
     ``warnings.simplefilter("error", ProvFutureRejectionWarning)``, keeps
     working. 4.0 removes it.
+    """
+
+
+class _SkippedDataWarning(ProvWarning, UserWarning):
+    """A reader's warning about skipped data.
+
+    It is a ``UserWarning`` too, so that filters written for 3.3.0 or
+    earlier keep matching. 4.0 removes it in favour of ``ProvWarning``.
     """
 
 

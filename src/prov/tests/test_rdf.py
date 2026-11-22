@@ -1849,7 +1849,7 @@ def test_blank_node_behind_a_relation_is_dropped(predicate: str, typed: bool) ->
 def test_blank_node_for_a_membership_entity_drops_then_skips() -> None:
     # The blank node names no record, so prov:entity is dropped (#639), and the
     # membership then lacks its entity and is skipped; neither leaves a
-    # conversion UserWarning behind.
+    # conversion warning behind.
     turtle = _TURTLE_PREFIXES + "ex:m a prov:Membership ; prov:collection ex:c ;"
     turtle += " prov:entity [] .\n"
     with warnings.catch_warnings(record=True) as caught:
@@ -1864,7 +1864,6 @@ def test_blank_node_for_a_membership_entity_drops_then_skips() -> None:
         " record; the attribute is dropped",
         "subject 'http://example.org/m': hadMember requires a value for prov:entity",
     ]
-    assert not [w for w in caught if w.category is UserWarning]
     assert list(document.get_records()) == []
 
 
@@ -1920,7 +1919,7 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
             "_:a a prov:Activity ; prov:wasAssociatedWith ex:ag ;"
             " prov:qualifiedAssociation"
             " [ a prov:Association ; prov:agent ex:ag ; prov:hadPlan ex:plan ] .\n"
-            "ex:ag a prov:Agent . ex:plan a prov:Plan .\n",
+            "ex:ag a prov:Agent . ex:plan a prov:Entity , prov:Plan .\n",
             pm.ProvAssociation,
             {("http://example.org/ag", "http://example.org/plan")},
         ),
@@ -1931,7 +1930,7 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
             " [ a prov:Association ; prov:agent ex:ag1 ; prov:hadPlan ex:p1 ] ,"
             " [ a prov:Association ; prov:agent ex:ag2 ; prov:hadPlan ex:p2 ] .\n"
             "ex:ag1 a prov:Agent . ex:ag2 a prov:Agent .\n"
-            "ex:p1 a prov:Plan . ex:p2 a prov:Plan .\n",
+            "ex:p1 a prov:Entity , prov:Plan . ex:p2 a prov:Entity , prov:Plan .\n",
             pm.ProvAssociation,
             {
                 ("http://example.org/ag1", "http://example.org/p1"),

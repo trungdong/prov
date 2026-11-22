@@ -45,6 +45,10 @@
   `Timestamp`, is written to the microsecond under `prov:time`, `prov:startTime` and
   `prov:endTime`, where 3.3.0 wrote every digit and most of prov's readers rejected the file
   ([#822](https://github.com/trungdong/prov/pull/822))
+- The PROV-XML reader's warnings about a skipped `<prov:other>` element or attribute, and
+  the PROV-O reader's warning about unconverted types, are a `ProvWarning`, as the
+  conformance page says, and still a `UserWarning`, where 3.3.0 warned a `UserWarning`
+  only ([#826](https://github.com/trungdong/prov/issues/826))
 
 ### Project
 

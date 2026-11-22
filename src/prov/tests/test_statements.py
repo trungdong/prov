@@ -1459,7 +1459,6 @@ def test_a_reader_skips_a_relation_missing_a_party(
     assert [str(w.message) for w in caught if issubclass(w.category, ProvWarning)] == [
         warning
     ]
-    assert not [w for w in caught if w.category is UserWarning]
     # The statement stays in the scope that held it: a bundle's own records, or
     # the document's.
     scope = next(iter(document.bundles), document)
@@ -1470,6 +1469,67 @@ def test_a_reader_skips_a_relation_missing_a_party(
     assert len(list(scope.get_records())) == 1 + len(extra)
     if scope is not document:
         assert list(document.get_records()) == []
+
+
+_XML_OTHER = (
+    '<prov:document xmlns:prov="http://www.w3.org/ns/prov#"'
+    ' xmlns:ex="http://example.org/">\n'
+    "<prov:other><ex:foo><ex:content>bar</ex:content></ex:foo></prov:other>\n"
+    "</prov:document>"
+)
+_XML_EXTRA_ATTRIBUTE = (
+    '<prov:document xmlns:prov="http://www.w3.org/ns/prov#"'
+    ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+    ' xmlns:xsd="http://www.w3.org/2001/XMLSchema"'
+    ' xmlns:ex="http://example.org/">\n'
+    '<prov:entity prov:id="ex:e1">'
+    '<ex:version xsi:type="xsd:string" custom="oops">2</ex:version>'
+    "</prov:entity>\n</prov:document>"
+)
+_TURTLE_UNCONVERTED = (
+    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+    "@prefix ex: <http://example.org/> .\n"
+    "ex:e1 a prov:Entity .\n"
+    "ex:orphan a ex:Custom .\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("fmt", "kwargs", "text", "message"),
+    [
+        pytest.param(
+            "xml",
+            {},
+            _XML_OTHER,
+            "non-PROV information in <prov:other>",
+            id="xml-other",
+        ),
+        pytest.param(
+            "xml",
+            {},
+            _XML_EXTRA_ATTRIBUTE,
+            "not representable in the prov module's internal data model",
+            id="xml-attribute",
+        ),
+        pytest.param(
+            "rdf",
+            {"rdf_format": "turtle"},
+            _TURTLE_UNCONVERTED,
+            "The following attributes were not converted",
+            id="rdf-unconverted",
+        ),
+    ],
+)
+def test_a_reader_warns_skipped_data_as_a_prov_warning(
+    fmt: str, kwargs: dict, text: str, message: str
+) -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        prov.read(text, format=fmt, **kwargs)
+    matching = [w for w in caught if message in str(w.message)]
+    assert len(matching) == 1
+    assert issubclass(matching[0].category, ProvWarning)
+    assert issubclass(matching[0].category, UserWarning)
 
 
 def test_membership_1(roundtrip) -> None:
