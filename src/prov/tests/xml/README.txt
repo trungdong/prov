@@ -9,6 +9,5 @@ PROV-XML test documents, read by test_xml.py and the shared round-trip tests.
 * pc1.xml: a Provenance Challenge 1 style document from the ProvToolbox test
   resources (https://github.com/lucmoreau/ProvToolbox), with a few ordering and
   formatting changes so that it round-trips.
-* namespace_redefined.xml, namespace_redefined_but_does_not_change.xml and
-  nested_default_namespace.xml: documents for the namespace-handling tests in
-  test_xml.py.
+* namespace_redefined.xml and namespace_redefined_but_does_not_change.xml:
+  documents for the namespace-handling tests in test_xml.py.
