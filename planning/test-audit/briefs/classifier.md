@@ -51,7 +51,7 @@ Write one ledger for each module, `<work>/ledger/<module>.md`:
 - One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order. A script reads this table, so write a `|` inside a cell as `\|`.
 - `## Removed rows`: for each `removed` row listed for the module under `## Listed tests`, read its reason and the diff that the check names, and answer one question in one line: does the change undo the reason? The diff of a named test covers its function and the module-level assignments its decorators name, because the check compares both. A removed test has no table row. A yes is a proposal to restore the test, and the coordinator takes it to the maintainer. Leave the section out when no `removed` row is listed.
 - `## Identical-arc groups`: each group, with a one-line finding.
-- `## Proposals`: one short paragraph for each `merge`, `narrow` and `delete`. Say what exactly changes, which test keeps the fault covered, every input difference between candidate and takeover, and what a verifier should plant to refute you.
+- `## Proposals`: one short paragraph for each merge, under its incoming test, and for each `narrow` and `delete`. Say what exactly changes, which test keeps the fault covered, every input difference between candidate and takeover, and what a verifier should plant to refute you.
 - `## Rubric problems`: any case the rubric did not decide clearly, one line each. An empty section is fine.
 
 Write plain British English with no em dashes. `Pins` is one sentence.
