@@ -333,11 +333,12 @@ def test_every_reader_keeps_a_typed_time_with_a_long_fraction_as_a_literal(fmt) 
 
 class _NanosecondDatetime(datetime.datetime):
     """A datetime whose isoformat() carries nine fractional digits, as a pandas
-    Timestamp holding nanoseconds does."""
+    Timestamp holding nanoseconds does. The value needs a non-zero fraction."""
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         text = super().isoformat(sep, timespec)
-        return text[:26] + "789" + text[26:]
+        fraction = f".{self.microsecond:06d}"
+        return text.replace(fraction, fraction + "789", 1)
 
 
 def _a_document_timed_with(
@@ -346,9 +347,8 @@ def _a_document_timed_with(
     start = cls(2026, 11, 22, 10, 0, 5, 123456, tzinfo=UTC)
     document = ex_document()
     document.activity("ex:a1", start, start)
-    document.entity("ex:e1", {"ex:t": attribute_value})
+    document.entity("ex:e1", {"ex:t": attribute_value, "prov:time": start})
     document.generation("ex:e1", "ex:a1", start)
-    document.usage("ex:a1", "ex:e1", start)
     return document
 
 

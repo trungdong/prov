@@ -1302,7 +1302,12 @@ class ProvRecord:
             if attr in self.FORMAL_ATTRIBUTES:
                 continue
             for value in self._attributes[attr]:
-                text = encoding_provn_value(value)
+                if attr in PROV_ATTRIBUTE_LITERALS:
+                    # A time attribute holds a datetime, cut to microseconds.
+                    time = _xsd_datetime_text(value, statement=True)
+                    text = f'"{time}" %% {XSD_DATETIME}'
+                else:
+                    text = encoding_provn_value(value)
                 pairs.append(f"{attr.provn_bare_representation()}={text}")
         return pairs
 

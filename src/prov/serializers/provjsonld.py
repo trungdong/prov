@@ -27,6 +27,7 @@ from prov.constants import (
     PROV_ROLE,
     PROV_TYPE,
     PROV_VALUE,
+    XSD_DATETIME,
 )
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
@@ -273,7 +274,17 @@ def encode_jsonld_statement(
         if attr in record.FORMAL_ATTRIBUTES or not values:
             continue
         term = _encode_attribute_term(attr, rec_type)
-        obj[term] = [encode_jsonld_value(v, term, qname_text) for v in values]
+        if attr in PROV_ATTRIBUTE_LITERALS:
+            # A time attribute holds a datetime, cut to microseconds.
+            obj[term] = [
+                {
+                    "@value": _xsd_datetime_text(v, statement=True),
+                    "@type": str(XSD_DATETIME),
+                }
+                for v in values
+            ]
+        else:
+            obj[term] = [encode_jsonld_value(v, term, qname_text) for v in values]
     return obj
 
 
