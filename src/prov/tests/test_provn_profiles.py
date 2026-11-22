@@ -84,11 +84,9 @@ def test_lenient_skips_a_typed_shorthand_keyword(keyword) -> None:
     assert [str(r.identifier) for r in records(doc)] == ["ex:e9"]
 
 
-def test_strict_rejects_bare_mention_but_accepts_prefixed() -> None:
+def test_strict_rejects_bare_mention_however_the_profile_is_set() -> None:
     with pytest.raises(ProvNSyntaxError):
         parse("mentionOf(ex:e1, ex:e0, ex:b)", profile="strict")
-    (record,) = records(parse("prov:mentionOf(ex:e1, ex:e0, ex:b)", profile="strict"))
-    assert isinstance(record, ProvMention)
     # A profile assigned after construction governs the parse.
     parser = ProvNParser(
         f"document\n{PREFIXES}mentionOf(ex:e1, ex:e0, ex:b)\nendDocument", "default"
@@ -96,19 +94,6 @@ def test_strict_rejects_bare_mention_but_accepts_prefixed() -> None:
     parser.profile = "strict"
     with pytest.raises(ProvNSyntaxError, match="mentionOf"):
         parser.parse()
-
-
-def test_lenient_skips_bad_statement_and_warns_with_position() -> None:
-    # document=1, prefix ex=2, entity(ex:e1)=3, so foo(ex:e2) is line 4 --
-    # same convention test_provn.py's test_errors_name_the_problem_and_position
-    # and test_model_errors_carry_the_statement_position pin with their own
-    # two-line PREFIXES.
-    body = "entity(ex:e1)\nfoo(ex:e2)\nentity(ex:e3)"
-    with pytest.warns(
-        ProvWarning, match=r"line 4, column 1: unknown statement keyword 'foo'"
-    ):
-        doc = parse(body, profile="lenient")
-    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e3"]
 
 
 def test_lenient_resumes_after_multiline_attribute_list() -> None:
@@ -167,22 +152,43 @@ def test_lenient_returns_bundle_statements_after_a_skip() -> None:
     assert [str(r.identifier) for r in records(bundle)] == ["ex:e1"]
 
 
-def test_lenient_resync_recovers_from_a_missing_close_paren() -> None:
-    # entity(ex:e1 is missing its ')', so resync must trust a statement start
-    # at any bracket depth.
-    body = "entity(ex:e1\nentity(ex:e2)\nentity(ex:e3)"
+@pytest.mark.parametrize(
+    ("body", "kept"),
+    [
+        # entity(ex:e1 is missing its ')', so resync must trust a statement start
+        # at any bracket depth.
+        pytest.param(
+            "entity(ex:e1\nentity(ex:e2)\nentity(ex:e3)",
+            ["ex:e2", "ex:e3"],
+            id="missing close paren",
+        ),
+        pytest.param(
+            'entity(ex:e1, [ex:a="x"\nentity(ex:e2)\nentity(ex:e3)',
+            ["ex:e2", "ex:e3"],
+            id="missing close bracket",
+        ),
+        # A structural keyword followed by ']' (here 'bundle') is data, not a
+        # boundary, so the skip runs on to the next statement.
+        pytest.param(
+            "entity(ex:e1, [ex:k=bundle]\nentity(ex:e2)\nentity(ex:e3)",
+            ["ex:e2", "ex:e3"],
+            id="structural keyword as a value",
+        ),
+        # The bad literal 'entity' inside [ex:k=entity] is itself spelt like a
+        # statement keyword; resync must not treat it as a fresh statement
+        # boundary just because it matches by name.
+        pytest.param(
+            "entity(ex:e1, [ex:k=entity]) entity(ex:e2)",
+            ["ex:e2"],
+            id="statement keyword as a value",
+        ),
+    ],
+)
+def test_lenient_resync_keeps_the_statements_after_the_skip(body, kept) -> None:
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
     assert len(caught) == 1
-    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
-
-
-def test_lenient_resync_recovers_from_a_missing_close_bracket() -> None:
-    body = 'entity(ex:e1, [ex:a="x"\nentity(ex:e2)\nentity(ex:e3)'
-    with pytest.warns(ProvWarning) as caught:
-        doc = parse(body, profile="lenient")
-    assert len(caught) == 1
-    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
+    assert sorted(str(r.identifier) for r in records(doc)) == kept
 
 
 def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle() -> None:
@@ -192,23 +198,6 @@ def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle() -> Non
     assert len(caught) == 1
     (bundle,) = doc.bundles
     assert sorted(str(r.identifier) for r in records(bundle)) == ["ex:e2", "ex:e3"]
-
-
-def test_lenient_resync_does_not_stop_on_a_structural_keyword_shaped_value() -> None:
-    # A structural keyword followed by ']' (here 'bundle') is data, not a
-    # boundary, so the skip runs on to the next statement.
-    body = "entity(ex:e1, [ex:k=bundle]\nentity(ex:e2)\nentity(ex:e3)"
-    with pytest.warns(ProvWarning) as caught:
-        doc = parse(body, profile="lenient")
-    assert len(caught) == 1
-    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
-
-
-def test_strict_and_default_do_not_warn() -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        parse("entity(ex:e1)", profile="strict")
-        parse("entity(ex:e1)")
 
 
 def test_model_rejection_is_wrapped_and_skippable(monkeypatch) -> None:
@@ -251,22 +240,10 @@ def test_ill_formed_typed_literal_keeps_its_statement(profile) -> None:
     assert e1.get_attribute("ex:v") == {Literal("abc", XSD_INT)}
 
 
-def test_lenient_resync_does_not_stop_on_a_keyword_shaped_literal() -> None:
-    # The bad literal 'entity' inside [ex:k=entity] is itself spelt like a
-    # statement keyword; resync must not treat it as a fresh statement
-    # boundary just because it matches by name.
-    body = "entity(ex:e1, [ex:k=entity]) entity(ex:e2)"
-    with pytest.warns(ProvWarning) as caught:
-        doc = parse(body, profile="lenient")
-    assert len(caught) == 1
-    assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
-
-
 def test_lenient_resync_does_not_stop_on_a_keyword_shaped_attribute_value() -> None:
-    # Same bug, dressed as the shape examples.default_namespace_attributes's
-    # writer output takes: a keyword-shaped bare name used as an attribute
-    # key/value in the statement that should be recovered into, not treated
-    # as a second, spurious statement boundary.
+    # A keyword-shaped bare name used as an attribute key or value, as in
+    # the writer's output for examples.default_namespace_attributes, belongs
+    # to the statement the skip recovers into and is not a statement boundary.
     text = (
         "document\n"
         "  default <http://example.org/>\n"

@@ -40,12 +40,6 @@ def test_issue_repro_escaped_end_to_end() -> None:
     assert "entity(ex:weird\\'name\\)x\\,y)" in document.get_provn()
 
 
-def test_plain_local_parts_unchanged() -> None:
-    document = ex_document()
-    document.entity("ex:plain-name_1.x")
-    assert "entity(ex:plain-name_1.x)" in document.get_provn()
-
-
 def test_string_literal_backslash_escaped_before_quotes() -> None:
     document = ex_document()
     document.entity("ex:e1", {"ex:note": 'back\\slash and "quote"'})
@@ -54,30 +48,35 @@ def test_string_literal_backslash_escaped_before_quotes() -> None:
     assert '\\\\slash and \\"quote\\"' in provn
 
 
-def test_bundle_identifier_metachar_is_escaped() -> None:
+@pytest.mark.parametrize(
+    ("identifier", "written"),
+    [
+        pytest.param(
+            "ex:weird'bundle", "bundle ex:weird\\'bundle", id="metacharacter escaped"
+        ),
+        pytest.param("ex:plain-bundle", "bundle ex:plain-bundle", id="plain unchanged"),
+    ],
+)
+def test_bundle_identifier_escaping(identifier, written) -> None:
     document = ex_document()
-    bundle = document.bundle("ex:weird'bundle")
+    bundle = document.bundle(identifier)
     bundle.entity("ex:e1")
-    assert "bundle ex:weird\\'bundle" in document.get_provn()
+    assert written in document.get_provn()
 
 
-def test_bundle_identifier_plain_unchanged() -> None:
+@pytest.mark.parametrize(
+    ("key", "written"),
+    [
+        pytest.param(
+            "ex:weird'key", '[ex:weird\\\'key="value"]', id="metacharacter escaped"
+        ),
+        pytest.param("ex:plain_key", '[ex:plain_key="value"]', id="plain unchanged"),
+    ],
+)
+def test_attribute_name_escaping(key, written) -> None:
     document = ex_document()
-    bundle = document.bundle("ex:plain-bundle")
-    bundle.entity("ex:e1")
-    assert "bundle ex:plain-bundle" in document.get_provn()
-
-
-def test_attribute_name_metachar_is_escaped() -> None:
-    document = ex_document()
-    document.entity("ex:e1", {"ex:weird'key": "value"})
-    assert '[ex:weird\\\'key="value"]' in document.get_provn()
-
-
-def test_attribute_name_plain_unchanged() -> None:
-    document = ex_document()
-    document.entity("ex:e1", {"ex:plain_key": "value"})
-    assert '[ex:plain_key="value"]' in document.get_provn()
+    document.entity("ex:e1", {key: "value"})
+    assert written in document.get_provn()
 
 
 @pytest.mark.parametrize(
@@ -88,6 +87,7 @@ def test_attribute_name_plain_unchanged() -> None:
         ("abc.", "abc\\."),  # trailing dot is escaped
         ("-", "\\-"),  # the Recommendation's own PN_LOCAL example
         ("ab-cd.ef", "ab-cd.ef"),  # inner dash and dot stay bare
+        ("plain-name_1.x", "plain-name_1.x"),  # nothing to escape
     ],
 )
 def test_dash_and_dot_local_parts(local, written) -> None:
@@ -132,19 +132,19 @@ def test_every_local_part_that_can_be_built_is_written_reversibly() -> None:
     ] == []
 
 
-def test_short_string_carriage_return_is_escaped() -> None:
+@pytest.mark.parametrize(
+    ("value", "written"),
+    [
+        pytest.param("a\rb", '[ex:note="a\\rb"]', id="lone CR escaped"),
+        # A CRLF value takes the triple-quoted form, and its CR stays raw.
+        pytest.param("a\r\nb", '[ex:note="""a\r\nb"""]', id="CRLF stays triple quoted"),
+    ],
+)
+def test_carriage_return_in_a_string(value, written) -> None:
     document = ex_document()
-    document.entity("ex:e1", {"ex:note": "a\rb"})
+    document.entity("ex:e1", {"ex:note": value})
     provn = _roundtrips(document)
-    assert '[ex:note="a\\rb"]' in provn
-
-
-def test_crlf_string_stays_triple_quoted() -> None:
-    """A CRLF value still takes the triple-quoted path, CR unaffected by the escape fix."""
-    document = ex_document()
-    document.entity("ex:e1", {"ex:note": "a\r\nb"})
-    provn = _roundtrips(document)
-    assert '[ex:note="""a\r\nb"""]' in provn
+    assert written in provn
 
 
 def test_mention_bare_keyword_no_prefix() -> None:

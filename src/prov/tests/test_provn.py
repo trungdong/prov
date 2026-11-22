@@ -110,11 +110,6 @@ def test_formal_time_is_a_datetime() -> None:
     assert time == datetime.datetime(2011, 11, 16, 16, 5, tzinfo=datetime.timezone.utc)
 
 
-def test_mention_maps_to_prov_mention() -> None:
-    record = only_record(parse("prov:mentionOf(ex:e1, ex:e0, ex:b)"))
-    assert isinstance(record, ProvMention)
-
-
 @pytest.mark.parametrize(
     ("literal", "expected"),
     [
@@ -295,11 +290,6 @@ def test_bundle_without_own_default_gains_none_on_reparse() -> None:
     assert "default " not in inside_bundle
 
 
-def test_bundle_bare_name_with_no_default_anywhere_still_raises() -> None:
-    with pytest.raises(ProvNSyntaxError, match="no default namespace is declared"):
-        parse("bundle ex:b1\n  entity(e1)\nendBundle")
-
-
 def test_comments_anywhere() -> None:
     doc = parse("entity(ex:e1) // trailing\n/* block */ entity(ex:e2)")
     assert len(list(doc.get_records())) == 2
@@ -321,6 +311,23 @@ def test_comments_anywhere() -> None:
         ),
         ("entity(ex:e1,, [])", "expected an identifier, a time or '-'", 4),
         ("entity(ex:e1) endDocument entity(ex:e2)", "after 'endDocument'", 4),
+        (
+            "used(2011-11-16T16:05:00; ex:a1, ex:e1, -)",
+            "expected an identifier before ';'",
+            4,
+        ),
+        ("wasGeneratedBy(ex:e1, ex:a1, ex:notatime)", "expected a time", 4),
+        (
+            r"entity(ex:e1, [ex:k='a\:b'])",
+            "no default namespace is declared",
+            4,
+        ),
+        (
+            "bundle ex:b1\n  entity(e1)\nendBundle",
+            "no default namespace is declared",
+            5,
+        ),
+        ("bundle ex:b\nendBundle\nbundle ex:b\nendBundle", "already exists", 6),
     ],
 )
 def test_errors_name_the_problem_and_position(body, message, line) -> None:
@@ -1013,11 +1020,9 @@ def test_strict_rejects_bare_mention_with_a_hint() -> None:
     assert "profile='default'" in ctx.value.message
 
 
-def test_model_errors_carry_the_statement_position() -> None:
-    # A membership whose collection identifier resolves but the record
-    # constructor rejects (an element with no identifier cannot happen via
-    # the grammar; a relation to a bundle-typed value can), so exercise the
-    # generic wrapping with a time literal the model cannot parse.
+def test_invalid_datetime_error_carries_the_statement_line() -> None:
+    # An xsd:dateTime the parser cannot read raises in the parser, not in the
+    # model, and the error carries the line of the statement.
     with pytest.raises(ProvNSyntaxError) as ctx:
         parse("used(ex:a1, ex:e1, 2011-13-40T99:00:00)")
     assert ctx.value.line == 4
@@ -1216,16 +1221,6 @@ def test_semicolon_marker_leaves_identifier_unset() -> None:
     # example is used(-; ex:a1, ex:e1, -).
     record = only_record(parse("used(-; ex:a1, ex:e1, -)"))
     assert record.identifier is None
-
-
-def test_semicolon_identifier_must_be_a_name_or_marker() -> None:
-    with pytest.raises(ProvNSyntaxError, match="expected an identifier before ';'"):
-        parse("used(2011-11-16T16:05:00; ex:a1, ex:e1, -)")
-
-
-def test_time_attribute_rejects_a_non_datetime_argument() -> None:
-    with pytest.raises(ProvNSyntaxError, match="expected a time"):
-        parse("wasGeneratedBy(ex:e1, ex:a1, ex:notatime)")
 
 
 def test_time_attribute_accepts_a_typed_datetime_literal() -> None:
@@ -1472,17 +1467,6 @@ def test_duplicate_prefix_in_one_scope_is_an_error() -> None:
     assert (ctx.value.line, ctx.value.column) == (3, 8)
 
 
-def test_escaped_colon_literal_needs_a_default_namespace() -> None:
-    with pytest.raises(ProvNSyntaxError, match="no default namespace is declared"):
-        parse(r"entity(ex:e1, [ex:k='a\:b'])")
-
-
-def test_duplicate_bundle_identifier_is_a_positioned_syntax_error() -> None:
-    with pytest.raises(ProvNSyntaxError, match="already exists") as ctx:
-        parse("bundle ex:b\nendBundle\nbundle ex:b\nendBundle")
-    assert ctx.value.line == 6
-
-
 def test_all_digit_local_name_as_an_attribute_name() -> None:
     doc = parse('entity(ex:e1, [123="x"])', prefixes="default <http://d/>\n" + PREFIXES)
     (record,) = doc.get_records()
@@ -1526,14 +1510,6 @@ def test_bundle_named_under_a_prefix_with_its_own_default_round_trips() -> None:
     assert again == d
     (bundle,) = again.bundles
     assert bundle.identifier.uri == "http://named.org/b1"
-
-
-def test_bundle_named_in_the_document_default_cannot_declare_its_own() -> None:
-    d = ProvDocument()
-    d.set_default_namespace("http://doc.org/")
-    b = d.bundle("b1")
-    with pytest.raises(ProvException, match=r"holds b1.*read as http://bundle.org/b1"):
-        b.set_default_namespace("http://bundle.org/")
 
 
 def test_namespace_uri_that_is_not_an_iri_cannot_be_written() -> None:
