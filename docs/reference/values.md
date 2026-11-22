@@ -22,7 +22,7 @@ has no lexical form.
 | `bool` | `xsd:boolean` | `true` or `false` |
 | `int` | `xsd:int` within 32 bits, `xsd:long` within 64 bits, `xsd:integer` beyond | its digits |
 | `float` | `xsd:double` | `repr()`, or `NaN`, `INF` or `-INF` |
-| `datetime.datetime` | `xsd:dateTime` | `isoformat()`; an offset that is not a whole number of minutes becomes UTC, and one beyond ±14:00 is an error |
+| `datetime.datetime` | `xsd:dateTime` | `isoformat()`, cut to microseconds under `prov:time`, `prov:startTime` and `prov:endTime`; an offset that is not a whole number of minutes becomes UTC, and one beyond ±14:00 is an error |
 | `decimal.Decimal` | `xsd:decimal` | `format(value, "f")`, so `Decimal("1E+2")` is `100`; `NaN`, an infinity or a value too long to write is an error |
 | `datetime.date` | `xsd:date` | `isoformat()` |
 | `datetime.time` | `xsd:time` | `isoformat()`; an offset that is not a whole number of minutes or is beyond ±14:00 is an error |
