@@ -1,6 +1,6 @@
 # Brief: judge (layer 5, Opus, read-only apart from a restored planted fault)
 
-Send this brief when a module has at least one proposal. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a detached worktree at `main` that no other judge shares, with the merge patch applied when there is one) and the list of proposals. Do not tell the judge what you or the maintainer expect it to rule.
+Send this brief when a module has at least one proposal. Fill `<repo>`, `<work>`, `<module>`, `<worktree>` (a detached worktree at `main` that no other judge shares, with the merge patch applied when there is one, and the section patch when a proposal drops a section) and the list of proposals. Do not tell the judge what you or the maintainer expect it to rule.
 
 ---
 
@@ -20,11 +20,11 @@ One ruling for each proposal, at the finest grain proposed:
 
 <list the proposals>
 
-For a removal, rule `remove` or `keep`. For a merge, rule `merge`, `merge with changes` (say exactly what must change) or `keep`. For each ruling, do the work "Rules for the judge" asks: confirm from the code what keeps the behaviour pinned, weigh each separating fault as plausible or contrived, check a merge against rules 4 and 5, and say whether a limit of the evidence matters for this ruling.
+For a removal, rule `remove` or `keep`. For a merge, rule `merge`, `merge with changes` (say exactly what must change) or `keep`. For each ruling, do the work "Rules for the judge" asks: confirm from the code what keeps the behaviour pinned, weigh each separating fault as plausible or contrived, check a merge against rules 4 and 5, and say whether a limit of the evidence matters for this ruling. For a merge, confirm from the verifier's file that each assertion a joining row gains holds today, and that another test pins any original form it replaced. For a removal whose candidate has a warning filter, name a takeover for every category the filter turns into an error.
 
 For a `rewrite` or a `query` in the ledger, write one paragraph of advice for the maintainer: what the test pins and what the options are. Probe a suspected defect before you report it.
 
-Before you write that only one test checks a behaviour, cite a run that shows it. The run is a fault in that behaviour under which the whole suite fails that test and no other. Cite one from the verifier's file when its run deselected that test alone, or plant one in `<worktree>` and run the whole suite there (`uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --hypothesis-profile=ci`). Restore a planted file with `git checkout --` and that source file's path, never `src/`, and check that `git status --short` then shows only the merge patch.
+Before you write that only one test checks a behaviour, cite a run that shows it. The run is a fault in that behaviour under which the whole suite fails that test and no other. Cite one from the verifier's file when its run deselected that test alone, or plant one in `<worktree>` and run the whole suite there with `PYTHONDONTWRITEBYTECODE=1`, after deleting the `__pycache__` folders under `src/` (`uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph pytest -q -p no:cacheprovider --hypothesis-profile=ci`). Restore a planted file with `git checkout --` and that source file's path, never `src/`, and check that `git status --short` then shows only the patches the worktree started with.
 
 You may flag a `keep` you doubt, and a pair in the identical-arc groups that looks like a missed merge or a true duplicate. Do not add a removal or a merge to the final list that has not been through the verifier.
 
@@ -33,7 +33,7 @@ You may flag a `keep` you doubt, and a pair in the identical-arc groups that loo
 Write `<work>/ledger/<module>.judge.md`:
 
 - `# Judge: <module>.py` and one line with the counts.
-- A table with one row for each ruling: `Proposal | Items | Ruling | Reason`. The Reason is one or two sentences that a later reader can check against the code. It names the test and the rows that keep the behaviour pinned, or the fault or the promise that keeps the candidate. It cites the issue that underpins the test, as `#532`, and the functions and the lines it relies on, as `_decode_time` (`provjson.py:722`).
+- A table with one row for each ruling: `Proposal | Items | Ruling | Reason`. The Reason is one or two sentences that a later reader can check against the code. It names the test and the rows that keep the behaviour pinned, or the fault or the promise that keeps the candidate. It cites the issue that underpins the test, as `#532`, and the functions and the lines it relies on, as `_decode_time` (`provjson.py:722`). It describes each fault in words, never by a report label such as F1, because the register copies it.
 - `## Final list`: for removals, the exact pytest ids ruled `remove`, or for a dropped section the test and the patch, each with the test or rows that take over its job and its reason in one clause. For merges, the original function names, the new name and any change required.
 - `## Notes for the maintainer`: the advice on each `rewrite` and `query`, each disagreement with an earlier layer and why, each limit of the evidence the maintainer should know, and each flag.
 

@@ -24,7 +24,9 @@ A proposal is REFUTED when a plausible fault exists that the candidate catches a
 
 A. Read. State what the candidate asserts that the takeover does not: a different input shape, record type, code path, order, message detail or issue. Read the issue the test names (`gh issue view <n>`), `HISTORY.md` and the docs for a promise about exactly the candidate's input. When an issue lists the candidate's shape as its own defect, say so.
 
-B. Plant faults. Write up to four small, plausible faults in the source the candidate exercises, one at a time. A plausible fault is one a real edit could introduce: a guard narrowed so it misses the candidate's input shape, one attribute name special-cased, the second element of a list mishandled, an order changed, a field dropped from a message. For each fault:
+When the candidate's warning filter turns more categories into errors than the takeover's does, one of the faults below raises a warning in a category outside the takeover's filter (`rubric.md`, rule 2).
+
+B. Plant faults. Set `PYTHONDONTWRITEBYTECODE=1` and delete the `__pycache__` folders under `src/` before each run, because a fault that keeps a file's size can leave stale bytecode in use. Write up to four small, plausible faults in the source the candidate exercises, one at a time. A plausible fault is one a real edit could introduce: a guard narrowed so it misses the candidate's input shape, one attribute name special-cased, the second element of a list mishandled, an order changed, a field dropped from a message. For each fault:
 
 1. Run the candidate alone. If it still passes, the fault is not relevant. Try another.
 2. If it fails, run the WHOLE suite with the candidate deselected. Pass each id to `--deselect` exactly as `pytest --collect-only -q` prints it, and check that the collected count fell by the right number. For an id that is a prefix of another, follow `mutation.md` (Pitfalls). For a row, also deselect the other rows proposed for removal from the same test. When another proposal names this candidate as its takeover, or this candidate's takeover is itself proposed, deselect them together. For a dropped section, apply the patch that deletes it in place of `--deselect`, and apply it again after each restore in step 4.
@@ -39,7 +41,7 @@ The test command is `uv run --python 3.12 --extra rdf --extra xml --extra dot --
 
 ## Output
 
-Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with its result. For a proposal that stands, list every separating fault you found and why it is contrived. For a dropped section, end its section with the patch that deletes it, as `git diff` prints it, so the coordinator can save it as `<work>/ledger/<module>.section.patch`. Plain British English, no em dashes. Give one verdict per proposal or row and use it consistently, from the first line of its section to the table.
+Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with the function and the line it changes and its result. For a proposal that stands, list every separating fault you found and why it is contrived. For a dropped section, end its section with the patch that deletes it, as `git diff` prints it, so the coordinator can save it as `<work>/ledger/<module>.section.patch`. Plain British English, no em dashes. Give one verdict per proposal or row and use it consistently, from the first line of its section to the table.
 
 ## Report
 

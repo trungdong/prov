@@ -56,7 +56,7 @@ Working files (evidence, ledgers, verifier and judge reports) go in a dated fold
    - Run the check after the stamp. `stamp` keeps the anchor of a row whose own text is unchanged. So a row of an existing register that names a test this batch removed, merged or edited still comes out `source moved`. Re-read each such reason against the change and correct it if it no longer holds.
    - Run `check --names` over the batch's modules. A row written in this batch was anchored after every change of the batch, so the check cannot see a sibling test that a later apply step changed. Re-read each row written in this batch that names a test in another test file the batch changed, whether or not that file has a register. Re-read each line marked `(no such test)` too.
    - Empty the `audit_commit` and `fingerprint` of each row you corrected or re-read, stamp again and commit the register files as a new commit.
-5. Open one pull request for the batch. It holds the test changes and the register files of every module in it. The pull request needs no `HISTORY.md` entry.
+5. Open one pull request for the batch. It holds the test changes and the register files of every module in it. The pull request needs no `HISTORY.md` entry. Write the claims in its body from the register rows, not from the commit messages.
 6. The rows the check lists under `rewrite and query` and `later audit` are the audit's standing backlog. Report the rows this batch added to the maintainer with the pull request. A row leaves the lists when a later change carries out the rewrite or answers the query or the follow-up, and an audit rules on the row again.
 
 ## For the coordinator
@@ -77,22 +77,24 @@ Rules that keep the cost down and the result sound:
 - Set the model on every agent. No agent inherits the coordinator's model.
 - Every brief you send, from a template or not, carries two rules, and you add whichever one it lacks. The agent never runs `git stash`, and `conftest.py` imports nothing that needs an extra (`provrdf`, `provxml`, `prov.dot`, `prov.graph`), so a shared map that needs one lives in a test helper module.
 - Build the evidence once for the whole suite, not once for each module.
-- Give one classifier several small modules, up to about 60 test functions in all. Run classifiers for different modules in parallel.
+- Give one classifier several small modules, up to about 60 test functions in all, or a single module of up to about 70. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5, apart from the removal verifier's planted fault for a `rewrite` (step 3). `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
 - Run one mutation check at a time, and never beside the gate runner or a judge.
 - Give each judge its own worktree, because a judge may plant a fault there.
 - Do not tell the judge what anyone expects it to rule.
 - Stop for the maintainer after each judge's list. Apply nothing before the ruling.
 - A takeover claim in a question to the maintainer copies the judge's `## Final list` line for that item, never a summary of it and never the ledger's description.
+- When the maintainer chooses an option a judge offered, probe the option's own wording against the code before you carry it out.
 - When a classifier or a judge reports a rubric problem, propose a rule to the maintainer. Add it to `rubric.md` only after the maintainer agrees.
 - When a layer reports a suspected defect in the library, probe it, then report it to the maintainer. A fix is a separate change with its own issue.
 - Check for leftover processes after each agent that ran mutmut.
 - Settle each row the check reports as gone. Mark it `removed`, `ruled_by` `maintainer`, with the reason and the test that took over its job, or delete it when the test was renamed.
-- Three kinds of small pull request need no question to the maintainer:
+- Four kinds of small pull request need no question to the maintainer:
   - One that adds a row or a case to a test a later layer ruled extends that ruling. Its register row follows the `ruled_by` cell of `rubric.md` (The register).
   - One that makes an edit that changes no input value and no assertion, such as a literal replaced by a constant of equal value or a renamed local, also extends the ruling. The commit message says why the edit changes neither, and the pre-PR regime reviews the diff.
   - One that adds a test writes the test's row in the same pull request, as `keep` ruled by the `maintainer`, with a reason that names the fault the test guards. Its reason follows the rules for a row a later layer ruled (`rubric.md`, The register). `stamp` refuses a module with a test that has no row. When the maintainer rules in review that an existing test folds into the new one, the new test's row is `merged`, ruled by the `maintainer`, and the original gets a `removed` row naming the takeover.
-- Before any stamp outside a full audit, such as after a small pull request or a change to the fingerprint, run `check` on the base, before the change, and settle every row of the module it reports as source moved or changed. Then stamp the rows again. `check` reports a row as changed before it looks for source moved, and a stamp moves `audit_commit` past any change still pending. After the stamp, follow the last three bullets of step 4, reading the pull request's modules for the batch's.
+  - One that carries out a `rewrite` the maintainer ruled. Its row leaves `rewrite` for `keep`, ruled by the `maintainer`, with a reason that names the fault the test now guards. A fault planted in that code fails the test in a whole-suite run.
+- Before any stamp outside a full audit, such as after a small pull request or a change to the fingerprint, run `check` on the base, before the change, and settle every row of the module it reports as source moved or changed. Then stamp the rows again. `stamp` re-anchors only a row whose test text changed. For a row that is source moved, empty its `audit_commit` and `fingerprint` cells first, as step 4 says. `check` reports a row as changed before it looks for source moved, and a stamp moves `audit_commit` past any change still pending. After the stamp, follow the last three bullets of step 4, reading the pull request's modules for the batch's.
 - When a judge or a classifier asks for a fault to be planted before anyone proposes removing a test it keeps, put the request on that test's row as a `Later audit:` sentence at apply time. A request left only in a ledger is lost.
 - When a takeover sits in another module of the batch, give that module's proposals on it to the verifier and the judge of the candidate's module, and the candidate's proposal to those of the takeover's module.
 - When a ruling routes work to a layer, trace one case through every brief from the classifier to the register before the commit: the send condition, the method, the verdict and the file each agent hands on.
