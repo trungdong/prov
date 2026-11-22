@@ -11,9 +11,10 @@ A record stores each attribute value in the form shown below, and `get_attribute
 a set of those stored forms. A `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`,
 `bytearray`, `memoryview` or `Identifier` is stored as a {py:class}`~prov.model.Literal` of
 its XSD datatype, and a record as its identifier. Every other type below keeps its Python
-type. A subclass of a listed type counts as that type. A value of any other type, such as a
-`Fraction` or a `list`, raises {py:class}`~prov.model.ProvValueError`. So does a value of a
-listed type that has no lexical form.
+type. A subclass of a listed type counts as that type, and a `str` subclass is stored as the
+plain `str` that `str()` returns. A value of any other type, such as a `Fraction` or a
+`list`, raises {py:class}`~prov.model.ProvValueError`. So does a value of a listed type that
+has no lexical form.
 
 | Python type | Datatype | Lexical form |
 | --- | --- | --- |
