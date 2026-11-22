@@ -17,7 +17,7 @@ listed type that has no lexical form.
 
 | Python type | Datatype | Lexical form |
 | --- | --- | --- |
-| `str` | `xsd:string` | the text as given |
+| `str` | `xsd:string` | the text as given, or for a subclass the text `str()` returns |
 | `bool` | `xsd:boolean` | `true` or `false` |
 | `int` | `xsd:int` within 32 bits, `xsd:long` within 64 bits, `xsd:integer` beyond | its digits |
 | `float` | `xsd:double` | `repr()`, or `NaN`, `INF` or `-INF` |

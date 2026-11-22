@@ -296,13 +296,13 @@ def python_value_form(value: object) -> tuple[str | None, QualifiedName] | None:
     """The lexical text and XSD datatype prov spells ``value`` with.
 
     The five plain types spell as the writers write them: a ``str`` as given
-    with ``xsd:string``, a ``bool`` as ``true`` or ``false``, an ``int`` as
-    its digits with the datatype of :func:`canonical_xsd_datatype`, a
-    ``float`` in xsd:double form, a ``datetime`` in ISO 8601 form. A type
-    the model stores as a typed ``Literal`` (#482) spells in that datatype's
-    lexical form. ``None`` when the type has no PROV form; the text is
-    ``None`` when the type converts but this value has no lexical form, such
-    as ``Decimal("NaN")``.
+    with ``xsd:string`` (a subclass as its ``str()``), a ``bool`` as
+    ``true`` or ``false``, an ``int`` as its digits with the datatype of
+    :func:`canonical_xsd_datatype`, a ``float`` in xsd:double form, a
+    ``datetime`` in ISO 8601 form. A type the model stores as a typed
+    ``Literal`` (#482) spells in that datatype's lexical form. ``None`` when
+    the type has no PROV form; the text is ``None`` when the type converts
+    but this value has no lexical form, such as ``Decimal("NaN")``.
     """
     for types, datatype, text in _PROV_FORMS:
         if isinstance(value, types):

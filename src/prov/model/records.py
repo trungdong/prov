@@ -391,14 +391,14 @@ def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
 def encoding_provn_value(value: object) -> str:
     """Return the PROV-N literal representation of a Python value.
 
-    A ``str`` is quoted (triple-quoted when it spans multiple lines). Any other
+    A ``str`` is quoted (triple-quoted when it has a line feed). Any other
     value that has a PROV form (a ``bool``, ``int``, ``float`` or
     ``datetime``, or a ``Decimal``, ``date``, ``time``, ``timedelta``, ``UUID``
     or bytes-like value) is written as ``"text" %% datatype``, except an
     ``xsd:int``, which is a bare ``INT_LITERAL``. Booleans render as
-    ``"true"``/``"false"``, and floats as full-precision ``xsd:double`` (#251). Plain ints are typed by magnitude: from -(2**31) to 2**31-1 they render
-    as a bare ``INT_LITERAL`` (PROV-N [60] sugar for ``xsd:int``); beyond that
-    they carry an explicit ``xsd:long``/``xsd:integer`` suffix (#249). A
+    ``"true"``/``"false"``, and floats as full-precision ``xsd:double``. Plain ints are typed by magnitude: from -(2**31) to 2**31-1 they render
+    as a bare ``INT_LITERAL`` (PROV-N sugar for ``xsd:int``); beyond that
+    they carry an explicit ``xsd:long``/``xsd:integer`` suffix. A
     qualified name, and any value with no PROV form or no lexical form, is
     rendered via :func:`str`. A ``str`` subclass is quoted from the text that
     :func:`str` returns for it.
