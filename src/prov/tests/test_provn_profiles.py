@@ -241,12 +241,9 @@ def test_ill_formed_typed_literal_keeps_its_statement(profile) -> None:
 
 
 def test_lenient_resync_does_not_stop_on_a_keyword_shaped_attribute_value() -> None:
-    # The bug of the "statement keyword as a value" row of
-    # test_lenient_resync_keeps_the_statements_after_the_skip, dressed as the
-    # shape examples.default_namespace_attributes's
-    # writer output takes: a keyword-shaped bare name used as an attribute
-    # key/value in the statement that should be recovered into, not treated
-    # as a second, spurious statement boundary.
+    # A keyword-shaped bare name used as an attribute key or value, as in
+    # the writer's output for examples.default_namespace_attributes, belongs
+    # to the statement the skip recovers into and is not a statement boundary.
     text = (
         "document\n"
         "  default <http://example.org/>\n"
