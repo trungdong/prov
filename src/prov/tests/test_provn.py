@@ -1020,9 +1020,9 @@ def test_strict_rejects_bare_mention_with_a_hint() -> None:
     assert "profile='default'" in ctx.value.message
 
 
-def test_model_errors_carry_the_statement_position() -> None:
-    # An xsd:dateTime the parser cannot read raises at its own token, and the
-    # error carries the line of the statement.
+def test_invalid_datetime_error_carries_the_statement_line() -> None:
+    # An xsd:dateTime the parser cannot read raises in the parser, not in the
+    # model, and the error carries the line of the statement.
     with pytest.raises(ProvNSyntaxError) as ctx:
         parse("used(ex:a1, ex:e1, 2011-13-40T99:00:00)")
     assert ctx.value.line == 4

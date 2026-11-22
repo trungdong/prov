@@ -136,7 +136,7 @@ def test_every_local_part_that_can_be_built_is_written_reversibly() -> None:
     ("value", "written"),
     [
         pytest.param("a\rb", '[ex:note="a\\rb"]', id="lone CR escaped"),
-        # A CRLF value still takes the triple-quoted path, CR unaffected by the escape fix.
+        # A CRLF value takes the triple-quoted form, and its CR stays raw.
         pytest.param("a\r\nb", '[ex:note="""a\r\nb"""]', id="CRLF stays triple quoted"),
     ],
 )
