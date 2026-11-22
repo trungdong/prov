@@ -8,7 +8,7 @@ compacted shape only, one JSON object per PROV-DM statement in ``@graph``.
 import datetime
 import io
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from functools import lru_cache
 from importlib.resources import files
 from typing import Any
@@ -274,17 +274,14 @@ def encode_jsonld_statement(
         if attr in record.FORMAL_ATTRIBUTES or not values:
             continue
         term = _encode_attribute_term(attr, rec_type)
+        items: Iterable[object] = values
         if attr in PROV_ATTRIBUTE_LITERALS:
             # A time attribute holds a datetime, cut to microseconds.
-            obj[term] = [
-                {
-                    "@value": _xsd_datetime_text(v, statement=True),
-                    "@type": str(XSD_DATETIME),
-                }
+            items = [
+                Literal(_xsd_datetime_text(v, statement=True), XSD_DATETIME)
                 for v in values
             ]
-        else:
-            obj[term] = [encode_jsonld_value(v, term, qname_text) for v in values]
+        obj[term] = [encode_jsonld_value(v, term, qname_text) for v in items]
     return obj
 
 
