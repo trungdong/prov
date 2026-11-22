@@ -44,6 +44,7 @@ from prov.model import (
     parse_xsd_datetime,
 )
 from prov.model._values import _xsd_datetime_text, python_value_form
+from prov.model.records import _time_literal
 from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 from prov.serializers._json_common import (
     _add_memberships,
@@ -265,7 +266,7 @@ def encode_jsonld_statement(
         if values:
             value = first(values)
             obj[attr.localpart] = (
-                _xsd_datetime_text(value)  # type: ignore[arg-type]
+                _xsd_datetime_text(value, statement=True)  # type: ignore[arg-type]
                 if attr in PROV_ATTRIBUTE_LITERALS
                 else qname_text(value)
             )
@@ -273,7 +274,11 @@ def encode_jsonld_statement(
         if attr in record.FORMAL_ATTRIBUTES or not values:
             continue
         term = _encode_attribute_term(attr, rec_type)
-        obj[term] = [encode_jsonld_value(v, term, qname_text) for v in values]
+        timed = attr in PROV_ATTRIBUTE_LITERALS
+        obj[term] = [
+            encode_jsonld_value(_time_literal(v) if timed else v, term, qname_text)
+            for v in values
+        ]
     return obj
 
 

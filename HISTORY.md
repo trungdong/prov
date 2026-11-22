@@ -37,6 +37,10 @@
 - The PROV-JSONLD reader registers the `rdf`, `rdfs` and `provext` prefixes that the
   submission context binds when a document references it, so names under them resolve,
   where 3.3.0 rejected them as undeclared ([#724](https://github.com/trungdong/prov/issues/724))
+- A `datetime` subclass with a fraction beyond microseconds, such as a nanosecond pandas
+  `Timestamp`, is written to the microsecond under `prov:time`, `prov:startTime` and
+  `prov:endTime`, where 3.3.0 wrote every digit and most of prov's readers rejected the file
+  ([#822](https://github.com/trungdong/prov/pull/822))
 
 ### Project
 

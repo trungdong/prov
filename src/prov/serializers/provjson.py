@@ -270,7 +270,8 @@ def encode_json_container(
                     record_json[attr_name] = qname_text(first(values))
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     record_json[attr_name] = _xsd_datetime_text(
-                        first(values)  # type: ignore[arg-type]
+                        first(values),  # type: ignore[arg-type]
+                        statement=True,
                     )
                 else:
                     if len(values) == 1:

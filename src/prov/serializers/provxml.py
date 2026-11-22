@@ -640,7 +640,7 @@ def _encode_attribute_value(
             subelem.attrib[_ns_xsi("type")] = "xsd:QName"
         return _name_text(subelem, value)
     elif isinstance(value, datetime.datetime):
-        return _xsd_datetime_text(value)
+        return _xsd_datetime_text(value, statement=attr in PROV_ATTRIBUTE_LITERALS)
     elif isinstance(value, float):
         return _xsd_double_text(value)
     elif isinstance(value, int) and not isinstance(value, bool):

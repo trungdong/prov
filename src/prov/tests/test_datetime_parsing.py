@@ -17,7 +17,12 @@ from prov.model import (
     parse_xsd_datetime,
 )
 from prov.serializers.provrdf import ProvRDFException
-from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
+from prov.tests.conftest import (
+    ROUNDTRIP_FORMATS,
+    TEXT_FORMATS,
+    ex_document,
+    roundtrip_document,
+)
 from prov.tests.format_errors import READER_ERRORS
 
 UTC = datetime.timezone.utc
@@ -324,6 +329,45 @@ def test_every_reader_keeps_a_typed_time_with_a_long_fraction_as_a_literal(fmt) 
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         assert ProvDocument.deserialize(content=text, format=fmt) == document
+
+
+class _NanosecondDatetime(datetime.datetime):
+    """A datetime whose isoformat() carries nine fractional digits, as a pandas
+    Timestamp holding nanoseconds does. The value needs a non-zero fraction."""
+
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
+        text = super().isoformat(sep, timespec)
+        fraction = f".{self.microsecond:06d}"
+        return text.replace(fraction, fraction + "789", 1)
+
+
+def _a_document_timed_with(
+    cls: type[datetime.datetime], attribute_value: object
+) -> ProvDocument:
+    start = cls(2026, 11, 22, 10, 0, 5, 123456, tzinfo=UTC)
+    document = ex_document()
+    document.activity("ex:a1", start, start)
+    document.entity("ex:e1", {"ex:t": attribute_value, "prov:time": start})
+    document.generation("ex:e1", "ex:a1", start)
+    return document
+
+
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+def test_a_time_of_a_statement_is_written_to_the_microsecond(fmt) -> None:
+    # A datetime subclass with a longer fraction, such as a nanosecond pandas
+    # Timestamp, gives a statement time every reader takes, truncated to
+    # microseconds. An attribute value keeps the text of its own isoformat().
+    long_value = _NanosecondDatetime(2026, 11, 22, 10, 0, 5, 123456, tzinfo=UTC)
+    document = _a_document_timed_with(_NanosecondDatetime, long_value)
+    # PROV-O normalises the text, so its value reads as a truncated datetime.
+    kept = Literal("2026-11-22T10:00:05.123456789+00:00", XSD_DATETIME)
+    expected_value = (
+        kept
+        if fmt in TEXT_FORMATS
+        else datetime.datetime(2026, 11, 22, 10, 0, 5, 123456, tzinfo=UTC)
+    )
+    expected = _a_document_timed_with(datetime.datetime, expected_value)
+    assert roundtrip_document(document, fmt) == expected
 
 
 def test_prov_o_truncates_a_fraction_beyond_six_digits() -> None:

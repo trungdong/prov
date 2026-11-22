@@ -250,13 +250,17 @@ def _xsd_double_text(value: float) -> str:
     return float.__repr__(value)
 
 
-def _xsd_datetime_text(value: datetime.datetime) -> str:
+def _xsd_datetime_text(value: datetime.datetime, *, statement: bool = False) -> str:
     """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
-    whole number of minutes (historical LMT offsets) is normalised to UTC."""
+    whole number of minutes (historical LMT offsets) is normalised to UTC.
+
+    A time of a statement (``statement=True``) is written by ``datetime``'s own
+    ``isoformat``, so a subclass's longer fraction is cut to microseconds, which
+    every reader takes. An attribute value keeps its own ``isoformat`` text."""
     offset = value.utcoffset()
     if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
         value = value.astimezone(datetime.timezone.utc)
-    return value.isoformat()
+    return datetime.datetime.isoformat(value) if statement else value.isoformat()
 
 
 # How prov spells a Python value, in lookup order: the plain types first
