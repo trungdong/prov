@@ -34,7 +34,7 @@ Write `<work>/ledger/<module>.judge.md`:
 
 - `# Judge: <module>.py` and one line with the counts.
 - A table with one row for each ruling: `Proposal | Items | Ruling | Reason`. The Reason is one or two sentences that a later reader can check against the code. It names the test and the rows that keep the behaviour pinned, or the fault or the promise that keeps the candidate. It cites the issue that underpins the test, as `#532`, and the functions and the lines it relies on, as `_decode_time` (`provjson.py:722`).
-- `## Final list`: for removals, the exact pytest ids ruled `remove`, or for a dropped section the test and the patch, each with the test or rows that take over its job, each other test that a planted fault showed also catches its fault (a second catcher), and its reason in one clause. For merges, the original function names, the new name and any change required.
+- `## Final list`: for removals, the exact pytest ids ruled `remove`, or for a dropped section the test and the patch, each with the test or rows that take over its job, each test other than the takeover that a planted fault showed also catches its fault, named by function as `module.py::function` (a second catcher), and its reason in one clause. For merges, the original function names, the new name and any change required.
 - `## Notes for the maintainer`: the advice on each `rewrite` and `query`, each disagreement with an earlier layer and why, each limit of the evidence the maintainer should know, and each flag.
 
 Write plain British English with no em dashes. State each ruling directly. Where you are unsure, the ruling is `keep`, and you say what would change it.

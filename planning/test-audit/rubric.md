@@ -155,7 +155,7 @@ Rules for a row a later layer ruled:
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost. A `merged` row also names in full, as `module.py::function`, each test that still pins a form a joining row replaced.
 - A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes. When a corpus row took over, it also names the corpus file.
-- The row of a test that went, or that lost rows or a section, also names each second catcher the judge's `## Final list` names by function, as `module.py::function`, with the planted fault it catches. A second catcher is a test other than the takeover that also fails under that fault. It gets no row of its own.
+- The row of a test that went, or that lost rows or a section, also names each second catcher the judge's `## Final list` names by function, as `module.py::function`, with the planted fault it catches. A second catcher is a test, other than the takeover, that fails under a fault the judge planted against the test, rows or section that went. It gets no row of its own.
 
 `scripts/register.py check` sorts every test function into one of these groups.
 
