@@ -245,10 +245,13 @@ one of the statement's own arguments are errors.
   `prov:hadGeneration` pointing at an anonymous generation, is dropped with a `ProvWarning`
   naming the subject and the predicate. A blank node that is an element's subject resolves as
   that element's identifier does, so it needs the default namespace the element itself needs.
-- A subject typed with none of `prov:Entity`, `prov:Activity`, `prov:Agent` and the relation
-  classes, such as `ex:orphan a ex:Custom` or `ex:plan a prov:Plan`, reads as no statement,
-  and one `ProvWarning` lists its `rdf:type` triples. Its other triples, and those of an
-  untyped subject with no PROV predicate, are skipped without a warning.
+- A subject typed with no PROV class, such as `ex:orphan a ex:Custom`, gets no record of its
+  own, and neither does an IRI subject typed only with an element subclass, such as
+  `ex:plan a prov:Plan` without `prov:Entity`. One `ProvWarning` for each document or bundle
+  lists these subjects and their types. Their relation triples, such as
+  `prov:wasDerivedFrom`, still read as relations. Their other triples, and the non-relation
+  triples of an untyped subject, are skipped without a warning
+  ([#827](https://github.com/trungdong/prov/issues/827)).
 - The document declares the source's own prefix bindings and the namespaces its names use,
   not rdflib's default prefix bindings. A source declaration identical to one of those
   defaults, such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name,

@@ -38,8 +38,7 @@ class ProvFutureRejectionWarning(ProvWarning):
 class _SkippedDataWarning(ProvWarning, UserWarning):
     """A reader's warning about skipped data.
 
-    It is a ``UserWarning`` too, so that filters written for 3.3.0 or
-    earlier keep matching. 4.0 removes it in favour of ``ProvWarning``.
+    The ``ProvWarning`` docstring says why it is also a ``UserWarning``.
     """
 
 

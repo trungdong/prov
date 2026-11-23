@@ -340,6 +340,8 @@ def test_other_elements() -> None:
         "Document contains non-PROV information in <prov:other>. It will "
         "be ignored in this package." in str(w[0].message)
     )
+    assert issubclass(w[0].category, prov.ProvWarning)
+    assert issubclass(w[0].category, UserWarning)
 
     # This document contains nothing else.
     assert len(doc._records) == 0
@@ -579,11 +581,14 @@ def test_unrepresentable_sub_element_attribute_warns_and_is_ignored() -> None:
         with io.StringIO(xml_string) as xml:
             doc = prov.ProvDocument.deserialize(source=xml, format="xml")
 
-    assert any(
-        "not representable in the prov module's internal data model"
-        in str(warning.message)
+    (unrepresentable,) = [
+        warning
         for warning in w
-    )
+        if "not representable in the prov module's internal data model"
+        in str(warning.message)
+    ]
+    assert issubclass(unrepresentable.category, prov.ProvWarning)
+    assert issubclass(unrepresentable.category, UserWarning)
     e1 = doc.get_record("ex:e1")[0]
     assert list(e1.get_attribute("ex:version")) == ["2"]
 

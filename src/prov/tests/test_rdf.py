@@ -1919,7 +1919,7 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
             "_:a a prov:Activity ; prov:wasAssociatedWith ex:ag ;"
             " prov:qualifiedAssociation"
             " [ a prov:Association ; prov:agent ex:ag ; prov:hadPlan ex:plan ] .\n"
-            "ex:ag a prov:Agent . ex:plan a prov:Entity , prov:Plan .\n",
+            "ex:ag a prov:Agent . ex:plan a prov:Plan .\n",
             pm.ProvAssociation,
             {("http://example.org/ag", "http://example.org/plan")},
         ),
@@ -1930,7 +1930,7 @@ def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
             " [ a prov:Association ; prov:agent ex:ag1 ; prov:hadPlan ex:p1 ] ,"
             " [ a prov:Association ; prov:agent ex:ag2 ; prov:hadPlan ex:p2 ] .\n"
             "ex:ag1 a prov:Agent . ex:ag2 a prov:Agent .\n"
-            "ex:p1 a prov:Entity , prov:Plan . ex:p2 a prov:Entity , prov:Plan .\n",
+            "ex:p1 a prov:Plan . ex:p2 a prov:Plan .\n",
             pm.ProvAssociation,
             {
                 ("http://example.org/ag1", "http://example.org/p1"),
@@ -1962,6 +1962,9 @@ def test_a_blank_node_subject_finds_its_qualification(
     turtle = _TURTLE_PREFIXES + _DEFAULT_PREFIX + body
     with warnings.catch_warnings():
         warnings.simplefilter("error", pm.ProvWarning)
+        # A plan typed only prov:Plan is no record, so its type is reported
+        # as not converted.
+        warnings.filterwarnings("ignore", message=NOT_CONVERTED)
         document = ProvDocument.deserialize(
             content=turtle, format="rdf", rdf_format="turtle"
         )
@@ -2471,12 +2474,13 @@ def test_unmapped_subject_still_warns_and_is_named() -> None:
     ex:orphan a ex:Custom .
     """
 
-    with pytest.warns(UserWarning, match=NOT_CONVERTED) as record:
+    with pytest.warns(pm.ProvWarning, match=NOT_CONVERTED) as record:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
     # Filter to UserWarnings only (rdflib may emit DeprecationWarnings)
     user_warnings = [r for r in record if issubclass(r.category, UserWarning)]
     assert len(user_warnings) == 1
+    assert issubclass(user_warnings[0].category, pm.ProvWarning)
     message = str(user_warnings[0].message)
     assert "http://example.org/orphan" in message
     assert "http://example.org/e1" not in message

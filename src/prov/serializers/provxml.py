@@ -325,8 +325,8 @@ class ProvXMLSerializer(Serializer):
 
         Warns:
             ProvWarning: For each ``<prov:other>`` child, which is otherwise
-                ignored, and for each record the model refuses for a missing
-                party (``ProvMissingFormalAttribute``); the record is
+                ignored. It also warns for each record the model refuses for a
+                missing party (``ProvMissingFormalAttribute``); the record is
                 skipped, and the warning names the element and, when it has
                 one, its line.
         """
