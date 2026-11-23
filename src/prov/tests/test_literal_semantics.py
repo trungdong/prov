@@ -135,13 +135,25 @@ def test_langtag_comparison_is_case_insensitive() -> None:
     assert Literal("hello", langtag="en") != Literal("hello", langtag="fr")
 
 
-def test_langtag_case_is_preserved_in_output() -> None:
+@pytest.mark.parametrize(
+    ("fmt", "options", "written"),
+    [
+        pytest.param("json", {}, '"lang": "EN"', id="json"),
+        pytest.param("xml", {}, 'xml:lang="EN"', id="xml"),
+        pytest.param("rdf", {"rdf_format": "nt11"}, '"hello"@EN', id="rdf"),
+        pytest.param("jsonld", {}, '"@language": "EN"', id="jsonld"),
+        pytest.param("provn", {}, '"hello"@EN', id="provn"),
+    ],
+)
+def test_langtag_case_is_preserved_in_output(
+    fmt: str, options: dict[str, str], written: str
+) -> None:
     # #259 non-goal: the stored tag is not normalised -- output stays verbatim.
     document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hello", langtag="EN")})
-    content = document.serialize(format="json")
+    content = document.serialize(format=fmt, **options)
     assert content is not None
-    assert '"lang": "EN"' in content
+    assert written in content
 
 
 def test_rdf_plain_string_emitted_without_xsd_string() -> None:
