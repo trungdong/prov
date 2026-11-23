@@ -130,7 +130,7 @@ in `test_model.py` unless noted):
 
 ## src/prov/dot.py — 89% → 96% (T13)
 
-- [x] `htlm_link_if_uri()` returns an `<a href>` for values with a `.uri` and `str(value)` otherwise — **T13** (`test_dot.py::HtlmLinkIfUriTest`; the function is unused internally by `prov_to_dot()` but is a public module-level helper)
+- [x] `htlm_link_if_uri()` returns an `<a href>` for values with a `.uri` and `str(value)` otherwise — **T13** (`test_dot.py::HtlmLinkIfUriTest`; the function is unused internally by `prov_to_dot()` but is a public module-level helper). Removed with its tests in 3.3.1 (#836).
 - [x] Invalid `direction` argument falls back to `"BT"` — **T13** (`ProvToDotDirectionTest`)
 - [x] `show_element_attributes=False` skips the attribute-annotation node (found while covering this module; every other test left it at its `True` default) — **T13** (`ProvToDotShowElementAttributesTest`)
 - [x] `use_labels=True` rendering, `label != identifier` variant (the realistic case) — **T13** (`ProvToDotUseLabelsTest`). The `label == identifier` variant (dot.py:281-282) is **deferred**: `ProvRecord.label` always returns a plain `str`, `.identifier` is always a `QualifiedName`, and `str.__eq__`/`QualifiedName.__eq__` can never consider the two equal regardless of content (confirmed empirically: `entity.label == entity.identifier` is `False` even when their string forms match) — this branch is dead for any real record.

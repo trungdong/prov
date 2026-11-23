@@ -58,6 +58,9 @@
   On 3.10, an upgrade from 3.2.3 meets the changes in
   [Upgrading to prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
   ([#778](https://github.com/trungdong/prov/issues/778))
+- `prov.dot` no longer has `htlm_link_if_uri()`, which was never public API
+  and which nothing in `prov` called
+  ([#836](https://github.com/trungdong/prov/issues/836))
 
 ## 3.3.0 (2026-11-08)
 
