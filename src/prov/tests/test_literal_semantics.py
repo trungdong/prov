@@ -31,7 +31,6 @@ from prov.constants import (
 from prov.model import Identifier, Literal, ProvDocument, ProvValueError, QualifiedName
 from prov.serializers.provjson import ProvJSONException
 from prov.tests.conftest import (
-    EX_URI,
     ROUNDTRIP_FORMATS,
     TEXT_FORMATS,
     ex_document,
@@ -157,24 +156,14 @@ def test_langtag_case_is_preserved_in_output(
     assert written in content
 
 
-@pytest.mark.parametrize(
-    ("fmt", "options"),
-    [
-        pytest.param("json", {}, id="json"),
-        pytest.param("xml", {}, id="xml"),
-        pytest.param("rdf", {"rdf_format": "nt11"}, id="rdf"),
-        pytest.param("jsonld", {}, id="jsonld"),
-        pytest.param("provn", {}, id="provn"),
-    ],
-)
-def test_langtag_case_is_preserved_on_read(fmt: str, options: dict[str, str]) -> None:
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+def test_langtag_case_is_preserved_on_read(fmt: str) -> None:
     # #259 non-goal: a reader keeps the tag verbatim,
     # and equality ignores its case.
     document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hello", langtag="EN")})
-    content = document.serialize(format=fmt, **options)
-    read = ProvDocument.deserialize(content=content, format=fmt, **options)
-    (value,) = read.get_record(f"{EX_URI}e1")[0].get_attribute(f"{EX_URI}a")
+    value = _single_value(roundtrip_document(document, fmt))
+    assert isinstance(value, Literal)
     assert value.langtag == "EN"
 
 
