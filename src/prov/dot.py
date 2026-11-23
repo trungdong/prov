@@ -235,25 +235,6 @@ def _value_cell(value: Any) -> tuple[str, str]:
     return "", escape(str(value))
 
 
-def htlm_link_if_uri(value: Any) -> str:
-    """Render an attribute value as an HTML anchor if it has a ``uri``, else as plain text.
-
-    Args:
-        value: Attribute value to render; typically an
-            :class:`~prov.identifier.QualifiedName` (which has a ``uri``
-            attribute) or a plain literal.
-
-    Returns:
-        An ``<a href="...">`` HTML fragment linking to ``value.uri`` if
-        ``value`` has a ``uri`` attribute, otherwise ``str(value)``.
-    """
-    try:
-        uri = value.uri
-        return f'<a href="{uri}">{value!s}</a>'
-    except AttributeError:
-        return str(value)
-
-
 DotContainer: typing.TypeAlias = pydot.Dot | pydot.Cluster
 
 

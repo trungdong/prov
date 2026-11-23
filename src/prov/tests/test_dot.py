@@ -12,7 +12,7 @@ import pytest
 
 pydot = pytest.importorskip("pydot")
 
-from prov.dot import htlm_link_if_uri, prov_to_dot
+from prov.dot import prov_to_dot
 from prov.model import Identifier, ProvBundle, ProvDocument, ProvUnificationError
 from prov.tests import examples
 
@@ -34,24 +34,6 @@ def test_svg_render(build) -> None:
         "The size of the generated SVG content should be greater than "
         f"{MIN_SVG_SIZE} bytes"
     )
-
-
-# Covers dot.htlm_link_if_uri() (planning/test-gap-checklist.md, T13 item under
-# dot.py); not called internally by prov_to_dot() but a module-level function
-# usable by external callers.
-
-
-def test_value_with_uri_becomes_a_link() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://example.org/")
-    e1 = doc.entity("ex:e1")
-    result = htlm_link_if_uri(e1.identifier)
-    assert "<a href=" in result
-    assert "http://example.org/e1" in result
-
-
-def test_plain_value_returned_as_str() -> None:
-    assert htlm_link_if_uri("just a string") == "just a string"
 
 
 # Covers the direction-validation fallback in prov_to_dot() (docs/test-gap-
