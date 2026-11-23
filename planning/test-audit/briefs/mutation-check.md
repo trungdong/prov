@@ -18,14 +18,12 @@ Does the suite lose anything without them?
 
 ## Steps
 
-For a dropped section, apply its patch wherever a step deselects the candidates, and in step 2 compare the suite's covered arcs with and without the patch.
-
 1. Get the exact ids from `pytest --collect-only -q`. If the mapping from the names above to ids is not obvious, stop and report.
-2. Coverage. From `<work>/evidence/coverage-contexts.sqlite`, list the source files under `src/prov/` (outside `src/prov/tests/`) that the candidates reach, and every arc that only the candidates cover. `<repo>/planning/test-audit/scripts/coverage_nominations.py` shows how to read the file.
-3. Baseline. Take the files the Scope section of `mutation.md` gives for a removal. Count their mutants and record the commands before the baseline runs, as the section Count the mutants of `mutation.md` says. Then run the mutation baseline on them. Use the whole suite as the killing suite. Save the per-mutant results.
-4. Prove that the deselection takes effect: the collected count must fall by the number of candidates. For an id that is a prefix of another, follow `mutation.md` (Pitfalls).
+2. Coverage. From `<work>/evidence/coverage-contexts.sqlite`, list the source files under `src/prov/` (outside `src/prov/tests/`) that the candidates reach, and every arc that only the candidates cover. `<repo>/planning/test-audit/scripts/coverage_nominations.py` shows how to read the file. For a dropped section, run the test alone under branch coverage, without and with the patch. The section's arcs are those in `src/prov` outside `src/prov/tests/` that the first run covers and the second does not. An arc only the section covers is one of them that no context in the evidence file covers apart from the test's own. Restore the test module and check that `git status --short -- src/` prints nothing.
+3. Baseline. Take the files the Scope section of `mutation.md` gives for a removal, reading a dropped section's arcs where it says the candidates cover a line. Count their mutants and record the commands before the baseline runs, as the section Count the mutants of `mutation.md` says. Then run the mutation baseline on them. Use the whole suite as the killing suite. Save the per-mutant results.
+4. Prove that the deselection takes effect: the collected count must fall by the number of candidates. For an id that is a prefix of another, follow `mutation.md` (Pitfalls). For a dropped section, apply the patch, prove it with `git apply --check -R` and the patch's path, and keep it applied for step 5. Only the other candidates lower the count.
 5. Rerun the killed and the timed-out mutants with the candidates deselected, as `mutation.md` (Compare a removal) says. Save the results.
-6. List every mutant that was killed or timed out in the baseline and is not detected in the rerun, with `mutmut show <id>`.
+6. List every mutant that was killed or timed out in the baseline and is not detected in the rerun, with `mutmut show <id>`. For a dropped section, then restore the test module.
 
 ## Output
 
