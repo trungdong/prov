@@ -139,7 +139,10 @@ def test_langtag_comparison_is_case_insensitive() -> None:
     ("fmt", "options", "written"),
     [
         pytest.param("json", {}, '"lang": "EN"', id="json"),
+        pytest.param("xml", {}, 'xml:lang="EN"', id="xml"),
         pytest.param("rdf", {"rdf_format": "nt11"}, '"hello"@EN', id="rdf"),
+        pytest.param("jsonld", {}, '"@language": "EN"', id="jsonld"),
+        pytest.param("provn", {}, '"hello"@EN', id="provn"),
     ],
 )
 def test_langtag_case_is_preserved_in_output(
