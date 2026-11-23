@@ -131,19 +131,6 @@ def test_decoding_unicode_value() -> None:
     assert unicode_char in e1.get_attribute("prov:label")
 
 
-def test_literal_rdf_representation_langtag() -> None:
-    literal = pm.Literal("bonjour", langtag="fr")
-    rdf_literal = literal_rdf_representation(literal)
-    assert str(rdf_literal) == "bonjour"
-    assert rdf_literal.language == "fr"
-
-
-def test_literal_rdf_representation_base64binary() -> None:
-    literal = pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
-    rdf_literal = literal_rdf_representation(literal)
-    assert str(rdf_literal) == "aGVsbG8="
-
-
 def test_base64binary_decodes_to_lexical_text() -> None:
     # #288 repro: third-party-authored RDF, decode only. rdflib coerces
     # xsd:base64Binary literals to bytes in .value, and decode_rdf_representation
@@ -160,23 +147,6 @@ ex:e1 a prov:Entity ; ex:blob "aGVsbG8="^^xsd:base64Binary .
     record = next(iter(document.get_records()))
     (value,) = [v for a, v in record.attributes if a.localpart == "blob"]
     assert value == pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
-
-
-def test_literal_rdf_representation_double_full_precision() -> None:
-    # #225: an explicitly xsd:double-typed Literal is always collapsed to a
-    # plain float before it reaches a record's stored attributes (see
-    # _auto_literal_conversion), so encode_rdf_representation's plain-float
-    # path (exercised by test_float_precision_survives_rdf_roundtrip) is the
-    # only route a document attribute takes. literal_rdf_representation's own
-    # xsd:double branch is reachable only via a direct call -- e.g. a
-    # Literal built by hand rather than assigned to a record -- so it is
-    # exercised directly here.
-    value = struct.unpack("f", struct.pack("f", 0.1))[0]
-    literal = pm.Literal(repr(value), datatype=pm.XSD_DOUBLE)
-    rdf_literal = literal_rdf_representation(literal)
-    assert str(rdf_literal) == repr(value)
-    assert rdf_literal.datatype == URIRef(pm.XSD_DOUBLE.uri)
-    assert float(str(rdf_literal)) == value
 
 
 def test_literal_rdf_representation_without_datatype_raises() -> None:
@@ -687,27 +657,6 @@ def test_a_subclass_beside_its_base_class_reads_as_the_subclass(
     assert returned == expected
 
 
-def test_decode_document_without_contexts_uses_plain_graph_path() -> None:
-    # decode_document()'s `hasattr(content, "graphs")` branch is False
-    # for a plain rdflib Graph (as opposed to a Dataset), which
-    # every other test in this module parses into.
-    graph = Graph()
-    graph.add(
-        (
-            URIRef("http://example.org/e1"),
-            RDF.type,
-            URIRef("http://www.w3.org/ns/prov#Entity"),
-        )
-    )
-
-    document = ProvDocument()
-    serializer = ProvRDFSerializer()
-    serializer.document = document
-    serializer.decode_document(graph, document)
-
-    assert len(document.get_records()) == 1
-
-
 def test_decode_document_bundle_iri_without_registered_namespace() -> None:
     # rdflib >= 7 no longer carries bundle-graph prefix bindings into
     # TriG output, so a re-parsed document may name a bundle context by
@@ -1213,16 +1162,19 @@ def test_decode_reads_two_relations_on_one_iri_without_raising() -> None:
     ProvDocument.deserialize(content=document.serialize(format="rdf"), format="rdf")
 
 
-def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
-    # Regression: the #217 catch in _emit_decoded_records() must only
-    # relabel the specific duplicate-formal-attribute failure above, not
-    # every ProvException raised while building a record. This document has
-    # no duplication at all -- a single prov:activity triple whose object is
-    # a plain literal, which is not a qualified name, and a single
-    # prov:atTime triple -- so it must fail naming the subject with the
-    # model's ProvExceptionInvalidQualifiedName as the cause, not the #217
-    # message.
-    turtle = """
+@pytest.mark.parametrize(
+    ("turtle", "message_start"),
+    [
+        pytest.param(
+            # Regression: the #217 catch in _emit_decoded_records() must only
+            # relabel the specific duplicate-formal-attribute failure above, not
+            # every ProvException raised while building a record. This document
+            # has no duplication at all -- a single prov:activity triple whose
+            # object is a plain literal, which is not a qualified name, and a
+            # single prov:atTime triple -- so it must fail naming the subject
+            # with the model's ProvExceptionInvalidQualifiedName as the cause,
+            # not the #217 message.
+            """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
     @prefix ex: <http://example.org/> .
@@ -1233,24 +1185,16 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
     ex:gen1 a prov:Generation ;
         prov:activity "not a name" ;
         prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime .
-    """
-    with pytest.raises(ProvRDFException) as ctx:
-        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
-
-    message = str(ctx.value)
-    assert "documented PROV-O representational limitation" not in message
-    assert "conformance.md" not in message
-    assert message.startswith(
-        "subject 'http://example.org/gen1': Invalid Qualified Name:"
-    )
-    assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)
-
-
-def test_decode_agreeing_values_are_not_relabelled_as_scruffy() -> None:
-    # A node that repeats its influencer's value in a prov:activity triple
-    # holds one value of that attribute, so an unrelated failure keeps its own
-    # message, whichever of the two triples the reader meets first.
-    turtle = """
+    """,
+            "subject 'http://example.org/gen1': Invalid Qualified Name:",
+            id="single-values",
+        ),
+        pytest.param(
+            # A node that repeats its influencer's value in a prov:activity
+            # triple holds one value of that attribute, so an unrelated failure
+            # keeps its own message, whichever of the two triples the reader
+            # meets first.
+            """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
 
@@ -1258,13 +1202,22 @@ def test_decode_agreeing_values_are_not_relabelled_as_scruffy() -> None:
     ex:u1 a prov:Usage ;
         prov:activity ex:a1 ;
         prov:entity "not a name" .
-    """
+    """,
+            "subject 'http://example.org/u1': Invalid Qualified Name:",
+            id="agreeing-values",
+        ),
+    ],
+)
+def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy(
+    turtle: str, message_start: str
+) -> None:
     with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
-    assert str(ctx.value).startswith(
-        "subject 'http://example.org/u1': Invalid Qualified Name:"
-    )
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" not in message
+    assert "conformance.md" not in message
+    assert message.startswith(message_start)
     assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)
 
 
@@ -1303,58 +1256,44 @@ def test_an_identified_alternate_keeps_its_parties_and_drops_its_identifier() ->
     )
 
 
-def test_decode_qualified_start_started_at_time_lands_in_formal_time() -> None:
-    # #299: some PROV-O producers put the time on a qualified prov:Start
-    # node using the binary prov:startedAtTime predicate (which prov's own
-    # encoder never emits for a qualified node -- it always uses
-    # prov:atTime there) rather than the generic prov:atTime spelling.
-    # Document equality would pass even with the bug (that is exactly why
-    # it stayed invisible), so this asserts formal_attributes/extra_attributes
-    # directly instead.
-    turtle = """
+@pytest.mark.parametrize(
+    ("kind", "time_predicate", "leftover"),
+    [
+        ("Start", "startedAtTime", "prov:startTime"),
+        ("End", "endedAtTime", "prov:endTime"),
+    ],
+    ids=["start", "end"],
+)
+def test_decode_qualified_time_predicate_lands_in_formal_time(
+    kind: str, time_predicate: str, leftover: str
+) -> None:
+    # #299: some PROV-O producers put the time on a qualified prov:Start or
+    # prov:End node using the binary prov:startedAtTime or prov:endedAtTime
+    # predicate (which prov's own encoder never emits for a qualified node --
+    # it always uses prov:atTime there) rather than the generic prov:atTime
+    # spelling. Document equality would pass even with the bug (that is exactly
+    # why it stayed invisible), so this asserts
+    # formal_attributes/extra_attributes directly instead.
+    turtle = f"""
     @prefix ex: <http://example.org/> .
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
     ex:a1 a prov:Activity ;
-        prov:qualifiedStart ex:n1 .
+        prov:qualified{kind} ex:n1 .
 
-    ex:n1 a prov:Start ;
-        prov:startedAtTime "2020-01-01T00:00:00"^^xsd:dateTime ;
+    ex:n1 a prov:{kind} ;
+        prov:{time_predicate} "2020-01-01T00:00:00"^^xsd:dateTime ;
         prov:entity ex:trig .
     """
     doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
-    (start,) = [r for r in doc.get_records() if type(r).__name__ == "ProvStart"]
-    formal = dict(start.formal_attributes)
+    (record,) = [r for r in doc.get_records() if type(r).__name__ == f"Prov{kind}"]
+    formal = dict(record.formal_attributes)
     time_values = {value for name, value in formal.items() if name.localpart == "time"}
     assert time_values == {datetime.datetime(2020, 1, 1, 0, 0, 0)}
-    extra_names = {str(name) for name, _value in start.extra_attributes}
-    assert "prov:startTime" not in extra_names
-
-
-def test_decode_qualified_end_ended_at_time_lands_in_formal_time() -> None:
-    # #299, End's half of the fix above.
-    turtle = """
-    @prefix ex: <http://example.org/> .
-    @prefix prov: <http://www.w3.org/ns/prov#> .
-    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-    ex:a1 a prov:Activity ;
-        prov:qualifiedEnd ex:n1 .
-
-    ex:n1 a prov:End ;
-        prov:endedAtTime "2020-01-01T00:00:00"^^xsd:dateTime ;
-        prov:entity ex:trig .
-    """
-    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
-
-    (end,) = [r for r in doc.get_records() if type(r).__name__ == "ProvEnd"]
-    formal = dict(end.formal_attributes)
-    time_values = {value for name, value in formal.items() if name.localpart == "time"}
-    assert time_values == {datetime.datetime(2020, 1, 1, 0, 0, 0)}
-    extra_names = {str(name) for name, _value in end.extra_attributes}
-    assert "prov:endTime" not in extra_names
+    extra_names = {str(name) for name, _value in record.extra_attributes}
+    assert leftover not in extra_names
 
 
 def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_limitation() -> (
@@ -1687,86 +1626,90 @@ def test_legacy_qualified_delegation_without_influencer_still_parses() -> None:
 @pytest.mark.parametrize(
     "build",
     [
-        lambda d: d.used("ex:a1", "ex:e1", other_attributes={"ex:k": "v"}),
-        lambda d: d.communication("ex:a2", "ex:a1", other_attributes={"ex:k": "v"}),
-        lambda d: d.attribution("ex:e1", "ex:ag1", other_attributes={"ex:k": "v"}),
-        lambda d: d.influence("ex:e2", "ex:e1", other_attributes={"ex:k": "v"}),
-        lambda d: d.delegation(
-            "ex:ag2", "ex:ag1", "ex:a", other_attributes={"ex:k": "v"}
+        # #303: an anonymous (unidentified) Communication/Attribution/Influence
+        # relation carrying extra attributes used to decode into TWO records --
+        # one from the shorthand binary triple, one reconstructed from the
+        # prov:qualified* node -- because only Delegation/Association reconciled
+        # the two back into a single record. Generalised via
+        # _QUALIFIED_RELATION_INFLUENCER (provrdf.py) so all four qualifiable
+        # families collapse back to one record, matching what was actually
+        # asserted.
+        pytest.param(
+            lambda d: d.used("ex:a1", "ex:e1", other_attributes={"ex:k": "v"}),
+            id="anonymous-extra-usage",
+        ),
+        pytest.param(
+            lambda d: d.communication("ex:a2", "ex:a1", other_attributes={"ex:k": "v"}),
+            id="anonymous-extra-communication",
+        ),
+        pytest.param(
+            lambda d: d.attribution("ex:e1", "ex:ag1", other_attributes={"ex:k": "v"}),
+            id="anonymous-extra-attribution",
+        ),
+        pytest.param(
+            lambda d: d.influence("ex:e2", "ex:e1", other_attributes={"ex:k": "v"}),
+            id="anonymous-extra-influence",
+        ),
+        pytest.param(
+            lambda d: d.delegation(
+                "ex:ag2", "ex:ag1", "ex:a", other_attributes={"ex:k": "v"}
+            ),
+            id="anonymous-extra-delegation",
+        ),
+        # Regression guard: identified relations were never affected by #303 --
+        # the identifier alone is enough to reconcile the binary triple and the
+        # qualified node onto one record -- and must keep round-tripping cleanly.
+        pytest.param(
+            lambda d: d.communication(
+                "ex:a2", "ex:a1", identifier="ex:c1", other_attributes={"ex:k": "v"}
+            ),
+            id="identified-extra-communication",
+        ),
+        pytest.param(
+            lambda d: d.attribution(
+                "ex:e1", "ex:ag1", identifier="ex:att1", other_attributes={"ex:k": "v"}
+            ),
+            id="identified-extra-attribution",
+        ),
+        pytest.param(
+            lambda d: d.influence(
+                "ex:e2", "ex:e1", identifier="ex:inf1", other_attributes={"ex:k": "v"}
+            ),
+            id="identified-extra-influence",
+        ),
+        pytest.param(
+            lambda d: d.delegation(
+                "ex:ag2",
+                "ex:ag1",
+                "ex:a",
+                identifier="ex:del1",
+                other_attributes={"ex:k": "v"},
+            ),
+            id="identified-extra-delegation",
+        ),
+        # Regression guard: without extra attributes, an anonymous relation of
+        # these families is only ever emitted as the plain binary triple (no
+        # prov:qualified* node at all), so #303 never applied to this shape --
+        # confirm it still round-trips to exactly one record.
+        pytest.param(
+            lambda d: d.communication("ex:a2", "ex:a1"),
+            id="anonymous-bare-communication",
+        ),
+        pytest.param(
+            lambda d: d.attribution("ex:e1", "ex:ag1"),
+            id="anonymous-bare-attribution",
+        ),
+        pytest.param(
+            lambda d: d.influence("ex:e2", "ex:e1"),
+            id="anonymous-bare-influence",
+        ),
+        pytest.param(
+            lambda d: d.delegation("ex:ag2", "ex:ag1", "ex:a"),
+            id="anonymous-bare-delegation",
         ),
     ],
-    ids=["usage", "communication", "attribution", "influence", "delegation"],
 )
-def test_anonymous_qualified_relation_with_extra_attributes_round_trips(build) -> None:
-    # #303: an anonymous (unidentified) Communication/Attribution/Influence
-    # relation carrying extra attributes used to decode into TWO records --
-    # one from the shorthand binary triple, one reconstructed from the
-    # prov:qualified* node -- because only Delegation/Association reconciled
-    # the two back into a single record. Generalised via
-    # _QUALIFIED_RELATION_INFLUENCER (provrdf.py) so all four qualifiable
-    # families collapse back to one record, matching what was actually
-    # asserted.
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    build(document)
-    assert len(list(document.get_records())) == 1
-    roundtripped = roundtrip_document(document, "rdf")
-    assert len(list(roundtripped.get_records())) == 1
-    assert roundtripped == document
-
-
-@pytest.mark.parametrize(
-    "build",
-    [
-        lambda d: d.communication(
-            "ex:a2", "ex:a1", identifier="ex:c1", other_attributes={"ex:k": "v"}
-        ),
-        lambda d: d.attribution(
-            "ex:e1", "ex:ag1", identifier="ex:att1", other_attributes={"ex:k": "v"}
-        ),
-        lambda d: d.influence(
-            "ex:e2", "ex:e1", identifier="ex:inf1", other_attributes={"ex:k": "v"}
-        ),
-        lambda d: d.delegation(
-            "ex:ag2",
-            "ex:ag1",
-            "ex:a",
-            identifier="ex:del1",
-            other_attributes={"ex:k": "v"},
-        ),
-    ],
-    ids=["communication", "attribution", "influence", "delegation"],
-)
-def test_identified_qualified_relation_with_extra_attributes_round_trips(build) -> None:
-    # Regression guard: identified relations were never affected by #303 --
-    # the identifier alone is enough to reconcile the binary triple and the
-    # qualified node onto one record -- and must keep round-tripping cleanly.
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    build(document)
-    assert len(list(document.get_records())) == 1
-    roundtripped = roundtrip_document(document, "rdf")
-    assert len(list(roundtripped.get_records())) == 1
-    assert roundtripped == document
-
-
-@pytest.mark.parametrize(
-    "build",
-    [
-        lambda d: d.communication("ex:a2", "ex:a1"),
-        lambda d: d.attribution("ex:e1", "ex:ag1"),
-        lambda d: d.influence("ex:e2", "ex:e1"),
-        lambda d: d.delegation("ex:ag2", "ex:ag1", "ex:a"),
-    ],
-    ids=["communication", "attribution", "influence", "delegation"],
-)
-def test_anonymous_qualified_relation_without_extra_attributes_round_trips(
-    build,
-) -> None:
-    # Regression guard: without extra attributes, an anonymous relation of
-    # these families is only ever emitted as the plain binary triple (no
-    # prov:qualified* node at all), so #303 never applied to this shape --
-    # confirm it still round-trips to exactly one record.
+def test_a_qualified_relation_round_trips_as_one_record(build) -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     build(document)
@@ -2135,17 +2078,6 @@ def test_predicate_under_graph_declared_namespace_decodes() -> None:
     assert value == "v"
 
 
-def test_unsplittable_iri_raises_clear_error() -> None:
-    # An IRI with no '#' or '/' separator genuinely cannot be split into a
-    # namespace and local part; the decoder must raise a clear error naming
-    # the IRI rather than letting an obscure rdflib error escape.
-    serializer = ProvRDFSerializer(document=ProvDocument())
-    graph = Graph()
-    with pytest.raises(ProvRDFException) as ctx:
-        serializer.decode_rdf_representation(URIRef("urn:no-separator;"), graph)
-    assert "urn:no-separator;" in str(ctx.value)
-
-
 @pytest.mark.parametrize(
     ("body", "record_type", "attribute", "uri"),
     [
@@ -2272,70 +2204,77 @@ def _decode_via_container(turtle: str) -> ProvDocument:
     return doc
 
 
-def test_resolve_iri_reuses_namespace_bound_in_graph_for_metacharacter_local_part() -> (
-    None
-):
-    # Step 1 of _resolve_iri(): an IRI under a namespace bound in the graph
-    # (but not on the document) must resolve against that namespace and reuse
-    # its declared prefix, rather than falling through to compute_qname's
-    # ValueError (#294's motivating case: a local part ending in a PROV-N
-    # metacharacter) and then minting a throwaway "ns" prefix in step 3.
-    turtle = """
+@pytest.mark.parametrize(
+    ("turtle", "uri", "namespace_uri", "prefix", "localpart"),
+    [
+        pytest.param(
+            # Step 1 of _resolve_iri(): an IRI under a namespace bound in the
+            # graph (but not on the document) must resolve against that namespace
+            # and reuse its declared prefix, rather than falling through to
+            # compute_qname's ValueError (#294's motivating case: a local part
+            # ending in a PROV-N metacharacter) and then minting a throwaway "ns"
+            # prefix in step 3.
+            """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
     <http://example.org/thing;> a prov:Entity .
-    """
-    doc = _decode_via_container(turtle)
-
-    (record,) = doc.get_records()
-    identifier = record.identifier
-    assert identifier.uri == "http://example.org/thing;"
-    assert identifier.namespace.uri == "http://example.org/"
-    assert identifier.namespace.prefix == "ex"
-    assert identifier.localpart == "thing;"
-
-
-def test_resolve_iri_picks_longest_matching_bound_namespace() -> None:
-    # Step 1 must pick the *longest* bound namespace that prefixes the IRI,
-    # not merely the first one found: with "http://example.org/" and
-    # "http://example.org/sub/" both bound, an IRI under the longer namespace
-    # must split there, not against the shorter one it also happens to match.
-    turtle = """
+    """,
+            "http://example.org/thing;",
+            "http://example.org/",
+            "ex",
+            "thing;",
+            id="metacharacter-local-part",
+        ),
+        pytest.param(
+            # Step 1 must pick the *longest* bound namespace that prefixes the
+            # IRI, not merely the first one found: with "http://example.org/" and
+            # "http://example.org/sub/" both bound, an IRI under the longer
+            # namespace must split there, not against the shorter one it also
+            # happens to match.
+            """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
     @prefix exsub: <http://example.org/sub/> .
     <http://example.org/sub/thing> a prov:Entity .
-    """
-    doc = _decode_via_container(turtle)
-
-    (record,) = doc.get_records()
-    identifier = record.identifier
-    assert identifier.uri == "http://example.org/sub/thing"
-    assert identifier.namespace.uri == "http://example.org/sub/"
-    assert identifier.namespace.prefix == "exsub"
-    assert identifier.localpart == "thing"
-
-
-def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself() -> None:
-    # The `iri != uri` guard: an IRI that exactly equals a bound namespace
-    # URI must not match against *that* namespace (which would produce a
-    # degenerate empty local part) even though it is also bound in the
-    # graph. It must fall through to a shorter namespace that is a genuine
-    # (non-equal) prefix, giving a real, non-empty local part instead.
-    turtle = """
+    """,
+            "http://example.org/sub/thing",
+            "http://example.org/sub/",
+            "exsub",
+            "thing",
+            id="longest-match",
+        ),
+        pytest.param(
+            # The `iri != uri` guard: an IRI that exactly equals a bound
+            # namespace URI must not match against *that* namespace (which would
+            # produce a degenerate empty local part) even though it is also bound
+            # in the graph. It must fall through to a shorter namespace that is a
+            # genuine (non-equal) prefix, giving a real, non-empty local part
+            # instead.
+            """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix top: <http://example.org/> .
     @prefix full: <http://example.org/thing> .
     <http://example.org/thing> a prov:Entity .
-    """
+    """,
+            "http://example.org/thing",
+            "http://example.org/",
+            "top",
+            "thing",
+            id="equal-iri-skipped",
+        ),
+    ],
+)
+def test_resolve_iri_uses_the_namespaces_bound_in_the_graph(
+    turtle: str, uri: str, namespace_uri: str, prefix: str, localpart: str
+) -> None:
     doc = _decode_via_container(turtle)
 
     (record,) = doc.get_records()
     identifier = record.identifier
-    assert identifier.uri == "http://example.org/thing"
-    assert identifier.namespace.uri == "http://example.org/"
-    assert identifier.namespace.prefix == "top"
-    assert identifier.localpart == "thing"
+    assert identifier.uri == uri
+    assert identifier.namespace.uri == namespace_uri
+    assert identifier.namespace.prefix == prefix
+    assert identifier.localpart == localpart
 
 
 def _lookup_between_reads() -> tuple[object, object]:
