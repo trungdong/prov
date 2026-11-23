@@ -41,6 +41,7 @@ Examine each follow-up as a proposal. Judge every test it names, and say in `## 
 - A `delete` is a hypothesis. Before you give `delete` or drop a row, write down every way the candidate's input differs from the takeover's, and check each against rules 2 and 3 of "Rules for each verdict". Compare their warning filters too, because a filter is an assertion (`rubric.md`, Rules for reading the evidence). If the source branches on any difference, a plausible fault could separate the two inputs, or you cannot tell, the verdict is `keep` or `merge`.
 - A `merge` keeps every input and every assertion in its original form, apart from what rule 4 allows a joining row. A row that joins an existing parametrised test may gain that test's assertions (rule 4), so name each one it gains in `## Proposals`. Propose a merge only when it also passes rule 5, which asks that the merged test be as easy to read as the originals.
 - Read the issue a test names before you give it a verdict.
+- Judge a test with independent sections one section at a time (`rubric.md`, rule 9). Name each section and its verdict in Note.
 - If you cannot decide a case, give `keep` with confidence `low` and say why in Note.
 
 ## Output

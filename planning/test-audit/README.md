@@ -79,6 +79,7 @@ Rules that keep the cost down and the result sound:
 - Build the evidence once for the whole suite, not once for each module.
 - Give one classifier several small modules, up to about 60 test functions in all, or a single module of up to about 70. Run classifiers for different modules in parallel.
 - A module with no proposal skips layers 3 to 5, apart from the removal verifier's planted fault for a `rewrite` (step 3). `draft` writes its `keep` and `protected` rows. Bring its `rewrite` and `query` verdicts to the maintainer with the batch's lists, and send the apply agent the answer.
+- Bring each section that a classifier's Note rules `rewrite` or `query` to the maintainer with the batch's lists, as for a test's own `rewrite` or `query` verdict.
 - Run one mutation check at a time, and never beside the gate runner or a judge.
 - Give each judge its own worktree, because a judge may plant a fault there.
 - Do not tell the judge what anyone expects it to rule.

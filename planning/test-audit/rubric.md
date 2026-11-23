@@ -57,6 +57,7 @@ A test is protected when it asserts a permanent limitation on the conformance pa
 - A test that guards a tracked issue keeps its place unless a sibling guards the same issue with an assertion at least as strict.
 - Two tests that reach the same code through different public entry points (for example a reader and the CLI) are not duplicates. An entry point is public when `test_public_api.py` freezes it or a page under `docs/reference/` documents it. A name in a module's `__all__` alone, such as `ProvNParser`, is a private name, and rule 1 of Rules for each verdict applies.
 - An error-path test is a duplicate only when the sibling raises from the same statement for the same cause.
+- A message substring that tells one cause of an exception from another is an assertion, not incidental wording, when the code raises the same class for more than one cause. Without it, a fault that sends the input to another check of the same class goes unnoticed.
 - A row of a vendored corpus test may take over a hand-written test when it raises from the same statement for the same cause and asserts at least as much. A corpus row that raises nothing takes over under the same rules as any other test. The register check follows the corpus test's text, not its corpus files, so the `removed` row names the corpus file its takeover reads.
 - An `assert_type` line, or another check that only mypy evaluates, is an assertion when the module is not on the mypy override list in `pyproject.toml`, because the mypy gate checks it on every pull request. Coverage and mutation testing cannot see it, so name the annotation it pins in Reason. A takeover must carry the same check.
 - A warning filter is one of a test's assertions. A takeover, or the named takeovers together, must turn into an error every warning category that the candidate's filter does. A takeover whose filter catches only `ProvWarning` does not take over from a test that catches every category.
@@ -71,6 +72,7 @@ A test is protected when it asserts a permanent limitation on the conformance pa
 6. **Tests that assert only "does not raise".** Such a test is held to the two checks like any other, and the only fault it can catch is a raise. A rejecting rule beside it counts as its contract, because the test guards against over-rejection. Name the rule in Reason.
 7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit moves a test only as part of a merge.
 8. **No removal without an attempted refutation.** A `delete`, a `merge`, a dropped row or a dropped section goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
+9. **A test with independent sections.** Judge each independent section (a block with its own setup and assertions) by the two checks as if it were its own test. When the sections earn different verdicts, give the test the one that asks for action (`narrow`, `rewrite` or `query`), and when more than one does, the first of those three. Name each section and its verdict in Note.
 
 ## Ledger row
 
@@ -85,7 +87,7 @@ The classifier writes one row for each test function, in file order.
 | Sibling | The nearest test that covers similar ground, as `module.py::function`, or `-` |
 | Verdict | One verdict from the table above |
 | Confidence | `high`, `medium` or `low` |
-| Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. Otherwise empty |
+| Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. For a test with independent sections, each section and its verdict (rule 9). Otherwise empty |
 
 For a `keep` or a `protected` that no later layer examines, the Pins and Reason cells become the register reason word for word, Pins first. So neither cell says which internal code the input reaches, and neither says that the test alone catches a fault. Nobody has planted a fault to show either. An argument about the code belongs in the proposal, where the verifier tests it.
 
