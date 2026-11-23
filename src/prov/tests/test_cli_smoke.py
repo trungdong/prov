@@ -9,8 +9,6 @@ import shutil
 import subprocess
 import sys
 
-from prov.scripts.compare import main as compare_main
-from prov.scripts.convert import main as convert_main
 from prov.tests.examples import primer_example
 
 
@@ -21,16 +19,6 @@ def _console_script(name):
     # contributor's machine).
     candidate = os.path.join(os.path.dirname(sys.executable), name)
     return candidate if os.path.exists(candidate) else shutil.which(name)
-
-
-def test_entry_point_functions_exist() -> None:
-    assert callable(convert_main)
-    assert callable(compare_main)
-
-
-def test_console_scripts_installed() -> None:
-    for script in ("prov-convert", "prov-compare"):
-        assert _console_script(script) is not None, f"{script} not installed"
 
 
 def test_prov_convert_and_compare_end_to_end(tmp_path) -> None:

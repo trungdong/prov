@@ -58,22 +58,22 @@ def test_plain_value_returned_as_str() -> None:
 # checklist.md, T13 item under dot.py).
 
 
-def test_invalid_direction_falls_back_to_bt() -> None:
+@pytest.mark.parametrize(
+    ("direction", "expected"),
+    [
+        pytest.param("SIDEWAYS", "BT", id="invalid-falls-back"),
+        pytest.param("LR", "LR", id="valid-kept"),
+    ],
+)
+def test_direction_sets_the_rank_direction_or_falls_back_to_bt(
+    direction: str, expected: str
+) -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
 
-    dot = prov_to_dot(doc, direction="SIDEWAYS")
-    assert dot.get_rankdir() == "BT"
-
-
-def test_valid_direction_is_preserved() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://example.org/")
-    doc.entity("ex:e1")
-
-    dot = prov_to_dot(doc, direction="LR")
-    assert dot.get_rankdir() == "LR"
+    dot = prov_to_dot(doc, direction=direction)
+    assert dot.get_rankdir() == expected
 
 
 def test_use_labels_draws_the_label_over_the_identifier_or_the_identifier_once() -> (
