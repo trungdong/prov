@@ -27,7 +27,7 @@ A test stays as it is when it passes both checks.
 | `merge` | A sibling pins the same behaviour with different input. The functions become rows of one parametrised test, or the test moves to a shared module (`test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py`) or into another module's parametrised test with the same body. Every input and every assertion stays. A test that only gains rows or functions in a merge also gets `merge`, with the incoming test as its Sibling. |
 | `narrow` | The test is sound, but one parameter axis, several rows or an independent section of its body (a block with its own setup and assertions) does not change the behaviour under test. Name the axis, the rows or the section. A dropped section is a removal. The verifier and the mutation check run with the section patched out in place of a deselected item. |
 | `delete` | Another named test fails whenever this test fails. Name that test. |
-| `rewrite` | The test pins an incidental detail (exact message wording that no document promises and that does not tell one cause from another, a private attribute, an internal call order, object identity (`is`) that no document promises, such as the object a cache or a fast path returns) and not the contract, or it passes with and without the code it guards, for example because its input never reaches the branch its name claims. Say what the assertion misses. The audit records it and does not act on it. |
+| `rewrite` | The test pins an incidental detail (exact message wording that no document promises and that does not tell one cause from another of the same class, a private attribute, an internal call order, object identity (`is`) that no document promises, such as the object a cache or a fast path returns) and not the contract, or it passes with and without the code it guards, for example because its input never reaches the branch its name claims. Say what the assertion misses. The audit records it and does not act on it. |
 | `query` | The test does a unique job, but no contract can be found, or the code it reaches is unreachable through the public API. The maintainer names the contract, or the test and its code go together in a separate change. |
 | `protected` | The test is in a protected class below. Do not judge it. |
 
@@ -72,7 +72,6 @@ A test is protected when it asserts a permanent limitation on the conformance pa
 6. **Tests that assert only "does not raise".** Such a test is held to the two checks like any other, and the only fault it can catch is a raise. A rejecting rule beside it counts as its contract, because the test guards against over-rejection. Name the rule in Reason.
 7. **A test in the wrong module.** A test that calls a different entry point from the rest of its module gets the verdict its content earns. Note the module it belongs in. The audit moves a test only as part of a merge.
 8. **No removal without an attempted refutation.** A `delete`, a `merge`, a dropped row or a dropped section goes to the judge only after a verifier tried to show that something is lost. The verifier reports every fault that the candidate alone catches and says whether a maintainer could plausibly write it. A fault is plausible when a real edit to today's code could introduce it. A fault is contrived when it needs new code that has no purpose except to break the candidate. A plausible separating fault refutes the proposal.
-9. **A test with independent sections.** Judge each independent section (a block with its own setup and assertions) by the two checks as if it were its own test. A section that would earn `delete` makes the test `narrow`, with that section dropped. A section that would earn `rewrite` or `query` gives the test that verdict. Name each section and its verdict in Note. When a section would earn `merge`, or two sections call for different actions, give `keep` with confidence `low` and report the test under Rubric problems.
 
 ## Ledger row
 
@@ -87,7 +86,7 @@ The classifier writes one row for each test function, in file order.
 | Sibling | The nearest test that covers similar ground, as `module.py::function`, or `-` |
 | Verdict | One verdict from the table above |
 | Confidence | `high`, `medium` or `low` |
-| Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. For a test with independent sections, each section and its verdict (rule 9). Otherwise empty |
+| Note | For `merge`, `narrow` and `delete`: what to do, and the fault that stays covered. Otherwise empty |
 
 For a `keep` or a `protected` that no later layer examines, the Pins and Reason cells become the register reason word for word, Pins first. So neither cell says which internal code the input reaches, and neither says that the test alone catches a fault. Nobody has planted a fault to show either. An argument about the code belongs in the proposal, where the verifier tests it.
 
@@ -156,7 +155,7 @@ Rules for a row a later layer ruled:
 - A test that was proposed for removal and kept records the fault that kept it. This stops a later audit from proposing the same removal.
 - A `narrowed` row and a `merged` row say what went or what was folded in, and why nothing was lost. A `merged` row also names in full, as `module.py::function`, each test that still pins a form a joining row replaced.
 - A `removed` row stays in the register with its reason, so that nobody adds the test back without reading it. It names the test that took over its job and the code the ruling rests on, so that the check reports the row when either changes. When a corpus row took over, it also names the corpus file.
-- A `removed` or `narrowed` row also names each second catcher the judge's `## Final list` names, as `module.py::function`, with the planted fault it catches. A second catcher is another test that a planted fault showed also catches the fault of what went. It gets no row of its own.
+- The row of a test that went, or that lost rows or a section, also names each second catcher the judge's `## Final list` names by function, as `module.py::function`, with the planted fault it catches. A second catcher is a test other than the takeover that also fails under that fault. It gets no row of its own.
 
 `scripts/register.py check` sorts every test function into one of these groups.
 
