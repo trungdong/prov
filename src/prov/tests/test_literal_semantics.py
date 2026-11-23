@@ -156,6 +156,17 @@ def test_langtag_case_is_preserved_in_output(
     assert written in content
 
 
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+def test_langtag_case_is_preserved_on_read(fmt: str) -> None:
+    # #259 non-goal: a reader keeps the tag verbatim,
+    # and equality ignores its case.
+    document = ex_document()
+    document.entity("ex:e1", {"ex:a": Literal("hello", langtag="EN")})
+    value = _single_value(roundtrip_document(document, fmt))
+    assert isinstance(value, Literal)
+    assert value.langtag == "EN"
+
+
 def test_rdf_plain_string_emitted_without_xsd_string() -> None:
     # #89: one canonical form for string literals -- the plain literal.
     document = ex_document()
