@@ -14,7 +14,7 @@ from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, Dataset, Graph
 from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
-from prov._warnings import warn
+from prov._warnings import _SkippedDataWarning, warn
 from prov.constants import (
     PROV,
     PROV_ALTERNATE,
@@ -1579,7 +1579,7 @@ class ProvRDFSerializer(Serializer):
                 usable attribute value.
 
         Warns:
-            UserWarning: If, after decoding, some attributes could not be
+            ProvWarning: If, after decoding, some attributes could not be
                 matched to any formal attribute or converted.
         """
         state = _DecodeState()
@@ -1593,7 +1593,7 @@ class ProvRDFSerializer(Serializer):
             warn(
                 "The following attributes were not converted: "
                 + str(state.other_attributes),
-                UserWarning,
+                _SkippedDataWarning,
             )
 
     def _decode_type_triples(self, graph: Graph, state: "_DecodeState") -> None:

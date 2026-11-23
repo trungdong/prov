@@ -1849,7 +1849,7 @@ def test_blank_node_behind_a_relation_is_dropped(predicate: str, typed: bool) ->
 def test_blank_node_for_a_membership_entity_drops_then_skips() -> None:
     # The blank node names no record, so prov:entity is dropped (#639), and the
     # membership then lacks its entity and is skipped; neither leaves a
-    # conversion UserWarning behind.
+    # conversion warning behind.
     turtle = _TURTLE_PREFIXES + "ex:m a prov:Membership ; prov:collection ex:c ;"
     turtle += " prov:entity [] .\n"
     with warnings.catch_warnings(record=True) as caught:
@@ -1864,7 +1864,6 @@ def test_blank_node_for_a_membership_entity_drops_then_skips() -> None:
         " record; the attribute is dropped",
         "subject 'http://example.org/m': hadMember requires a value for prov:entity",
     ]
-    assert not [w for w in caught if w.category is UserWarning]
     assert list(document.get_records()) == []
 
 
@@ -1963,6 +1962,9 @@ def test_a_blank_node_subject_finds_its_qualification(
     turtle = _TURTLE_PREFIXES + _DEFAULT_PREFIX + body
     with warnings.catch_warnings():
         warnings.simplefilter("error", pm.ProvWarning)
+        # A plan typed only prov:Plan is no record, so its type is reported
+        # as not converted.
+        warnings.filterwarnings("ignore", message=NOT_CONVERTED)
         document = ProvDocument.deserialize(
             content=turtle, format="rdf", rdf_format="turtle"
         )
@@ -2472,12 +2474,13 @@ def test_unmapped_subject_still_warns_and_is_named() -> None:
     ex:orphan a ex:Custom .
     """
 
-    with pytest.warns(UserWarning, match=NOT_CONVERTED) as record:
+    with pytest.warns(pm.ProvWarning, match=NOT_CONVERTED) as record:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
     # Filter to UserWarnings only (rdflib may emit DeprecationWarnings)
     user_warnings = [r for r in record if issubclass(r.category, UserWarning)]
     assert len(user_warnings) == 1
+    assert issubclass(user_warnings[0].category, pm.ProvWarning)
     message = str(user_warnings[0].message)
     assert "http://example.org/orphan" in message
     assert "http://example.org/e1" not in message

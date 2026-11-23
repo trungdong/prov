@@ -1459,7 +1459,6 @@ def test_a_reader_skips_a_relation_missing_a_party(
     assert [str(w.message) for w in caught if issubclass(w.category, ProvWarning)] == [
         warning
     ]
-    assert not [w for w in caught if w.category is UserWarning]
     # The statement stays in the scope that held it: a bundle's own records, or
     # the document's.
     scope = next(iter(document.bundles), document)

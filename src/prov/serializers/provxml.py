@@ -11,7 +11,7 @@ from lxml import etree
 
 import prov.identifier
 import prov.model
-from prov._warnings import warn
+from prov._warnings import _SkippedDataWarning, warn
 from prov.constants import *
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
@@ -324,10 +324,9 @@ class ProvXMLSerializer(Serializer):
                 ``__cause__``), other than for a missing party.
 
         Warns:
-            UserWarning: For each ``<prov:other>`` child, which is otherwise
-                ignored.
-            ProvWarning: For each record the model refuses for a missing
-                party (``ProvMissingFormalAttribute``); the record is
+            ProvWarning: For each ``<prov:other>`` child, which is otherwise
+                ignored. It also warns for each record the model refuses for a
+                missing party (``ProvMissingFormalAttribute``); the record is
                 skipped, and the warning names the element and, when it has
                 one, its line.
         """
@@ -354,7 +353,7 @@ class ProvXMLSerializer(Serializer):
                 warn(
                     "Document contains non-PROV information in "
                     "<prov:other>. It will be ignored in this package.",
-                    UserWarning,
+                    _SkippedDataWarning,
                 )
                 continue
 
@@ -783,9 +782,9 @@ def _extract_attributes(
         The extracted ``(QualifiedName, value)`` pairs, in document order.
 
     Warns:
-        UserWarning: For any child attribute that is none of ``prov:ref``,
-            ``xsi:type``, or ``xml:lang``; such attributes are ignored.
-        ProvWarning: When a reference-valued attribute's prov:ref sits on a
+        ProvWarning: For any child attribute that is none of ``prov:ref``,
+            ``xsi:type``, or ``xml:lang``; such attributes are ignored. It also
+            warns when a reference-valued attribute's prov:ref sits on a
             nested child element (see ``_nested_reference``).
 
     Raises:
@@ -832,7 +831,7 @@ def _extract_attributes(
                     f"The element '{_t}' contains an attribute {key!s}='{value!s}' "
                     "which is not representable in the prov module's "
                     "internal data model and will thus be ignored.",
-                    UserWarning,
+                    _SkippedDataWarning,
                 )
 
         if not subel.attrib:
