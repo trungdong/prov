@@ -16,6 +16,8 @@ You are the verifier in a test-suite audit of the Python library `prov`. A class
 
 <list each proposal, one row at a time for a parametrised test>
 
+For a dropped section, make its patch before the method below. In your worktree, delete the section from its first line to its last assertion, then one of two blank lines the deletion leaves together, save `git diff` of the test module as `/tmp/<module>.section.patch`, and restore with `git checkout -- src/`. Apply the patch to clean source, run the whole suite, then restore. When the narrowed test fails, the section is not independent, and the verdict is REFUTED. `git apply --check -R` with the patch's path succeeds only while the patch is applied, so use it to prove each application.
+
 For a `rewrite` in the list, skip the method below. Remove the guarded code the list names and run the candidate alone. When it fails, the verdict is REFUTED. When it passes, the verdict is STANDS, and you run the whole suite and name every test that fails.
 
 ## Method, for each proposal or row
@@ -26,10 +28,10 @@ A. Read. State what the candidate asserts that the takeover does not: a differen
 
 B. Plant faults. Write up to four small, plausible faults in the source the candidate exercises, one at a time. A plausible fault is one a real edit could introduce: a guard narrowed so it misses the candidate's input shape, one attribute name special-cased, the second element of a list mishandled, an order changed, a field dropped from a message. When the candidate's warning filter turns more categories into errors than the takeovers' filters do, make one fault raise a warning in a category outside the takeovers' filters (`rubric.md`, Rules for reading the evidence). When the candidate asserts a message substring that tells its cause from another of the same exception class, and the takeovers do not, make one fault send the input to the check that raises the same class for that other cause. For each fault:
 
-1. Run the candidate alone. If it still passes, the fault is not relevant. Try another.
-2. If it fails, run the WHOLE suite with the candidate deselected. Pass each id to `--deselect` exactly as `pytest --collect-only -q` prints it, and check that the collected count fell by the right number. For an id that is a prefix of another, follow `mutation.md` (Pitfalls). For a row, also deselect the other rows proposed for removal from the same test. When another proposal names this candidate as its takeover, or this candidate's takeover is itself proposed, deselect them together. For a dropped section, apply the patch that deletes it in place of `--deselect`, and apply it again after each restore in step 4.
+1. Run the candidate alone. If it still passes, the fault is not relevant. Try another. For a dropped section, run the test, and when it fails, run it again with the patch applied. The fault is relevant only when the patched test passes, because otherwise the test's other sections catch it.
+2. If it fails, run the WHOLE suite with the candidate deselected. Pass each id to `--deselect` exactly as `pytest --collect-only -q` prints it, and check that the collected count fell by the right number. For an id that is a prefix of another, follow `mutation.md` (Pitfalls). For a row, also deselect the other rows proposed for removal from the same test. When another proposal names this candidate as its takeover, or this candidate's takeover is itself proposed, deselect them together. For a dropped section, the patch from step 1 stays applied and the narrowed test stays collected. Wherever this step deselects another test whose section is proposed, apply that section's patch in its place.
 3. If the whole suite passes, the fault separates the candidate. Record the diff, and say whether a maintainer could plausibly write it (rule 8).
-4. Restore the source with `git checkout -- src/` and confirm `git status --short` is clean before the next fault.
+4. After each fault, relevant or not, restore the source with `git checkout -- src/` and confirm `git status --short` is clean before the next fault.
 
 A fault that makes the candidate fail and another test fail too is evidence for the proposal. Record which tests failed.
 
@@ -39,7 +41,7 @@ The test command is `uv run --python 3.12 --extra rdf --extra xml --extra dot --
 
 ## Output
 
-Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with the function and the line it changes and its result. For a proposal that stands, list every separating fault you found and why it is contrived. For a dropped section, end its section with the patch that deletes it, as `git diff` prints it, so the coordinator can save it as `<work>/ledger/<module>.section.patch`. Plain British English, no em dashes. Give one verdict per proposal or row and use it consistently, from the first line of its section to the table.
+Return the full report in your final message. Give one section for each proposal or row with the verdict (`REFUTED`, `STANDS` or `UNDECIDED` with the reason), what the candidate uniquely asserts, and each fault tried as a short diff with the function and the line it changes and its result. For a proposal that stands, list every separating fault you found and why it is contrived. For a dropped section, end its section with the contents of `/tmp/<module>.section.patch`, whatever the verdict, so the coordinator can save it as `<work>/ledger/<module>.section.patch`. Plain British English, no em dashes. Give one verdict per proposal or row and use it consistently, from the first line of its section to the table.
 
 ## Report
 
