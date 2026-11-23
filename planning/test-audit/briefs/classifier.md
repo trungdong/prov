@@ -1,6 +1,6 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module of up to about 70 test functions, or several small modules that together hold at most about 60. When classifiers split a batch, fill `<other classifier>` with the other classifiers' modules, one bullet each, as `- src/prov/tests/<module>.py`; otherwise delete the placeholder and the paragraph after it.
+Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it, apart from one `README.md` step 3 leaves out, each section sentence with the test whose register row carries it, and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module of up to about 70 test functions, or several small modules that together hold at most about 60. When classifiers split a batch, fill `<other classifier>` with the other classifiers' modules, one bullet each, as `- src/prov/tests/<module>.py`; otherwise delete the placeholder and the paragraph after it.
 
 ---
 
@@ -24,12 +24,12 @@ Other classifiers hold the modules listed just above. Name a sibling there in fu
 
 <follow-ups>
 
-Examine each follow-up as a proposal. Judge every test it names, and say in `## Proposals` whether the follow-up holds.
+Examine each follow-up as a proposal. Judge every test it names, and say in `## Proposals` whether the follow-up holds. A section sentence (`rubric.md`, The register) is a later candidate from an earlier audit, so judge the test whose row carries it again by rule 9.
 
 ## Read first, in this order
 
 1. `<repo>/planning/test-audit/rubric.md`, all of it. It is the whole rule set. You are layer 2. Follow it exactly.
-2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests listed for the module under `## Listed tests`, and read the recorded reason before you judge one.
+2. `<repo>/planning/test-audit/register/<module>.tsv` if it exists. A test with a row there has a standing ruling. Judge only the tests listed for the module under `## Listed tests` and each test whose row carries a section sentence under `## Follow-ups`, and read the recorded reason before you judge one.
 3. `src/prov/tests/<module>.py`, all of it.
 4. The evidence rows for your module in `<work>/evidence/`: `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv`. Filter them on the module name. Look at every group in `identical_to`: read both bodies and decide whether they pin the same behaviour with different input (`merge`), different behaviour that runs the same lines (`keep`), or the same behaviour outright (`delete`).
 5. The places a sibling may live. Search the whole of `src/prov/tests/` by the behaviour (the exception message, the input shape, the function under test), not by test name. Read a candidate sibling's body before you name it.
@@ -58,4 +58,4 @@ Write plain British English with no em dashes. `Pins` is one sentence.
 
 ## Report
 
-Report only, for each module: the verdict counts, the non-keep verdicts as `function: verdict (confidence)` with the takeover or the merge target, the rubric problems, and nothing else.
+Report only, for each module: the verdict counts, the non-keep verdicts as `function: verdict (confidence)` with the takeover or the merge target, each later candidate (rule 9) as `function: section, verdict`, each section sentence with whether it holds, the rubric problems, and nothing else.
