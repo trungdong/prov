@@ -36,8 +36,7 @@ def test_svg_render(build) -> None:
     )
 
 
-# Covers the direction-validation fallback in prov_to_dot() (docs/test-gap-
-# checklist.md, T13 item under dot.py).
+# Covers prov_to_dot()'s direction handling, including the BT fallback.
 
 
 @pytest.mark.parametrize(
@@ -81,9 +80,8 @@ def test_use_labels_draws_the_label_over_the_identifier_or_the_identifier_once()
 
 
 def test_show_element_attributes_false_skips_annotation() -> None:
-    """Covers prov_to_dot(show_element_attributes=False) (docs/test-gap-
-    checklist.md, T13 item under dot.py); every other test in this module
-    leaves it at its True default."""
+    """Covers prov_to_dot(show_element_attributes=False); every other test in
+    this module leaves it at its True default."""
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1", other_attributes={"ex:extra": "value"})
