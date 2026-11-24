@@ -1,6 +1,6 @@
 # Brief: classifier (layer 2, Sonnet, medium effort)
 
-Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it, apart from one `README.md` step 3 leaves out, each section sentence with the test whose register row carries it, and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module of up to about 70 test functions, or several small modules that together hold at most about 60. When classifiers split a batch, fill `<other classifier>` with the other classifiers' modules, one bullet each, as `- src/prov/tests/<module>.py`; otherwise delete the placeholder and the paragraph after it.
+Fill `<repo>`, `<work>`, `<modules>`, `<listed tests>` and `<follow-ups>` before you send this brief. `<modules>` lists each test module as a bullet, `- src/prov/tests/<module>.py`. `<listed tests>` holds, under a `### <module>.py` heading for each module, the tests the register check listed as new, changed or source moved, or "all" for a module with no register file. `<follow-ups>` holds, under a `### <module>.py` heading for each module, the `Later audit:` follow-ups the check listed for it, apart from one `README.md` step 3 leaves out, each section sentence with the test whose register row carries it, and any follow-up the coordinator holds for a module with no register, or "none". `<work>` is the audit's dated working folder under `planning/plans/`. One classifier takes one module of up to about 70 test functions, or several small modules that together hold at most about 60. When classifiers split a batch, fill `<other classifier>` with the other classifiers' modules, one bullet each, as `- src/prov/tests/<module>.py`; otherwise delete the placeholder and the paragraph after it. When two classifiers split one module (`README.md`, For the coordinator), fill `<listed tests>` with this classifier's half and `<other classifier>` with the other half's functions, one bullet each, as `- src/prov/tests/<module>.py::function`.
 
 ---
 
@@ -14,7 +14,7 @@ Take each module in turn. Wherever this brief says `<module>`, it means each of 
 
 <other classifier>
 
-Other classifiers hold the modules listed just above. Name a sibling there in full as `module.py::function` and give no verdict for a test there. A `Later audit:` sentence that names one as a `delete` candidate is not a verdict, so write it, and name the pair in `## Proposals` for the coordinator to reconcile.
+Other classifiers hold the modules or the functions listed just above. Name a sibling there in full as `module.py::function` and give no verdict for a test there. A `Later audit:` sentence that names one as a `delete` candidate is not a verdict, so write it, and name the pair in `## Proposals` for the coordinator to reconcile.
 
 ## Listed tests
 
@@ -33,7 +33,7 @@ Examine each follow-up as a proposal. Judge every test it names, and say in `## 
 3. `src/prov/tests/<module>.py`, all of it.
 4. The evidence rows for your module in `<work>/evidence/`: `provenance.tsv`, `coverage-nominations.tsv` and `item-arcsets.tsv`. Filter them on the module name. Look at every group in `identical_to`: read both bodies and decide whether they pin the same behaviour with different input (`merge`), different behaviour that runs the same lines (`keep`), or the same behaviour outright (`delete`).
 5. The places a sibling may live. Search the whole of `src/prov/tests/` by the behaviour (the exception message, the input shape, the function under test), not by test name. Read a candidate sibling's body before you name it.
-6. For the Reason column: the pages under `docs/reference/` (`conformance.md` and `serializers.md` above all, and the `autoclass` and `autofunction` directives that say which docstrings a page renders), `src/prov/tests/test_public_api.py` (the frozen public names), `docs/howto/`, `docs/development.md`, `HISTORY.md`, the specs under `planning/specs/`, and `gh issue view <n> --json title,body -q '.title,.body'` for an issue a test or its first commit names. Cite the issue number in the Reason, as `#532`, whenever one underpins the test.
+6. For the Reason column: the pages under `docs/reference/` (`conformance.md` and `serializers.md` above all, and the `autoclass` and `autofunction` directives that say which docstrings a page renders), `src/prov/tests/test_public_api.py` (the frozen public names), `docs/howto/`, `docs/development.md`, `docs/releasing.md`, `HISTORY.md`, the specs under `planning/specs/`, and `gh issue view <n> --json title,body -q '.title,.body'` for an issue a test or its first commit names. Cite the issue number in the Reason, as `#532`, whenever one underpins the test.
 
 ## Rules that earlier audits showed are easy to break
 
@@ -45,7 +45,7 @@ Examine each follow-up as a proposal. Judge every test it names, and say in `## 
 
 ## Output
 
-Write one ledger for each module, `<work>/ledger/<module>.md`:
+Write one ledger for each module, `<work>/ledger/<module>.md`, or for a split module the half-ledger the coordinator names (`<work>/ledger/<module>.A.md` or `<work>/ledger/<module>.B.md`):
 
 - A first line `# Ledger: <module>.py`, then the module's collected item count, taken from `<work>/evidence/collected-items.txt`, and a count of verdicts by kind.
 - One Markdown table with exactly the rubric's ledger columns, one row for each test function you judged, in file order. A script reads this table, so write a `|` inside a cell as `\|`.
