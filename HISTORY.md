@@ -49,6 +49,9 @@
   model cannot represent, and the PROV-O reader's warning about unconverted types, are a
   `ProvWarning`, as the conformance page says, and still a `UserWarning`, where 3.3.0 warned
   a `UserWarning` only ([#826](https://github.com/trungdong/prov/issues/826))
+- `ProvJSONEncoder` raises `TypeError` for an object it cannot encode, as `json`'s own encoder
+  does, where 3.3.0 recursed until `RecursionError`
+  ([#786](https://github.com/trungdong/prov/issues/786))
 
 ### Project
 

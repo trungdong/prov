@@ -170,8 +170,7 @@ class ProvJSONEncoder(json.JSONEncoder):
         """
         if isinstance(o, ProvDocument):
             return encode_json_document(o)
-        else:
-            return super().encode(o)
+        return super().default(o)
 
 
 class ProvJSONDecoder(json.JSONDecoder):

@@ -76,13 +76,11 @@ def test_multi_valued_prov_attribute_raises() -> None:
 
 
 def test_encoder_default_fallback_for_non_document() -> None:
-    # Pins the isolated method's contract: for anything other than a
-    # ProvDocument, default() falls back to the base encoder. In the
-    # real serialize() path json.dump() only ever hands default() the
-    # top-level ProvDocument (everything nested is already plain
-    # dicts/strings), so this branch is not reachable end-to-end today.
-    encoder = ProvJSONEncoder()
-    assert encoder.default("plain string") == '"plain string"'
+    # For anything other than a ProvDocument, default() defers to
+    # JSONEncoder.default(), so an object json cannot encode raises the
+    # TypeError that plain json raises (#786).
+    with pytest.raises(TypeError):
+        json.dumps({"x": object()}, cls=ProvJSONEncoder)
 
 
 def test_an_empty_attribute_entry_is_omitted_from_json_and_jsonld() -> None:
