@@ -58,8 +58,10 @@ def test_decoding_unicode_value() -> None:
 
 
 def test_multi_valued_prov_attribute_raises() -> None:
-    # PROV attributes (e.g. usage's prov:entity) must be single-valued;
-    # a JSON list of more than one value is rejected.
+    # PROV attributes (e.g. usage's prov:entity) must be single-valued,
+    # so a JSON list of more than one value is rejected. hadMember's
+    # prov:entity is an exception, because a list there gives one record per
+    # member.
     json_content = """{
     "prefix": {"ex": "http://example.org/"},
     "used": {

@@ -410,7 +410,7 @@ def test_record_not_equal_to_non_record(doc) -> None:
 def test_record_value_converted_from_provrecord_for_generic_attribute(doc) -> None:
     # A ProvRecord used as the value of a *generic* (non-formal) attribute
     # is converted to a QualifiedName via its identifier
-    # (_auto_literal_conversion's ProvRecord branch, model.py:415-417).
+    # (ProvRecord._auto_literal_conversion's ProvRecord branch).
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
     e2.add_attributes({"ex:ref": e1})
