@@ -9,10 +9,10 @@ Substitute the version being released for `X.Y.Z` throughout.
 1. Pre-flight on the release commit: the gates in `CONTRIBUTING.md`, then the own-warnings run,
    `uv run python benchmarks/ab.py <previous tag> --python 3.12` run twice, the second time
    with `--gc`, the suite-count comparison, and `uv build` with the wheel listing.
-2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`,
-   `docs/reference/conformance.md`, `CITATION.cff`, and `SECURITY.md`
-   when a line's support changes; the status lines and index rows of the specs the release
-   ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
+2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`, `CITATION.cff`,
+   and `SECURITY.md` when a line's support changes; the status lines and index rows of the
+   specs the release ships; `pyproject.toml` and `README.md` if a serializer changed; and
+   corrections to `docs/reference/conformance.md` where the release made a claim wrong (§2).
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
 4. Publish: `gh workflow run release.yml` as the TestPyPI dry run, then
    `gh release create X.Y.Z` with notes from `HISTORY.md`, each followed by
@@ -91,9 +91,11 @@ The stamped files, in one commit:
 | `src/prov/__init__.py` | `__version__ = "X.Y.Z"`, the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
 | `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it. The date is the UTC day the release publishes, so re-stamp it if publishing moves to another day. Add the opening summary and the action list that `.claude/rules/changelog.md` describes |
 | `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme`. An unplanned point release has no row under **Next**; add its row under **Released** directly |
-| `docs/reference/conformance.md` | Per-release revisit: verify its claims still hold |
 | `SECURITY.md` | When a line's support changes, update the supported-versions table |
 | `CITATION.cff` | `version: "X.Y.Z"`; `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
+
+Revisit `docs/reference/conformance.md` and verify that its claims still hold against the
+release. Correct any claim the release made wrong in the same commit.
 
 Also set the status line of each spec under `planning/specs/` that the release ships to
 "Complete; shipped in X.Y.Z", and its row in `planning/README.md` to "Complete" with the
@@ -234,7 +236,7 @@ floor. The places that name the floor:
 - `.github/workflows/CI.yml`: the matrix and the Coveralls `carryforward` list.
 - The interpreter loops in `Makefile` and `CONTRIBUTING.md`, and the sentence in
   `CONTRIBUTING.md` on the versions a pull request must pass on.
-- `README.md`, `docs/installation.md`, `docs/whats-new-3.md` and the `HISTORY.md` entry.
+- `README.md`, `docs/installation.md` and the `HISTORY.md` entry.
 - `ROADMAP.md`'s support-policy paragraph, in the release PR.
 - `SECURITY.md`'s supported-versions table, in the release PR.
 - `main`'s branch protection, which requires the dropped version's `pytest` check until
@@ -294,6 +296,7 @@ explain it.
 heading and `CITATION.cff` if the branch has one. `2.x` has no per-release row in
 `ROADMAP.md`, since its table stops at the last release stamped before the branch diverged;
 confirm that absence rather than assuming it, and if the row has since appeared, stamp it.
+Skip the revisit of `docs/reference/conformance.md`.
 
 **The release must target the branch.** `gh release create X.Y.Z --target 2.x`. The
 workflow triggers on `release: types: [published]` repo-wide and is not gated to a branch,
