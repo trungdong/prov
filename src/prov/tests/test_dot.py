@@ -13,7 +13,13 @@ import pytest
 pydot = pytest.importorskip("pydot")
 
 from prov.dot import prov_to_dot
-from prov.model import Identifier, ProvBundle, ProvDocument, ProvUnificationError
+from prov.model import (
+    Identifier,
+    ProvBundle,
+    ProvDocument,
+    ProvUnificationError,
+    ProvWarning,
+)
 from prov.tests import examples
 
 MIN_SVG_SIZE = 850
@@ -244,8 +250,6 @@ def test_anyuri_value_is_linked_and_shown_as_its_text() -> None:
 
 
 def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning() -> None:
-    from prov.model import ProvWarning
-
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e1")
@@ -257,8 +261,6 @@ def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning() -> None:
 
 
 def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site() -> None:
-    from prov.model import ProvWarning
-
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     bundle = document.bundle("ex:b")
