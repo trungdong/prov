@@ -1,6 +1,10 @@
 # History
 
-## 3.3.1 (unreleased)
+## 3.3.1 (2026-11-24)
+
+3.3.1 is a point release that fixes bugs in the readers, the writers and `prov-convert`,
+and supports Python 3.10 again, from 3.10.7. It reads PROV-JSON and PROV-JSONLD input
+more strictly and needs rdflib 7.1.1 or later for the `rdf` extra.
 
 ### Breaking changes
 

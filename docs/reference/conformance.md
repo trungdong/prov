@@ -2,12 +2,12 @@
 
 `prov` implements the W3C [PROV Data Model](https://www.w3.org/TR/prov-dm/) and five
 serialisations of it: PROV-JSON, PROV-XML, PROV-O (RDF), PROV-JSONLD and PROV-N. This page
-states what the current release conforms to; it was revised for 3.3.0.
+states what the current release conforms to; it was revised for 3.3.1.
 
 Summary:
 
-- Every concept in the tables below round-trips through every format, with two permanent
-  exceptions, C1 and C2.
+- Every concept in the tables below round-trips through every format, except in the
+  cases C1, C2 and C13 describe.
 - The values table says how literals behave.
 - Readers accept some output from other producers, listed under "Reading other producers'
   output".
@@ -87,13 +87,10 @@ bare in the document's default, or a rebinding of the identifier's prefix, is re
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Specialization §5.5.1 | {py:class}`~prov.model.ProvSpecialization` | `specialization()` / `specializationOf()` | `specializationOf` | ✓ | ✓ | ✓ | ✓ |
-| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ | ✓ |
+| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ C13 | ✓ |
 | Mention (PROV-Links) | {py:class}`~prov.model.ProvMention`, a {py:class}`~prov.model.ProvSpecialization` | `mention()` / `mentionOf()` | `mentionOf`, or `prov:mentionOf` with `strict=True` | ✓ | ✓ | ✓ | ✗ C2 |
 
 `alternate(a, b)` is written as the triple `a prov:alternateOf b`, PROV-DM's argument order.
-PROV-O has no qualified form for `alternateOf`, so the RDF writer drops its identifier with
-a {py:class}`~prov.model.ProvWarning`, as a strict PROV-N write does, and drops its extra
-attributes.
 
 ## Component 6: Collections
 
@@ -326,6 +323,10 @@ A table cell that cites a caveat points here. C3, C4, C11 and C12 apply to input
   triple order. A subject typed with the classes of two record types, such as
   `prov:Influence` and `prov:Derivation`, takes its record type from whichever of the two
   `rdf:type` triples the reader meets first.
+- **C13. An identified or attributed `alternateOf` (PROV-O).** PROV-O has no qualified
+  form for `alternateOf`, so the RDF writer drops its identifier with a
+  {py:class}`~prov.model.ProvWarning`, as a strict PROV-N write does, and drops its extra
+  attributes.
 
 ## Corpus evidence
 
