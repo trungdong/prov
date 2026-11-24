@@ -164,14 +164,15 @@ class ProvJSONEncoder(json.JSONEncoder):
             o: Object being encoded.
 
         Returns:
-            The result of :func:`encode_json_document` if ``o`` is a
-            :class:`~prov.model.ProvDocument`, otherwise the superclass's
-            default handling.
+            The result of :func:`encode_json_document`.
+
+        Raises:
+            TypeError: If ``o`` is not a :class:`~prov.model.ProvDocument`,
+                as :meth:`json.JSONEncoder.default` raises.
         """
         if isinstance(o, ProvDocument):
             return encode_json_document(o)
-        else:
-            return super().encode(o)
+        return super().default(o)
 
 
 class ProvJSONDecoder(json.JSONDecoder):
