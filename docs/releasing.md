@@ -11,8 +11,7 @@ Substitute the version being released for `X.Y.Z` throughout.
    with `--gc`, the suite-count comparison, and `uv build` with the wheel listing.
 2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`, `CITATION.cff`,
    and `SECURITY.md` when a line's support changes; the status lines and index rows of the
-   specs the release ships; `pyproject.toml` and `README.md` if a serializer changed; and
-   corrections to `docs/reference/conformance.md` where the release made a claim wrong (§2).
+   specs the release ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
 4. Publish: `gh workflow run release.yml` as the TestPyPI dry run, then
    `gh release create X.Y.Z` with notes from `HISTORY.md`, each followed by
