@@ -10,7 +10,7 @@ Substitute the version being released for `X.Y.Z` throughout.
    `uv run python benchmarks/ab.py <previous tag> --python 3.12` run twice, the second time
    with `--gc`, the suite-count comparison, and `uv build` with the wheel listing.
 2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`,
-   `docs/reference/conformance.md`, `docs/whats-new-3.md`, `CITATION.cff`, and `SECURITY.md`
+   `docs/reference/conformance.md`, `CITATION.cff`, and `SECURITY.md`
    when a line's support changes; the status lines and index rows of the specs the release
    ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
@@ -91,8 +91,7 @@ The stamped files, in one commit:
 | `src/prov/__init__.py` | `__version__ = "X.Y.Z"`, the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
 | `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it. The date is the UTC day the release publishes, so re-stamp it if publishing moves to another day. Add the opening summary and the action list that `.claude/rules/changelog.md` describes |
 | `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme`. An unplanned point release has no row under **Next**; add its row under **Released** directly |
-| `docs/reference/conformance.md` | Per-release revisit: verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
-| `docs/whats-new-3.md` | Update "What comes next" for the release |
+| `docs/reference/conformance.md` | Per-release revisit: verify its claims still hold |
 | `SECURITY.md` | When a line's support changes, update the supported-versions table |
 | `CITATION.cff` | `version: "X.Y.Z"`; `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
@@ -293,9 +292,8 @@ explain it.
 
 **Not all of §2's stamped files apply.** Stamp `src/prov/__init__.py`, the `HISTORY.md`
 heading and `CITATION.cff` if the branch has one. `2.x` has no per-release row in
-`ROADMAP.md`, since its table stops at the last release stamped before the branch diverged, and
-`docs/reference/conformance.md` carries no "revised for" sentence; confirm those two
-absences rather than assuming them, and if either has since gained the line, stamp it.
+`ROADMAP.md`, since its table stops at the last release stamped before the branch diverged;
+confirm that absence rather than assuming it, and if the row has since appeared, stamp it.
 
 **The release must target the branch.** `gh release create X.Y.Z --target 2.x`. The
 workflow triggers on `release: types: [published]` repo-wide and is not gated to a branch,

@@ -11,8 +11,8 @@ These rules govern every change to a page under `docs/`, a README or a docstring
    "3.2.0 added" and no benchmark percentage. A `deprecated` directive, and a compatibility
    statement that names the release it protects, keep their version.
 4. Write nothing that dates. State no measured figure tied to a machine or an interpreter and
-   no date that will pass, apart from the dates in the support policy, the per-release
-   conformance sentence and the measured figures in `benchmarks/README.md`.
+   no date that will pass, apart from the dates in the support policy and the measured
+   figures in `benchmarks/README.md`.
 5. Link to a specification and do not cite its clause numbers. Only `conformance.md` and
    code comments cite a section number.
 6. Outside the pages rule 3 names, link an issue only for an open limitation or a decision a
