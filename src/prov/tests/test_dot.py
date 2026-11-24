@@ -241,6 +241,7 @@ def test_anyuri_value_is_linked_and_shown_as_its_text() -> None:
     doc.entity("ex:e", {"ex:v": Identifier("http://example.org/target")})
     dot_text = prov_to_dot(doc).to_string()
     assert 'href="http://example.org/target"' in dot_text
+    assert ">http://example.org/target<" in dot_text
     assert "xsd:anyURI" not in dot_text
 
 
