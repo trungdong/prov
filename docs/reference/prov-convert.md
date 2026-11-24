@@ -32,7 +32,7 @@ Content detection cannot find RDF/XML. To read RDF/XML from standard input, pass
 | `-w`, `--writer-option` | `NAME=VALUE` | | Pass an option to the writer. Repeatable; the last of a repeated name wins |
 | `-r`, `--reader-option` | `NAME=VALUE` | | Pass an option to the reader. Repeatable; the last of a repeated name wins |
 | `--color` | `auto`, `always` or `never` | `auto` | Colour the output with Pygments. `auto` colours standard output on a terminal; `always` colours a file or pipe too; `never` writes plain text |
-| `-V`, `--version` | | | Print the program name and version, such as `prov-convert 3.3.0`, and exit |
+| `-V`, `--version` | | | Print the program name and version, and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `infile` | | stdin | Input file, read in `--input-format` |
 | `outfile` | | stdout | Output file, written in `--format` |

@@ -24,7 +24,7 @@ otherwise from the content, as `prov-convert` does.
 | `-F`, `--format2` | `FORMAT2` | `auto` | Format of `file2`: `auto`, `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-r`, `--reader-option1` | `NAME=VALUE` | | Pass an option to the reader of `file1`. Repeatable |
 | `-R`, `--reader-option2` | `NAME=VALUE` | | Pass an option to the reader of `file2`. Repeatable |
-| `-V`, `--version` | | | Print the program name and version, such as `prov-compare 3.3.0`, and exit |
+| `-V`, `--version` | | | Print the program name and version, and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `file1`, `file2` | | | The two files to compare; `-` reads one of them from standard input |
 
