@@ -295,8 +295,7 @@ def test_literal_provn_escapes_double_quotes(
     assert expected_fragment in string_rep
 
 
-# The following cover the Literal/datatype-parsing helpers
-# (planning/test-gap-checklist.md, T13 item under model.py: parse_boolean,
+# The following cover the Literal/datatype-parsing helpers (parse_boolean,
 # Literal __eq__/__ne__/__hash__, and the langtag-forces-InternationalizedString
 # warning).
 
@@ -338,8 +337,7 @@ def test_langtag_without_datatype_defaults_to_internationalizedstring() -> None:
     assert literal.datatype == PROV_INTERNATIONALIZEDSTRING
 
 
-# The following cover ProvException paths in ProvRecord.add_attributes()
-# (planning/test-gap-checklist.md, T13 item under model.py).
+# The following cover ProvException paths in ProvRecord.add_attributes().
 
 
 @pytest.fixture
@@ -393,10 +391,10 @@ def test_conflicting_duplicate_value_with_naive_vs_aware_datetime(doc) -> None:
     # formal attribute still compare as "different" (Python's `!=`
     # between them returns True rather than raising -- confirmed
     # separately: no PROV_ATTRIBUTES value type raises TypeError on
-    # `!=`, so the `except TypeError` branch at model.py:521-523 is
-    # dead code for any value this library can construct; left
-    # deferred per planning/test-gap-checklist.md). This still exercises
-    # the duplicate-value ProvException with two "different" datetimes.
+    # `!=`, so the `except TypeError` branch in
+    # ProvRecord._check_repeated_value is dead code for any value this
+    # library can construct). This still exercises the duplicate-value
+    # ProvException with two "different" datetimes.
     activity = doc.activity("ex:a4", startTime=datetime.datetime(2020, 1, 1))
     aware_time = datetime.datetime(2020, 1, 1, tzinfo=datetime.timezone.utc)
     with pytest.raises(ProvException):
@@ -412,7 +410,7 @@ def test_record_not_equal_to_non_record(doc) -> None:
 def test_record_value_converted_from_provrecord_for_generic_attribute(doc) -> None:
     # A ProvRecord used as the value of a *generic* (non-formal) attribute
     # is converted to a QualifiedName via its identifier
-    # (_auto_literal_conversion's ProvRecord branch, model.py:415-417).
+    # (ProvRecord._auto_literal_conversion's ProvRecord branch).
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
     e2.add_attributes({"ex:ref": e1})
@@ -592,8 +590,7 @@ def test_provexceptioninvalidqualifiedname_str() -> None:
 
 
 # The following exercise the fluent convenience wrappers on
-# ProvEntity/ProvActivity that examples.py does not otherwise reach
-# (planning/test-gap-checklist.md, T13 item under model.py).
+# ProvEntity/ProvActivity that examples.py does not otherwise reach.
 
 
 @pytest.fixture
@@ -669,7 +666,7 @@ def test_activity_set_time_end_only(ns_doc) -> None:
 
 
 # The following cover NamespaceManager branches not exercised by round-trip
-# serialization (planning/test-gap-checklist.md, T13 item under model.py).
+# serialization.
 
 
 def test_get_namespace_miss_and_hit() -> None:
@@ -772,7 +769,7 @@ def test_construction_with_default_namespace() -> None:
 
 
 # The following cover ProvBundle API edges not reached by round-trip
-# serialization (planning/test-gap-checklist.md, T13 item under model.py).
+# serialization.
 
 
 def test_standalone_bundle_properties() -> None:
@@ -807,8 +804,7 @@ def test_has_bundles_false_for_plain_bundle() -> None:
 
 
 # The following cover ProvDocument.serialize()'s file-path save path and
-# .deserialize()'s argument-validation error (planning/test-gap-checklist.md, T13
-# item under model.py, natural neighbours of the T12 read() tests).
+# .deserialize()'s argument-validation error.
 
 
 def test_serialize_to_file_path_uses_tempfile_and_move(tmp_path) -> None:
@@ -886,8 +882,7 @@ def test_equal_when_same_records_added_in_different_order() -> None:
     assert d2 == d1
 
 
-# The following covers unified()'s no-bundles loop
-# (planning/test-gap-checklist.md, T13 item under model.py).
+# The following covers unified()'s no-bundles loop.
 def test_unified_with_no_bundles() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
@@ -1011,9 +1006,7 @@ def test_the_document_argument_is_deprecated(linked: bool) -> None:
 
 
 # The following cover ProvDocument.plot()'s filename-based save path and its
-# unknown-format ValueError (planning/test-gap-checklist.md, T13 item under
-# model.py; the matplotlib/interactive-display path remains deferred, see
-# checklist).
+# unknown-format ValueError.
 
 
 @pytest.fixture

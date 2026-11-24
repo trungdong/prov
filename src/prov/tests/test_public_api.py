@@ -1,4 +1,4 @@
-"""Guards the public API surface for the 2.x line.
+"""Guards the public API surface.
 
 Three different questions are answered here:
 

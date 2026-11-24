@@ -541,8 +541,7 @@ def test_deserialization_with_xsd_as_default_namespace() -> None:
 
 
 # The following cover ProvXMLSerializer error/warning paths not reached by
-# the round-trip fixtures (planning/test-gap-checklist.md, T13 item under
-# serializers/provxml.py).
+# the round-trip fixtures.
 
 
 def test_non_prov_top_level_element_raises() -> None:

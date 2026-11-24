@@ -58,9 +58,10 @@ def test_decoding_unicode_value() -> None:
 
 
 def test_multi_valued_prov_attribute_raises() -> None:
-    # PROV attributes (e.g. usage's prov:entity) must be single-valued;
-    # a JSON list of more than one value is rejected (docs/test-gap-
-    # checklist.md, T13 item under serializers/provjson.py).
+    # PROV attributes (e.g. usage's prov:entity) must be single-valued,
+    # so a JSON list of more than one value is rejected. hadMember's
+    # prov:entity is an exception, because a list there gives one record per
+    # member.
     json_content = """{
     "prefix": {"ex": "http://example.org/"},
     "used": {
@@ -100,7 +101,7 @@ def test_third_record_with_same_identifier_appends_to_existing_list() -> None:
     # The first duplicate-identifier record turns the container entry
     # into a singleton list; a third (or later) record with the same
     # identifier must append directly to that list without re-wrapping
-    # it (planning/test-gap-checklist.md, T13 item under provjson.py).
+    # it.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.activity("ex:a1", other_attributes={"ex:tag": "one"})

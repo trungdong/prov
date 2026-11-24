@@ -1,7 +1,7 @@
 """Smoke tests for the prov-convert / prov-compare console scripts.
 
-Downstream packagers ship these entry points; they must keep working
-throughout the 2.x line. Full CLI coverage is a Phase 2 task.
+Downstream packagers ship these entry points; they must keep working.
+``test_scripts.py`` covers the scripts' code in-process.
 """
 
 import os
