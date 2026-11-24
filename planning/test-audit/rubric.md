@@ -52,8 +52,7 @@ A test is protected when it asserts a permanent limitation on the conformance pa
 ## Rules for reading the evidence
 
 - Coverage shows that a line ran. It does not show that a test checked the result. A test whose arcs sit inside another test's arcs is a candidate, and you must still read both tests. Most of the suite's test functions cover no arc of their own.
-- The round-trip tests and the Hypothesis property test run most of the package. They are never, on coverage alone, the test that takes over the job of a specific test. A specific test names its behaviour and gives a clear failure, and that has value.
-- A clearer failure report alone does not keep a test, a row or a section whose job a named takeover does. This covers how a failure reads, never a message substring that counts as an assertion. Making the takeover name the cause is a separate change.
+- The round-trip tests and the Hypothesis property test run most of the package. They are never, on coverage alone, the test that takes over the job of a specific test. A specific test names its behaviour and gives a clear failure, but a clearer failure report alone does not keep a test, a row or a section whose job a named takeover does. This covers how a failure reads, never a message substring that counts as an assertion. Making the takeover name the cause is a separate change.
 - `provenance.tsv` has two reference columns. A reference in `text_refs` is a lead. It counts as a Reason only when the test's text, its first commit or the issue itself describes the test's input. A reference in `history_refs` comes from a commit message alone and often belongs to another change in that commit, so check it against the issue's title first.
 - When an issue lists several input shapes as separate defects, each shape keeps its own test or row.
 - A test that guards a tracked issue keeps its place unless a sibling guards the same issue with an assertion at least as strict.
